@@ -150,7 +150,7 @@ export const de: Dictionary = {
 		reweStep1: 'Bei REWE anmelden ↗',
 		reweStep1Hint: '(öffnet einen neuen Tab, diese Seite offen lassen).',
 		reweStep2:
-			'Nach dem Login scheint die Seite zu hängen. Das ist normal: REWE versucht, seine App zu öffnen. Klicke unter „Netzwerk“ auf die Anfrage „authenticate“ (Status 302), öffne die „Antwortheader“ und kopiere den Wert von „location“. Er beginnt mit {prefix}.',
+			'Zeigt REWE nach dem Passwort noch einen Schritt (z. B. Passkey-Abfrage oder Code), schließe ihn ab oder überspring ihn. Sobald die Seite zu hängen scheint, versucht REWE seine App zu öffnen. Klicke unter „Netzwerk“ auf die letzte Anfrage „authenticate“ (Status 302), öffne die „Antwortheader“ und kopiere den Wert von „location“. Er beginnt mit {prefix}.',
 		reweStep3: 'Füge ihn gleich hier ein, der Code läuft nach etwa einer Minute ab:',
 		connect: 'Verbinden',
 		reweIntro:
@@ -184,7 +184,7 @@ export const de: Dictionary = {
 		reweLoginExpired: 'Anmeldung abgelaufen, bitte neu starten',
 		reweFailed: 'Verbindung fehlgeschlagen',
 		reweWrongUrl:
-			'Das ist die Adresse der Login-Seite, nicht die Weiterleitung. Kopiere stattdessen den Antwortheader „location“ der Anfrage „authenticate“ (er beginnt mit de.rewe.app://redirect?code=).',
+			'Das ist eine Adresse der REWE-Login-Seite, nicht die Weiterleitung zur App, vermutlich aus einem früheren Schritt. Nimm den „location“-Header der letzten „authenticate“-Anfrage, der mit de.rewe.app://redirect?code= beginnt. Ist der Code abgelaufen, starte über den Link oben neu.',
 		reweNoCode: 'Im eingefügten Text steckt kein ?code=…',
 		noNewEbon: 'Kein neuer REWE-eBon erkannt',
 		generic: 'Etwas ist schiefgelaufen'

@@ -151,7 +151,7 @@ export const en = {
 		reweStep1: 'Sign in at REWE ↗',
 		reweStep1Hint: '(opens a new tab – keep this page open).',
 		reweStep2:
-			'After signing in the page seems to hang. That is expected: REWE tries to open its app. In “Network”, click the request “authenticate” (status 302), open “Response headers” and copy the value of “location”. It starts with {prefix}.',
+			'If REWE shows another step after the password (e.g. a passkey prompt or a code), finish or skip it. Once the page seems to hang, REWE is trying to open its app. In “Network”, click the last request named “authenticate” (status 302), open “Response headers” and copy the value of “location”. It starts with {prefix}.',
 		reweStep3: 'Paste it here right away – the code expires after about a minute:',
 		connect: 'Connect',
 		reweIntro:
@@ -185,7 +185,7 @@ export const en = {
 		reweLoginExpired: 'Sign-in expired, please start again',
 		reweFailed: 'Connection failed',
 		reweWrongUrl:
-			'That is the login page address, not the redirect. Copy the “location” response header of the “authenticate” request instead (it starts with de.rewe.app://redirect?code=).',
+			'That is a REWE login page address, not the app redirect – probably from an earlier step. Take the “location” header of the last “authenticate” request, the one that starts with de.rewe.app://redirect?code=. Start again with the link above if the code has expired.',
 		reweNoCode: 'The pasted text contains no ?code=…',
 		noNewEbon: 'No new REWE eBon detected',
 		generic: 'Something went wrong'
