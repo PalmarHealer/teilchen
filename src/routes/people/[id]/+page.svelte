@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Amount from '#lib/components/Amount.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
@@ -43,6 +44,22 @@
 			</li>
 		</ul>
 		<p class="muted hint">{i.t('person.hint')}</p>
+	{/if}
+
+	{#if data.keptGroups.length}
+		<h2 class="section-title">{i.t('person.keptGroups')}</h2>
+		<ul class="list">
+			{#each data.keptGroups as g (g.id)}
+				<li>
+					<a class="item" href="/groups/{g.id}">
+						<GroupIcon icon={g.icon} size={28} />
+						<span class="grow">{g.name}</span>
+						<Amount cents={g.cents} signed />
+					</a>
+				</li>
+			{/each}
+		</ul>
+		<p class="muted hint">{i.t('person.keptHint')}</p>
 	{/if}
 
 	{#if data.plan.lines.length}

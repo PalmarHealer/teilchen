@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { groupBalances, isSettled, personBalances } from '#lib/ledger.ts';
+import { translate } from '#lib/i18n/index.ts';
 import { randomToken } from '#lib/server/crypto.ts';
 import { isIcon } from '#lib/server/tabler.ts';
 import { db, schema } from '#lib/server/db/index.ts';
@@ -9,6 +10,7 @@ import {
 	entriesForGroup,
 	groupMemberIds,
 	recentExpenses,
+	settleWith,
 	usersByIds
 } from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -66,9 +68,26 @@ export const actions: Actions = {
 		if (!name) return fail(400, { manageError: 'errors.nameMissing' as const });
 		await db
 			.update(schema.groups)
-			.set({ name: name.slice(0, 60), ...(isIcon(icon) ? { icon } : {}) })
+			.set({
+				name: name.slice(0, 60),
+				keepDebts: fd.get('keepDebts') === 'on',
+				...(isIcon(icon) ? { icon } : {})
+			})
 			.where(eq(schema.groups.id, params.id));
 		return { updated: true };
+	},
+
+	/** In a group that keeps its debts, two members settle what is open between them right here. */
+	settle: async ({ locals, params, request }) => {
+		const me = locals.user!.id;
+		const { group, memberIds } = await membership(params.id, me);
+		const other = (await request.formData()).get('member');
+		if (!group.keepDebts || typeof other !== 'string' || other === me || !memberIds.includes(other))
+			return fail(400, { message: 'errors.nothingToSettle' as const });
+		const title = translate(locals.locale, 'expenses.settlementTitle');
+		const plan = await settleWith(me, other, title, await entriesForGroup(params.id));
+		if (!plan.lines.length) return fail(400, { message: 'errors.nothingToSettle' as const });
+		return { settled: other };
 	},
 
 	/**

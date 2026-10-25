@@ -11,6 +11,10 @@ export interface LedgerEntry {
 	shares: { userId: string; cents: Cents }[];
 }
 
+/** Leaves out groups that keep their debts: those are settled inside the group, not netted. */
+export const withoutKept = (entries: LedgerEntry[], kept: Set<string>) =>
+	entries.filter((e) => e.contextId === null || !kept.has(e.contextId));
+
 export interface PersonBalance {
 	/** > 0: the other person owes me; < 0: I owe them. Netted across all contexts. */
 	net: Cents;

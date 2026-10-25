@@ -20,6 +20,7 @@
 	let icon = $state<string | null>(data.group.icon);
 	// svelte-ignore state_referenced_locally
 	let newCreator = $state(data.others[0]?.id ?? '');
+	const open = $derived(data.members.filter((m) => m.withMe));
 </script>
 
 <Header title={data.group.name} back="/groups">
@@ -58,7 +59,34 @@
 			</li>
 		{/each}
 	</ul>
-	<p class="muted hint">{i.t('groups.hint')}</p>
+	<p class="muted hint">
+		{i.t(data.group.keepDebts ? 'groups.hintKept' : 'groups.hint')}
+	</p>
+
+	{#if data.group.keepDebts && open.length}
+		<h2 class="section-title">{i.t('groups.settleHere')}</h2>
+		<ul class="list">
+			{#each open as m (m.id)}
+				<li class="item">
+					<Avatar name={m.name} src={m.avatarUrl} size={28} />
+					<span class="grow">{m.name}</span>
+					<form method="POST" action="?/settle" use:enhance>
+						<input type="hidden" name="member" value={m.id} />
+						<button class="btn small">
+							<Icon name="check" size={18} />
+							{m.withMe! < 0
+								? i.t('person.iPaid', { amount: i.money(-m.withMe!) })
+								: i.t('person.theyPaid', {
+										name: m.name.split(' ')[0] ?? m.name,
+										amount: i.money(m.withMe!)
+									})}
+						</button>
+					</form>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+	{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
 
 	<div class="row">
 		<a class="btn primary grow" href="/expenses/new?group={data.group.id}"
@@ -92,6 +120,13 @@
 					suggestions={GROUP_ICON_SUGGESTIONS}
 					legend={i.t('groups.icon')}
 				/>
+				<label class="toggle">
+					<input type="checkbox" name="keepDebts" checked={data.group.keepDebts} />
+					<span class="stack-tight">
+						<strong>{i.t('groups.keepDebts')}</strong>
+						<small class="muted">{i.t('groups.keepDebtsHint')}</small>
+					</span>
+				</label>
 				<button class="btn primary"><Icon name="edit" size={18} /> {i.t('groups.save')}</button>
 				{#if form?.updated}<small class="plus">{i.t('groups.saved')}</small>{/if}
 			</form>
@@ -190,5 +225,28 @@
 	.hint {
 		font-size: 0.85rem;
 		margin: 0 4px;
+	}
+	.small {
+		padding: 6px 12px;
+		min-height: 0;
+		font-size: 0.85rem;
+	}
+	.toggle {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		cursor: pointer;
+	}
+	.toggle input {
+		flex: none;
+		width: 20px;
+		height: 20px;
+		margin: 2px 0 0;
+		accent-color: var(--accent);
+	}
+	.stack-tight {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 	}
 </style>

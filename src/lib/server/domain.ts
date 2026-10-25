@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { LedgerEntry } from '#lib/ledger.ts';
-import { planPersonSettlement } from '#lib/ledger.ts';
+import { planPersonSettlement, withoutKept } from '#lib/ledger.ts';
 import type { Cents } from '#lib/money.ts';
 import { db, schema } from './db';
 
@@ -35,7 +35,7 @@ export async function contactsOf(me: string): Promise<PublicUser[]> {
 
 export async function groupsOf(me: string) {
 	return db
-		.select({ id: groups.id, name: groups.name, icon: groups.icon })
+		.select({ id: groups.id, name: groups.name, icon: groups.icon, keepDebts: groups.keepDebts })
 		.from(groups)
 		.innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
 		.where(eq(groupMembers.userId, me))
@@ -148,12 +148,24 @@ export async function createExpense(
 	return row!.id;
 }
 
+/** Groups of `me` that keep their debts inside the group instead of netting them per person. */
+export async function keptGroupIds(me: string): Promise<Set<string>> {
+	return new Set((await groupsOf(me)).filter((g) => g.keepDebts).map((g) => g.id));
+}
+
 /**
  * Person-based settlement: one net payment, but one settlement booking per context (group/direct)
- * so that every group stays consistent for all its other members.
+ * so that every group stays consistent for all its other members. Groups that keep their debts
+ * are left out; pass `entries` of just such a group to settle inside it.
  */
-export async function settleWith(me: string, other: string, title: string) {
-	const plan = planPersonSettlement(me, other, await entriesFor(me));
+export async function settleWith(
+	me: string,
+	other: string,
+	title: string,
+	entries?: LedgerEntry[]
+) {
+	entries ??= withoutKept(await entriesFor(me), await keptGroupIds(me));
+	const plan = planPersonSettlement(me, other, entries);
 	if (!plan.lines.length) return plan;
 	const batch = randomUUID();
 	await db.transaction(async (tx) => {

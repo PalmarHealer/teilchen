@@ -283,7 +283,8 @@
 				disabled={!history.length}
 				aria-label={i.t('swipe.undo')}
 			>
-				<Icon name="undo" size={18} />
+				<Icon name="undo" />
+				<small>{i.t('swipe.undoShort')}</small>
 			</button>
 			<button
 				class="round theirs"
@@ -521,8 +522,6 @@
 		white-space: nowrap;
 	}
 	.round.undo {
-		width: 44px;
-		height: 44px;
 		color: var(--muted);
 	}
 	.round.shared {

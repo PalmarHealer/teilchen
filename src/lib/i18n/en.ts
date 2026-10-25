@@ -59,6 +59,8 @@ export const en = {
 		theyPaid: '{name} paid {amount}',
 		netOut: 'Net out against each other',
 		done: 'Settled.',
+		keptGroups: 'Open in groups',
+		keptHint: 'These groups keep their debts. They are settled there, not here.',
 		expenseWith: 'Expense with {name}'
 	},
 	swipe: {
@@ -83,6 +85,7 @@ export const en = {
 		share: 'Ours',
 		theirsGroup: 'Group',
 		undo: 'Undo',
+		undoShort: 'Undo',
 		mineAria: 'Mine (left arrow)',
 		theirsAria: 'Belongs to {name} (up arrow)',
 		shareAria: 'Ours, split between all (right arrow)',
@@ -154,6 +157,11 @@ export const en = {
 		name: 'Name',
 		save: 'Save changes',
 		saved: 'Saved',
+		keepDebts: 'Keep debts in the group',
+		keepDebtsHint:
+			'Open amounts of this group are not netted with other groups or direct expenses. You settle them here in the group.',
+		hintKept: 'This group keeps its debts: what is open between you here is settled here too.',
+		settleHere: 'Settle with you',
 		leave: 'Leave group',
 		leaveConfirm: 'Really leave? Your open amounts stay on the person pages.',
 		delete: 'Delete group',

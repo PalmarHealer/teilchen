@@ -57,6 +57,9 @@ export const de: Dictionary = {
 		theyPaid: '{name} hat {amount} bezahlt',
 		netOut: 'Gegenseitig verrechnen',
 		done: 'Ausgeglichen.',
+		keptGroups: 'In Gruppen offen',
+		keptHint:
+			'Diese Gruppen lassen ihre Schulden in der Gruppe. Ausgeglichen wird dort, nicht hier.',
 		expenseWith: 'Ausgabe mit {name}'
 	},
 	swipe: {
@@ -81,6 +84,7 @@ export const de: Dictionary = {
 		share: 'Unseres',
 		theirsGroup: 'Gruppe',
 		undo: 'Rückgängig',
+		undoShort: 'Zurück',
 		mineAria: 'Meins (Pfeil links)',
 		theirsAria: 'Gehört {name} (Pfeil hoch)',
 		shareAria: 'Unseres, auf alle aufteilen (Pfeil rechts)',
@@ -153,6 +157,12 @@ export const de: Dictionary = {
 		name: 'Name',
 		save: 'Änderungen speichern',
 		saved: 'Gespeichert',
+		keepDebts: 'Schulden in der Gruppe lassen',
+		keepDebtsHint:
+			'Offene Beträge dieser Gruppe werden nicht mit anderen Gruppen oder direkten Ausgaben verrechnet. Ihr gleicht sie hier in der Gruppe aus.',
+		hintKept:
+			'Diese Gruppe lässt ihre Schulden in der Gruppe: Was ihr hier offen habt, gleicht ihr auch hier aus.',
+		settleHere: 'Mit dir ausgleichen',
 		leave: 'Gruppe verlassen',
 		leaveConfirm: 'Wirklich verlassen? Offene Beträge bleiben auf den Personenseiten erhalten.',
 		delete: 'Gruppe löschen',

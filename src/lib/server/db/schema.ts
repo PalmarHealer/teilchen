@@ -60,6 +60,8 @@ export const groups = pgTable('groups', {
 	name: text('name').notNull(),
 	/** Tabler icon name */
 	icon: text('icon').notNull().default('users'),
+	/** Debts stay in the group: settled here, not netted with other groups or direct expenses */
+	keepDebts: boolean('keep_debts').notNull().default(false),
 	createdBy: uuid('created_by')
 		.notNull()
 		.references(() => users.id),

@@ -5,6 +5,7 @@ import {
 	personBalances,
 	planPersonSettlement,
 	settlementEntries,
+	withoutKept,
 	type LedgerEntry
 } from './ledger';
 import { allocate, centsToInput, parseCents, splitEqually } from './money';
@@ -106,5 +107,18 @@ describe('groupBalances', () => {
 			inGroup('wg', 'cleo', [['ben', 1500]])
 		];
 		expect(isSettled(groupBalances(['me', 'ben', 'cleo'], paidBack))).toBe(true);
+	});
+});
+
+describe('groups that keep their debts', () => {
+	it('stay out of the per-person netting', () => {
+		const entries = [
+			inGroup('trip', 'me', [['ben', 3000]]),
+			inGroup('flat', 'ben', [['me', 1000]]),
+			direct('me', [['ben', 500]])
+		];
+		const plan = planPersonSettlement('me', 'ben', withoutKept(entries, new Set(['trip'])));
+		expect(plan.transfer).toEqual({ fromId: 'me', toId: 'ben', cents: 500 });
+		expect(plan.lines.map((l) => l.contextId).sort()).toEqual([null, 'flat'].sort());
 	});
 });
