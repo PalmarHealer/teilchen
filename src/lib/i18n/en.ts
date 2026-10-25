@@ -59,6 +59,11 @@ export const en = {
 		theyPaid: '{name} paid {amount}',
 		netOut: 'Net out against each other',
 		done: 'Settled.',
+		amount: 'Amount paid',
+		partialHint: 'Partial payment: {rest} stays open afterwards.',
+		paid: 'Payment recorded.',
+		iPaidShort: 'I paid',
+		theyPaidShort: '{name} paid',
 		keptGroups: 'Open in groups',
 		keptHint: 'These groups keep their debts. They are settled there, not here.',
 		expenseWith: 'Expense with {name}'

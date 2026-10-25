@@ -4,6 +4,7 @@ import {
 	isSettled,
 	personBalances,
 	planPersonSettlement,
+	partialSettlement,
 	settlementEntries,
 	withoutKept,
 	type LedgerEntry
@@ -120,5 +121,32 @@ describe('groups that keep their debts', () => {
 		const plan = planPersonSettlement('me', 'ben', withoutKept(entries, new Set(['trip'])));
 		expect(plan.transfer).toEqual({ fromId: 'me', toId: 'ben', cents: 500 });
 		expect(plan.lines.map((l) => l.contextId).sort()).toEqual([null, 'flat'].sort());
+	});
+});
+
+describe('partial settlement', () => {
+	// Ben owes me 30 direct and 10 in the trip, I owe him 15 in the flat: net 25 to me.
+	const entries = [
+		direct('me', [['ben', 3000]]),
+		inGroup('trip', 'me', [['ben', 1000]]),
+		inGroup('flat', 'ben', [['me', 1500]])
+	];
+	const full = planPersonSettlement('me', 'ben', entries);
+
+	it('spreads the payment over the contexts where the payer owes', () => {
+		const plan = partialSettlement(full, 1000);
+		expect(plan.transfer).toEqual({ fromId: 'ben', toId: 'me', cents: 1000 });
+		expect(plan.lines.map((l) => [l.contextId, l.cents])).toEqual([
+			[null, 750],
+			['trip', 250]
+		]);
+		const after = personBalances('me', [...entries, ...settlementEntries(plan)]).get('ben')!;
+		expect(after.net).toBe(1500);
+		expect(after.byContext.get('flat')).toBe(-1500);
+	});
+
+	it('is the full settlement for the full amount or more', () => {
+		expect(partialSettlement(full, 2500)).toEqual(full);
+		expect(partialSettlement(full, 9999)).toEqual(full);
 	});
 });

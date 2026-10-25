@@ -19,6 +19,7 @@
 	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { centsToInput } from '#lib/money.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
@@ -78,19 +79,30 @@
 		<SectionTitle>{i.t('groups.settleHere')}</SectionTitle>
 		<List.Root>
 			{#each open as m (m.id)}
-				<List.Item>
+				<List.Item class="flex-wrap">
 					<Avatar name={m.name} src={m.avatarUrl} size={28} />
 					<span class="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
-					<form method="POST" action="?/settle" use:enhance>
+					<span class="text-muted-foreground text-xs"
+						>{m.withMe! < 0
+							? i.t('person.youOwe', { name: m.name.split(' ')[0] ?? m.name })
+							: i.t('person.owesYou', { name: m.name.split(' ')[0] ?? m.name })}
+						<Amount cents={Math.abs(m.withMe!)} class="text-foreground font-medium" /></span
+					>
+					<!-- The amount defaults to everything that is open; less is a partial payment. -->
+					<form method="POST" action="?/settle" use:enhance class="flex w-full gap-2">
 						<input type="hidden" name="member" value={m.id} />
-						<Button type="submit" size="sm" variant="outline">
+						<Input
+							name="amount"
+							inputmode="decimal"
+							aria-label={i.t('person.amount')}
+							value={centsToInput(Math.abs(m.withMe!), i.locale === 'de' ? ',' : '.')}
+							class="tabular h-8 w-28 md:text-sm"
+						/>
+						<Button type="submit" size="sm" variant="outline" class="flex-1">
 							<Icon name="check" size={14} />
 							{m.withMe! < 0
-								? i.t('person.iPaid', { amount: i.money(-m.withMe!) })
-								: i.t('person.theyPaid', {
-										name: m.name.split(' ')[0] ?? m.name,
-										amount: i.money(m.withMe!)
-									})}
+								? i.t('person.iPaidShort')
+								: i.t('person.theyPaidShort', { name: m.name.split(' ')[0] ?? m.name })}
 						</Button>
 					</form>
 				</List.Item>

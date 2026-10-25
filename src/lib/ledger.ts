@@ -1,4 +1,4 @@
-import type { Cents } from './money';
+import { allocate, type Cents } from './money';
 
 /**
  * A booking: `payerId` paid, each share is the part a person consumed.
@@ -83,6 +83,27 @@ export function planPersonSettlement(
 				? { fromId: other, toId: me, cents: b.net }
 				: { fromId: me, toId: other, cents: -b.net };
 	return { transfer, lines };
+}
+
+/**
+ * Only `cents` of the net transfer are paid. The payment goes to the contexts where the payer
+ * owes, in proportion to what is open there; contexts owed the other way stay untouched, so
+ * nothing flips and every context keeps a balance it can still be settled with later.
+ * The full amount (or more) is the full settlement.
+ */
+export function partialSettlement(plan: SettlementPlan, cents: Cents): SettlementPlan {
+	const t = plan.transfer;
+	if (!t || cents >= t.cents) return plan;
+	if (cents <= 0) return { transfer: null, lines: [] };
+	const owing = plan.lines.filter((l) => l.fromId === t.fromId);
+	const parts = allocate(
+		cents,
+		owing.map((l) => l.cents)
+	);
+	return {
+		transfer: { ...t, cents },
+		lines: owing.map((l, i) => ({ ...l, cents: parts[i]! })).filter((l) => l.cents > 0)
+	};
 }
 
 /** Turns a plan into ledger bookings (payer = who pays, share = recipient). */

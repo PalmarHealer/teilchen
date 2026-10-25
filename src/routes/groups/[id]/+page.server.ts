@@ -2,6 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { groupBalances, isSettled, personBalances } from '#lib/ledger.ts';
 import { translate } from '#lib/i18n/index.ts';
+import { parseCents } from '#lib/money.ts';
 import { randomToken } from '#lib/server/crypto.ts';
 import { isIcon } from '#lib/server/tabler.ts';
 import { db, schema } from '#lib/server/db/index.ts';
@@ -81,11 +82,17 @@ export const actions: Actions = {
 	settle: async ({ locals, params, request }) => {
 		const me = locals.user!.id;
 		const { group, memberIds } = await membership(params.id, me);
-		const other = (await request.formData()).get('member');
+		const fd = await request.formData();
+		const other = fd.get('member');
 		if (!group.keepDebts || typeof other !== 'string' || other === me || !memberIds.includes(other))
 			return fail(400, { message: 'errors.nothingToSettle' as const });
+		const raw = String(fd.get('amount') ?? '').trim();
+		const cents = raw ? parseCents(raw) : undefined;
+		if (cents === null || (cents !== undefined && cents <= 0))
+			return fail(400, { message: 'errors.invalidAmount' as const });
 		const title = translate(locals.locale, 'expenses.settlementTitle');
-		const plan = await settleWith(me, other, title, await entriesForGroup(params.id));
+		const entries = await entriesForGroup(params.id);
+		const plan = await settleWith(me, other, title, { entries, cents });
 		if (!plan.lines.length) return fail(400, { message: 'errors.nothingToSettle' as const });
 		return { settled: other };
 	},

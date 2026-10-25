@@ -6,15 +6,26 @@
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
 	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { centsToInput, parseCents } from '#lib/money.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
 	const first = $derived(data.person.name.split(' ')[0] ?? data.person.name);
 	const iPay = $derived(data.net < 0);
+	// What the amount field says, if edited; the label and hint follow it.
+	let typed = $state<string | null>(null);
+	const paying = $derived.by(() => {
+		const t = data.plan.transfer;
+		if (!t) return null;
+		const c = typed === null ? t.cents : parseCents(typed);
+		return c !== null && c > 0 ? Math.min(c, t.cents) : null;
+	});
 </script>
 
 <Header title={data.person.name} back="/" />
@@ -72,11 +83,37 @@
 	{/if}
 
 	{#if data.plan.lines.length}
-		<form method="POST" action="?/settle" use:enhance>
+		<form
+			method="POST"
+			action="?/settle"
+			use:enhance={() =>
+				async ({ update }) => {
+					typed = null;
+					await update();
+				}}
+			class="flex flex-col gap-3"
+		>
+			{#if data.plan.transfer}
+				<Label>
+					{i.t('person.amount')}
+					<Input
+						name="amount"
+						inputmode="decimal"
+						value={centsToInput(data.plan.transfer.cents, i.locale === 'de' ? ',' : '.')}
+						oninput={(e) => (typed = e.currentTarget.value)}
+						class="tabular text-lg font-semibold md:text-lg"
+					/>
+				</Label>
+				{#if paying !== null && paying < data.plan.transfer.cents}
+					<p class="text-muted-foreground -mt-1 px-1 text-xs">
+						{i.t('person.partialHint', { rest: i.money(data.plan.transfer.cents - paying) })}
+					</p>
+				{/if}
+			{/if}
 			<Button type="submit" size="lg" class="w-full">
 				<Icon name="check" size={18} />
 				{#if data.plan.transfer}
-					{@const amount = i.money(data.plan.transfer.cents)}
+					{@const amount = i.money(paying ?? data.plan.transfer.cents)}
 					{iPay ? i.t('person.iPaid', { amount }) : i.t('person.theyPaid', { name: first, amount })}
 				{:else}
 					{i.t('person.netOut')}
@@ -89,7 +126,7 @@
 			class="border-positive/30 bg-positive/10 text-positive flex items-center gap-2 rounded-lg border p-3 text-sm font-medium"
 		>
 			<Icon name="done" size={18} />
-			{i.t('person.done')}
+			{data.net === 0 ? i.t('person.done') : i.t('person.paid')}
 		</p>
 	{/if}
 	{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}

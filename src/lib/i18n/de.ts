@@ -57,6 +57,11 @@ export const de: Dictionary = {
 		theyPaid: '{name} hat {amount} bezahlt',
 		netOut: 'Gegenseitig verrechnen',
 		done: 'Ausgeglichen.',
+		amount: 'Gezahlter Betrag',
+		partialHint: 'Teilzahlung: {rest} bleiben danach offen.',
+		paid: 'Zahlung gebucht.',
+		iPaidShort: 'Ich habe bezahlt',
+		theyPaidShort: '{name} hat bezahlt',
 		keptGroups: 'In Gruppen offen',
 		keptHint:
 			'Diese Gruppen lassen ihre Schulden in der Gruppe. Ausgeglichen wird dort, nicht hier.',

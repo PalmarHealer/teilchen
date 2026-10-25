@@ -1,5 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { translate } from '#lib/i18n/index.ts';
+import { parseCents } from '#lib/money.ts';
 import { personBalances, planPersonSettlement, withoutKept } from '#lib/ledger.ts';
 import { contactsOf, entriesFor, groupsOf, settleWith } from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -39,9 +40,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-	settle: async ({ locals, params }) => {
+	settle: async ({ locals, params, request }) => {
+		// Empty = everything; a smaller amount is a partial payment.
+		const raw = String((await request.formData()).get('amount') ?? '').trim();
+		const cents = raw ? parseCents(raw) : undefined;
+		if (cents === null || (cents !== undefined && cents <= 0))
+			return fail(400, { message: 'errors.invalidAmount' as const });
 		const title = translate(locals.locale, 'expenses.settlementTitle');
-		const plan = await settleWith(locals.user!.id, params.id, title);
+		const plan = await settleWith(locals.user!.id, params.id, title, { cents });
 		if (!plan.lines.length) return fail(400, { message: 'errors.nothingToSettle' as const });
 		return { settled: plan.transfer?.cents ?? 0 };
 	}
