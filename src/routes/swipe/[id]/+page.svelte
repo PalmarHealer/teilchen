@@ -144,7 +144,9 @@
 	function move(e: PointerEvent) {
 		if (!dragging) return;
 		dx = e.clientX - start.x;
-		dy = e.clientY - start.y;
+		// Down means nothing, so it only gives a little, like a rubber band
+		const y = e.clientY - start.y;
+		dy = y > 0 ? Math.sqrt(y) * 3 : y;
 	}
 	function up() {
 		dragging = false;
@@ -164,6 +166,17 @@
 </script>
 
 <svelte:window onkeydown={key} />
+
+{#snippet face(card: (typeof cards)[number])}
+	<GroupIcon icon={productIcon(card.item.name)} size={88} />
+	<span class="qty muted">
+		{card.of > 1
+			? i.t('swipe.piece', { n: card.piece + 1, of: card.of })
+			: fmtQty(card.item.quantity, card.item.unit)}
+	</span>
+	<h2 class="name">{card.item.name}</h2>
+	<strong class="price" class:minus={card.cents < 0}><Amount cents={card.cents} /></strong>
+{/snippet}
 
 <Header
 	title={i.date(data.receipt.purchasedAt, { weekday: 'long', day: '2-digit', month: 'long' })}
@@ -226,11 +239,15 @@
 
 		<div class="deck">
 			{#each queue.slice(1, 3).reverse() as next, idx (next.key)}
-				<div class="card swipe behind" style:--depth={queue.slice(1, 3).length - idx}></div>
+				{@const depth = queue.slice(1, 3).length - idx}
+				<div class="card swipe face behind" style:--depth={depth} aria-hidden="true">
+					<!-- The next card is already readable while the top one is dragged away -->
+					{#if depth === 1}{@render face(next)}{/if}
+				</div>
 			{/each}
 			{#key current.key}
 				<div
-					class="card swipe top"
+					class="card swipe face top"
 					class:dragging
 					role="button"
 					tabindex="0"
@@ -250,16 +267,7 @@
 									: i.t('swipe.share')}</span
 						>
 					{/if}
-					<GroupIcon icon={productIcon(current.item.name)} size={88} />
-					<span class="qty muted">
-						{current.of > 1
-							? i.t('swipe.piece', { n: current.piece + 1, of: current.of })
-							: fmtQty(current.item.quantity, current.item.unit)}
-					</span>
-					<h2 class="name">{current.item.name}</h2>
-					<strong class="price" class:minus={current.cents < 0}
-						><Amount cents={current.cents} /></strong
-					>
+					{@render face(current)}
 					{#if current.of === 1 && current.n > 1}
 						<button
 							class="btn pieces"
@@ -433,9 +441,9 @@
 	}
 	.behind {
 		transform: translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * 0.04));
-		opacity: calc(1 - var(--depth) * 0.25);
+		opacity: calc(1.35 - var(--depth) * 0.35);
 	}
-	.top {
+	.face {
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -443,6 +451,8 @@
 		text-align: center;
 		gap: 16px;
 		padding: 32px 24px;
+	}
+	.top {
 		touch-action: none;
 		user-select: none;
 		cursor: grab;
