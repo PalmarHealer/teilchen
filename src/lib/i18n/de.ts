@@ -151,7 +151,7 @@ export const de: Dictionary = {
 		reweStep1Hint: '(öffnet einen neuen Tab, diese Seite offen lassen).',
 		reweStep2:
 			'Nach dem Login scheint die Seite zu hängen. Das ist normal: REWE versucht, seine App zu öffnen. Klicke unter „Netzwerk“ auf die Anfrage „authenticate“ (Status 302), öffne die „Antwortheader“ und kopiere den Wert von „location“. Er beginnt mit {prefix}.',
-		reweStep3: 'Füge ihn hier ein:',
+		reweStep3: 'Füge ihn gleich hier ein, der Code läuft nach etwa einer Minute ab:',
 		connect: 'Verbinden',
 		reweIntro:
 			'Lädt deine Einkäufe automatisch. Das läuft über die inoffizielle Schnittstelle der REWE-App und kann daher jederzeit ausfallen. Die eBon-Mail ist der robuste Weg.',

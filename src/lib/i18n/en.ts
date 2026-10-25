@@ -152,7 +152,7 @@ export const en = {
 		reweStep1Hint: '(opens a new tab – keep this page open).',
 		reweStep2:
 			'After signing in the page seems to hang. That is expected: REWE tries to open its app. In “Network”, click the request “authenticate” (status 302), open “Response headers” and copy the value of “location”. It starts with {prefix}.',
-		reweStep3: 'Paste it here:',
+		reweStep3: 'Paste it here right away – the code expires after about a minute:',
 		connect: 'Connect',
 		reweIntro:
 			"Loads your purchases automatically. This uses the REWE app's unofficial interface and can break at any time. The eBon email is the robust way.",
