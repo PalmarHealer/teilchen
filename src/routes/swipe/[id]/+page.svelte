@@ -7,6 +7,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
 	import { splitEqually } from '#lib/money.ts';
+	import { productIcon } from '#lib/product-icon.ts';
 	import {
 		expandUnits,
 		sharesFromItems,
@@ -249,6 +250,7 @@
 									: i.t('swipe.share')}</span
 						>
 					{/if}
+					<GroupIcon icon={productIcon(current.item.name)} size={88} />
 					<span class="qty muted">
 						{current.of > 1
 							? i.t('swipe.piece', { n: current.piece + 1, of: current.of })
