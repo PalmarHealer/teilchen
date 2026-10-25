@@ -88,13 +88,17 @@
 			<form method="POST" action="?/reweDisconnect" use:enhance>
 				<button class="btn block">{i.t('settings.disconnect')}</button>
 			</form>
+		{:else if !data.reweAvailable}
+			<p class="muted">{i.t('settings.reweUnavailable')}</p>
 		{:else if form?.reweAuthUrl}
+			<p class="muted">{i.t('settings.reweDesktopOnly')}</p>
 			<ol>
 				<li>
 					<a href={form.reweAuthUrl} target="_blank" rel="noreferrer">{i.t('settings.reweStep1')}</a
 					>
 					{i.t('settings.reweStep1Hint')}
 				</li>
+				<li>{i.t('settings.reweStep0')}</li>
 				<li>{i.t('settings.reweStep2', { prefix: 'de.rewe.app://redirect?code=' })}</li>
 				<li>{i.t('settings.reweStep3')}</li>
 			</ol>

@@ -145,11 +145,16 @@ export const en = {
 		lastSync: 'Last synced {date}.',
 		firstSync: 'The first sync runs shortly.',
 		disconnect: 'Disconnect',
+		reweDesktopOnly: 'This needs a computer with Chrome or Firefox – it does not work on a phone.',
+		reweStep0:
+			'In that new tab, before signing in: open the developer tools (F12), switch to “Network” and tick “Preserve log”. Then sign in.',
 		reweStep1: 'Sign in at REWE ↗',
-		reweStep1Hint: '(preferably in Chrome).',
+		reweStep1Hint: '(opens a new tab – keep this page open).',
 		reweStep2:
-			'After the login the page stops loading. That is expected. Copy the address that starts with {prefix}. You find it in the address bar or in the DevTools under “Network”.',
+			'After signing in the page seems to hang. That is expected: REWE tries to open its app. In “Network”, click the request “authenticate” (status 302), open “Response headers” and copy the value of “location”. It starts with {prefix}.',
 		reweStep3: 'Paste it here:',
+		reweUnavailable:
+			'Not available on this server: the REWE app certificate is not installed. Use the eBon email above instead.',
 		connect: 'Connect',
 		reweIntro:
 			"Loads your purchases automatically. This uses the REWE app's unofficial interface and can break at any time. The eBon email is the robust way.",
@@ -181,6 +186,9 @@ export const en = {
 		inviteInvalid: 'Invite invalid or expired',
 		reweLoginExpired: 'Sign-in expired, please start again',
 		reweFailed: 'Connection failed',
+		reweWrongUrl:
+			'That is the login page address, not the redirect. Copy the “location” response header of the “authenticate” request instead (it starts with de.rewe.app://redirect?code=).',
+		reweNoCode: 'The pasted text contains no ?code=…',
 		noNewEbon: 'No new REWE eBon detected',
 		generic: 'Something went wrong'
 	}

@@ -18,6 +18,9 @@ services:
       IMAP_PASSWORD: ${IMAP_PASSWORD:-}
       REWE_CERT_PATH: /certs/rewe.pem
       REWE_KEY_PATH: /certs/rewe.key
+    # Read-only: the app only checks whether the REWE certificate exists
+    volumes:
+      - teilchen_certs:/certs:ro
     depends_on:
       db:
         condition: service_healthy

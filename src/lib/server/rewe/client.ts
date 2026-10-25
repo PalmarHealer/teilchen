@@ -2,7 +2,7 @@
  * Unofficial REWE mobile API (what the REWE app uses). No public contract – can break at any time.
  * Sources: github.com/yannick-cw/korb (Auth.hs, ReweApi.hs), github.com/ByteSizedMarius/rewerse-engineering
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { Agent, request } from 'node:https';
 import { randomUUID } from 'node:crypto';
 import * as oauth from 'openid-client';
@@ -23,6 +23,11 @@ export interface ReweTokens {
 
 export async function reweAuthStart() {
 	const verifier = oauth.randomPKCECodeVerifier();
+	return { url: await reweAuthUrl(verifier), verifier };
+}
+
+/** The sign-in URL for an existing PKCE verifier (lets the page re-show the link after an error). */
+export async function reweAuthUrl(verifier: string) {
 	const url = new URL(`${SSO}/auth`);
 	url.search = new URLSearchParams({
 		client_id: CLIENT_ID,
@@ -32,7 +37,7 @@ export async function reweAuthStart() {
 		code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
 		code_challenge_method: 'S256'
 	}).toString();
-	return { url: url.toString(), verifier };
+	return url.toString();
 }
 
 async function tokenRequest(body: Record<string, string>): Promise<ReweTokens> {
@@ -69,6 +74,19 @@ export function reweExchangeCode(pasted: string, verifier: string) {
 export async function reweFreshTokens(t: ReweTokens): Promise<ReweTokens> {
 	if (Date.now() / 1000 < t.expiresAt - 30) return t;
 	return tokenRequest({ grant_type: 'refresh_token', refresh_token: t.refreshToken });
+}
+
+/** The API only works with the app's mTLS certificate; without it, connecting is pointless. */
+export function reweAvailable(): boolean {
+	const cert = optionalEnv('REWE_CERT_PATH');
+	const key = optionalEnv('REWE_KEY_PATH');
+	return !!cert && !!key && existsSync(cert) && existsSync(key);
+}
+
+/** Classifies pasted text before talking to REWE, so the user gets a precise hint. */
+export function pastedRedirectProblem(pasted: string): 'wrongUrl' | 'noCode' | null {
+	if (/[?&]code=[^&#s]+/.test(pasted)) return null;
+	return pasted.includes('login-actions/authenticate') ? 'wrongUrl' : 'noCode';
 }
 
 let agent: Agent | undefined;

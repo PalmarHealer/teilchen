@@ -143,11 +143,17 @@ export const de: Dictionary = {
 		lastSync: 'Zuletzt synchronisiert {date}.',
 		firstSync: 'Der erste Abgleich läuft in Kürze.',
 		disconnect: 'Trennen',
+		reweDesktopOnly:
+			'Das braucht einen Computer mit Chrome oder Firefox, am Handy klappt es nicht.',
+		reweStep0:
+			'Im neuen Tab, noch vor dem Login: Öffne die Entwicklertools (F12), wechsle zu „Netzwerk“ und setze den Haken bei „Log beibehalten“. Melde dich dann an.',
 		reweStep1: 'Bei REWE anmelden ↗',
-		reweStep1Hint: '(am besten in Chrome).',
+		reweStep1Hint: '(öffnet einen neuen Tab, diese Seite offen lassen).',
 		reweStep2:
-			'Nach dem Login lädt die Seite nicht weiter. Das ist normal. Kopiere die Adresse, die mit {prefix} beginnt. Du findest sie in der Adresszeile oder in den DevTools unter „Netzwerk“.',
-		reweStep3: 'Füge sie hier ein:',
+			'Nach dem Login scheint die Seite zu hängen. Das ist normal: REWE versucht, seine App zu öffnen. Klicke unter „Netzwerk“ auf die Anfrage „authenticate“ (Status 302), öffne die „Antwortheader“ und kopiere den Wert von „location“. Er beginnt mit {prefix}.',
+		reweStep3: 'Füge ihn hier ein:',
+		reweUnavailable:
+			'Auf diesem Server nicht verfügbar: Das Zertifikat der REWE-App ist nicht installiert. Nutze stattdessen die eBon-Mail oben.',
 		connect: 'Verbinden',
 		reweIntro:
 			'Lädt deine Einkäufe automatisch. Das läuft über die inoffizielle Schnittstelle der REWE-App und kann daher jederzeit ausfallen. Die eBon-Mail ist der robuste Weg.',
@@ -179,6 +185,9 @@ export const de: Dictionary = {
 		inviteInvalid: 'Einladung ungültig oder abgelaufen',
 		reweLoginExpired: 'Anmeldung abgelaufen, bitte neu starten',
 		reweFailed: 'Verbindung fehlgeschlagen',
+		reweWrongUrl:
+			'Das ist die Adresse der Login-Seite, nicht die Weiterleitung. Kopiere stattdessen den Antwortheader „location“ der Anfrage „authenticate“ (er beginnt mit de.rewe.app://redirect?code=).',
+		reweNoCode: 'Im eingefügten Text steckt kein ?code=…',
 		noNewEbon: 'Kein neuer REWE-eBon erkannt',
 		generic: 'Etwas ist schiefgelaufen'
 	}
