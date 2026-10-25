@@ -18,5 +18,6 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		code_challenge_method: 'S256',
 		state
 	});
-	redirect(302, target.toString());
+	// SvelteKit 3 rejects external redirects unless their origin is allowed explicitly.
+	redirect(302, target.toString(), { external: [target.origin] });
 };
