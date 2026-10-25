@@ -1,0 +1,54 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/palmarhealer/teilchen
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  image:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  redeploy:
+    needs: image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Portainer-Stack neu deployen
+        env:
+          WEBHOOK: ${{ secrets.PORTAINER_STACK_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::PORTAINER_STACK_WEBHOOK fehlt, kein Redeploy"
+            exit 0
+          fi
+          curl -sfS -X POST "$WEBHOOK" > /dev/null
+          echo "Redeploy ausgelöst"

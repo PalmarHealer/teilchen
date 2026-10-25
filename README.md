@@ -58,3 +58,13 @@ So kommst du dran:
 2. Mit `openssl pkcs12 -legacy` in PEM und Key umwandeln.
 
 Die Nutzung ist nicht von REWE autorisiert. Die API kann jederzeit brechen oder durch Cloudflare blockiert werden.
+
+## Deployment
+
+Jeder Push auf `main` läuft durch dieselben Schritte:
+
+1. `pnpm verify`
+2. Image nach `ghcr.io/palmarhealer/teilchen:latest`
+3. Das GitHub-Secret `PORTAINER_STACK_WEBHOOK` stößt den Portainer-Stack `teilchen` auf Vienna an.
+
+Der Stack nutzt `deploy/portainer-compose.yml`. Secrets liegen nur in den Stack-Variablen in Portainer. Nach außen erreichbar ist er über Nginx Proxy Manager: `teilchen.nauren.de` → `teilchen-app:3000`.

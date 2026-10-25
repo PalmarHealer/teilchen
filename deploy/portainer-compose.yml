@@ -1,0 +1,64 @@
+# Produktions-Stack in Portainer (Vienna). Die Werte kommen aus den Stack-Variablen,
+# erreichbar ist die App über Nginx Proxy Manager im nginx_network (teilchen-app:3000).
+services:
+  app:
+    image: ghcr.io/palmarhealer/teilchen:latest
+    container_name: teilchen-app
+    environment: &env
+      ORIGIN: ${ORIGIN}
+      DATABASE_URL: postgres://teilchen:${POSTGRES_PASSWORD}@teilchen-db:5432/teilchen
+      APP_SECRET: ${APP_SECRET}
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      INBOX_ADDRESS: ${INBOX_ADDRESS}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USER: ${IMAP_USER:-}
+      IMAP_PASSWORD: ${IMAP_PASSWORD:-}
+      REWE_CERT_PATH: /certs/rewe.pem
+      REWE_KEY_PATH: /certs/rewe.key
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal, nginx_network]
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/palmarhealer/teilchen:latest
+    container_name: teilchen-worker
+    command: ['node_modules/.bin/tsx', 'src/worker/index.ts']
+    environment: *env
+    # REWE-mTLS-Zertifikat (rewe.pem/rewe.key) hier ablegen, siehe README
+    volumes:
+      - teilchen_certs:/certs:ro
+    depends_on:
+      app:
+        condition: service_started
+    networks: [internal]
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    container_name: teilchen-db
+    environment:
+      POSTGRES_USER: teilchen
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: teilchen
+    volumes:
+      - teilchen_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U teilchen']
+      interval: 5s
+      retries: 10
+    networks: [internal]
+    restart: unless-stopped
+
+volumes:
+  teilchen_db:
+  teilchen_certs:
+
+networks:
+  internal:
+  nginx_network:
+    external: true
