@@ -72,7 +72,7 @@ export const en = {
 		people: 'People',
 		members: ((p) => (p.n === 1 ? '1 person' : `${p.n} people`)) as Plural,
 		nobody: 'You have nobody to share with yet.',
-		inviteSomeone: 'Invite someone',
+		inviteSomeone: 'Add a contact',
 		orCreateGroup: 'or create a group',
 		notSharing: 'Not sharing, all mine',
 		progress: 'Progress',
@@ -176,10 +176,10 @@ export const en = {
 		title: 'Profile',
 		language: 'Language',
 		languageAuto: 'Browser language',
-		inviteHeading: 'Invite someone',
-		createInvite: 'Create invite link',
+		inviteHeading: 'Add a contact',
+		createInvite: 'Create contact link',
 		inviteHint:
-			'Creates a link valid for 7 days. Whoever accepts it becomes your contact, so you can split expenses and receipts directly – without a group.',
+			'Creates a link valid for 7 days. Send it to someone who already has a Teilchen account. Whoever accepts it becomes your contact, so you can split expenses and receipts directly – without a group.',
 		ebonHeading: 'eBons by email',
 		ebonText:
 			'Forward your REWE eBon emails to this address, ideally with an automatic forwarding rule for the sender:',

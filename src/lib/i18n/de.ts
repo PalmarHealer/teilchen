@@ -70,7 +70,7 @@ export const de: Dictionary = {
 		people: 'Personen',
 		members: (p) => (p.n === 1 ? '1 Person' : `${p.n} Personen`),
 		nobody: 'Du hast noch niemanden zum Teilen.',
-		inviteSomeone: 'Lade jemanden ein',
+		inviteSomeone: 'Füge einen Kontakt hinzu',
 		orCreateGroup: 'oder erstelle eine Gruppe',
 		notSharing: 'Nicht teilen, alles meins',
 		progress: 'Fortschritt',
@@ -175,10 +175,10 @@ export const de: Dictionary = {
 		title: 'Profil',
 		language: 'Sprache',
 		languageAuto: 'Browsersprache',
-		inviteHeading: 'Jemanden einladen',
-		createInvite: 'Einladungslink erstellen',
+		inviteHeading: 'Kontakt hinzufügen',
+		createInvite: 'Kontakt-Link erstellen',
 		inviteHint:
-			'Erstellt einen Link, der 7 Tage gilt. Wer ihn annimmt, wird dein Kontakt. Dann könnt ihr Ausgaben und Bons direkt teilen, ganz ohne Gruppe.',
+			'Erstellt einen Link, der 7 Tage gilt. Schick ihn jemandem, der schon ein Teilchen-Konto hat. Wer ihn annimmt, wird dein Kontakt. Dann könnt ihr Ausgaben und Bons direkt teilen, ganz ohne Gruppe.',
 		ebonHeading: 'eBons per Mail',
 		ebonText:
 			'Leite deine REWE-eBon-Mails an diese Adresse weiter, am besten mit einer automatischen Weiterleitung für den Absender:',
