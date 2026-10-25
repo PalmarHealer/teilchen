@@ -59,8 +59,10 @@
 
 	function decide(d: Decision) {
 		if (!current) return;
-		decisions[current.id] = d;
-		history.push(current.id);
+		// Capture the id first: `current` is derived and moves on as soon as the decision is set.
+		const id = current.id;
+		decisions[id] = d;
+		history.push(id);
 		dx = dy = 0;
 	}
 	function undo() {

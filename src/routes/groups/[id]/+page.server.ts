@@ -1,8 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
-import { isGroupIcon } from '#lib/group-icons.ts';
 import { groupBalances, isSettled, personBalances } from '#lib/ledger.ts';
 import { randomToken } from '#lib/server/crypto.ts';
+import { isIcon } from '#lib/server/tabler.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import {
 	connect,
@@ -31,6 +31,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		group,
 		isCreator: group.createdBy === me,
 		settled: isSettled(totals),
+		// Oldest member first: the suggested next creator when the creator leaves.
+		others: memberIds
+			.filter((id) => id !== me)
+			.map((id) => ({ id, name: members.get(id)?.name ?? '?' })),
 		members: memberIds.map((id) => ({
 			...members.get(id)!,
 			balance: totals.get(id) ?? 0,
@@ -62,7 +66,7 @@ export const actions: Actions = {
 		if (!name) return fail(400, { manageError: 'errors.nameMissing' as const });
 		await db
 			.update(schema.groups)
-			.set({ name: name.slice(0, 60), ...(isGroupIcon(icon) ? { icon } : {}) })
+			.set({ name: name.slice(0, 60), ...(isIcon(icon) ? { icon } : {}) })
 			.where(eq(schema.groups.id, params.id));
 		return { updated: true };
 	},
@@ -71,15 +75,25 @@ export const actions: Actions = {
 	 * Leaving keeps all bookings: balances with the other members stay visible on their person
 	 * pages, which is why everyone in the group becomes a direct contact first.
 	 */
-	leave: async ({ locals, params }) => {
+	leave: async ({ locals, params, request }) => {
 		const me = locals.user!.id;
-		const { memberIds } = await membership(params.id, me);
+		const { group, memberIds } = await membership(params.id, me);
+		if (group.createdBy === me) {
+			// The creator role must not get lost: hand it over, or delete the group when alone.
+			if (memberIds.length === 1)
+				return fail(400, { manageError: 'errors.soleCreatorMustDelete' as const });
+			const next = (await request.formData()).get('newCreator');
+			if (typeof next !== 'string' || next === me || !memberIds.includes(next))
+				return fail(400, { manageError: 'errors.chooseNewCreator' as const });
+			await db
+				.update(schema.groups)
+				.set({ createdBy: next })
+				.where(eq(schema.groups.id, params.id));
+		}
 		for (const other of memberIds) await connect(me, other);
 		await db
 			.delete(schema.groupMembers)
 			.where(and(eq(schema.groupMembers.groupId, params.id), eq(schema.groupMembers.userId, me)));
-		if (memberIds.length === 1)
-			await db.delete(schema.groups).where(eq(schema.groups.id, params.id));
 		redirect(303, '/groups');
 	},
 

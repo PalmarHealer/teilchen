@@ -3,7 +3,7 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { isLocale, LANG_COOKIE, negotiate } from '#lib/i18n/index.ts';
 import { SESSION_COOKIE, userFromSession } from '#lib/server/auth/session.ts';
 
-const PUBLIC = ['/login', '/auth/'];
+const PUBLIC = ['/login', '/auth/', '/icons/'];
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const pref = event.cookies.get(LANG_COOKIE);

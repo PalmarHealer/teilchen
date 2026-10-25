@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { isGroupIcon } from '#lib/group-icons.ts';
 import { groupBalances } from '#lib/ledger.ts';
 import { db, schema } from '#lib/server/db/index.ts';
+import { isIcon } from '#lib/server/tabler.ts';
 import { entriesForGroup, groupMemberIds, groupsOf, usersByIds } from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -34,7 +34,7 @@ export const actions: Actions = {
 				.insert(schema.groups)
 				.values({
 					name: name.slice(0, 60),
-					icon: isGroupIcon(icon) ? icon : 'users',
+					icon: isIcon(icon) ? icon : 'users',
 					createdBy: locals.user!.id
 				})
 				.returning({ id: schema.groups.id });

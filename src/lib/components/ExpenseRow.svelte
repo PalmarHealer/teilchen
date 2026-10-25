@@ -7,6 +7,8 @@
 		id: string;
 		kind: 'expense' | 'settlement';
 		title: string;
+		icon: string | null;
+		fromReceipt: boolean;
 		amountCents: number;
 		spentAt: Date;
 		payerId: string;
@@ -18,11 +20,14 @@
 	/** How this booking changes my balance. */
 	const effect = $derived(e.payerId === me ? e.amountCents - e.myShare : -e.myShare);
 	const date = $derived(i.date(e.spentAt));
+	const icon = $derived(
+		e.kind === 'settlement' ? 'check' : (e.icon ?? (e.fromReceipt ? 'cart' : 'receipt'))
+	);
 </script>
 
-<div class="item">
+<a href="/expenses/{e.id}">
 	<span class="ico" class:settle={e.kind === 'settlement'}>
-		<Icon name={e.kind === 'settlement' ? 'check' : 'receipt'} size={18} />
+		<Icon name={icon} size={18} />
 	</span>
 	<span class="grow">
 		<span class="title">{e.title}</span>
@@ -37,7 +42,7 @@
 	{:else}
 		<small class="muted">{i.t('common.notInvolved')}</small>
 	{/if}
-</div>
+</a>
 
 <style>
 	.ico {
@@ -46,12 +51,13 @@
 		border-radius: 10px;
 		display: grid;
 		place-items: center;
-		background: var(--surface-2);
-		color: var(--muted);
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+		color: var(--accent);
 		flex: none;
 	}
 	.ico.settle {
 		color: var(--plus);
+		background: color-mix(in srgb, var(--plus) 12%, var(--surface));
 	}
 	.grow {
 		flex: 1;

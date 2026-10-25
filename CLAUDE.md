@@ -7,6 +7,7 @@ Gate: `pnpm verify` (typecheck + lint + tests). CI also checks that `drizzle/` m
 - SvelteKit 3: `$lib` no longer exists. Imports use `#lib/...` **with file extension** (`#lib/money.ts`). TypeScript adds no extension for package `imports`.
 - Server code also runs in the worker (tsx, no Vite). So use `process.env` instead of `$env/*`, and no `$app/*` imports in `src/lib/server`.
 - Money is always integer cents. Lint blocks `parseFloat`/`toFixed`.
+- User-chosen icons (any Tabler name) are served by `/icons/<name>.svg`, built at runtime from `@tabler/icons` in node_modules. Keep it a runtime dependency, or production loses every group/expense icon.
 - Code, comments, docs and commits are English. UI text lives only in `src/lib/i18n/{en,de}.ts`. Server code returns message keys (`errors.*`), never prose.
 
 ## Decisions + why

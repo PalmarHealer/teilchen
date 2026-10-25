@@ -24,6 +24,8 @@ export const en = {
 		copied: 'Copied',
 		save: 'Save',
 		create: 'Create',
+		iconSearch: 'Search icons, e.g. pizza, holiday',
+		iconNoResults: 'No icon found',
 		prevMonth: 'Previous month',
 		nextMonth: 'Next month'
 	},
@@ -106,7 +108,24 @@ export const en = {
 		exact: 'Exact amounts',
 		save: 'Save',
 		receiptTitle: 'Groceries {date}',
-		settlementTitle: 'Settlement'
+		settlementTitle: 'Settlement',
+		icon: 'Icon',
+		edit: 'Edit expense',
+		detail: 'Expense',
+		paidByName: 'Paid by {name}',
+		shares: 'Split',
+		delete: 'Delete expense',
+		deleteConfirm: 'Delete this expense for everyone involved?',
+		fromReceipt: 'Booked from a receipt. To change the split, swipe it again.',
+		resplit: 'Swipe again',
+		resplitConfirm: 'The receipt goes back to your swipe list and this booking is removed.',
+		settlementInfo:
+			'A settlement is booked once per group it netted, so it can only be undone as a whole.',
+		undoSettlement: 'Undo settlement',
+		undoSettlementConfirm: 'Undo the whole settlement? The netted amounts become open again.',
+		readOnly: 'Only whoever added it or the group creator can change this.',
+		confirm: 'Yes, do it',
+		cancel: 'Cancel'
 	},
 	groups: {
 		title: 'Groups',
@@ -134,6 +153,9 @@ export const en = {
 		delete: 'Delete group',
 		deleteConfirm: 'Delete the group including its history for everyone?',
 		deleteNeedsSettled: 'Can be deleted once everyone is settled up.',
+		soleMember: 'You are the only member. To leave, delete the group.',
+		newCreator: 'Who takes over as group creator?',
+		leaveCreatorConfirm: 'You created this group. Someone has to take over before you leave.',
 		confirm: 'Yes, do it',
 		cancel: 'Cancel'
 	},
@@ -151,6 +173,8 @@ export const en = {
 		languageAuto: 'Browser language',
 		inviteHeading: 'Invite someone',
 		createInvite: 'Create invite link',
+		inviteHint:
+			'Creates a link valid for 7 days. Whoever accepts it becomes your contact, so you can split expenses and receipts directly – without a group.',
 		ebonHeading: 'eBons by email',
 		ebonText:
 			'Forward your REWE eBon emails to this address, ideally with an automatic forwarding rule for the sender:',
@@ -177,6 +201,10 @@ export const en = {
 		nameMissing: 'Name missing',
 		onlyCreatorDeletes: 'Only the person who created the group can delete it',
 		groupNotSettled: 'Settle up first, then the group can be deleted',
+		notAllowed: 'You are not allowed to do that',
+		soleCreatorMustDelete: 'You are the only member – delete the group instead',
+		chooseNewCreator: 'Choose who takes over the group',
+		expenseNotFound: 'Expense not found',
 		nothingToSettle: 'Nothing to settle',
 		loginExpired: 'Login expired, please try again',
 		loginRejected: 'The sign-in was rejected by the identity provider',

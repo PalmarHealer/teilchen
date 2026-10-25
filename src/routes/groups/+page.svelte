@@ -3,7 +3,8 @@
 	import Amount from '#lib/components/Amount.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
-	import GroupIconPicker from '#lib/components/GroupIconPicker.svelte';
+	import IconPicker from '#lib/components/IconPicker.svelte';
+	import { GROUP_ICON_SUGGESTIONS } from '#lib/icon-suggestions.ts';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
@@ -63,7 +64,11 @@
 	<form method="POST" action="?/create" use:enhance class="card stack create">
 		<h2 class="row"><Icon name="plus" /> {i.t('groups.newGroup')}</h2>
 		<input name="name" placeholder={i.t('groups.namePlaceholder')} required maxlength="60" />
-		<GroupIconPicker bind:value={icon} legend={i.t('groups.icon')} />
+		<IconPicker
+			bind:value={icon}
+			suggestions={GROUP_ICON_SUGGESTIONS}
+			legend={i.t('groups.icon')}
+		/>
 		{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
 		<button class="btn primary"><Icon name="sparkles" /> {i.t('groups.create')}</button>
 	</form>

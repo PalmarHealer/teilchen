@@ -7,7 +7,7 @@ import {
 	settlementEntries,
 	type LedgerEntry
 } from './ledger';
-import { allocate, parseCents, splitEqually } from './money';
+import { allocate, centsToInput, parseCents, splitEqually } from './money';
 
 const direct = (payerId: string, shares: [string, number][]): LedgerEntry => ({
 	contextId: null,
@@ -30,6 +30,12 @@ describe('money', () => {
 		expect(parseCents('12.3 €')).toBe(1230);
 		expect(parseCents('-0,05')).toBe(-5);
 		expect(parseCents('1,234')).toBeNull();
+	});
+
+	it('turns cents back into input text', () => {
+		expect(centsToInput(1234)).toBe('12,34');
+		expect(centsToInput(5, '.')).toBe('0.05');
+		expect(parseCents(centsToInput(-1999))).toBe(-1999);
 	});
 });
 

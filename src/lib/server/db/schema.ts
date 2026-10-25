@@ -58,7 +58,7 @@ export const connections = pgTable(
 export const groups = pgTable('groups', {
 	id: id(),
 	name: text('name').notNull(),
-	/** Key from #lib/group-icons */
+	/** Tabler icon name */
 	icon: text('icon').notNull().default('users'),
 	createdBy: uuid('created_by')
 		.notNull()
@@ -148,6 +148,8 @@ export const expenses = pgTable(
 			.notNull()
 			.references(() => users.id),
 		title: text('title').notNull(),
+		/** Tabler icon name; null = default */
+		icon: text('icon'),
 		amountCents: integer('amount_cents').notNull(),
 		/** Links the per-context lines of one netted settlement */
 		settlementBatch: uuid('settlement_batch'),

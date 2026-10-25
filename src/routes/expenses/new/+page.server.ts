@@ -1,108 +1,31 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { z } from 'zod';
-import type { MessageKey } from '#lib/i18n/index.ts';
-import { allocate, parseCents } from '#lib/money.ts';
-import {
-	connect,
-	contactsOf,
-	createExpense,
-	groupMemberIds,
-	groupsOf
-} from '#lib/server/domain.ts';
+import { connect, createExpense } from '#lib/server/domain.ts';
+import { expenseFormOptions, parseExpenseForm } from '#lib/server/expense-form.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-	const me = locals.user!.id;
-	const groups = await Promise.all(
-		(await groupsOf(me)).map(async (g) => ({ ...g, memberIds: await groupMemberIds(g.id) }))
-	);
-	return {
-		contacts: await contactsOf(me),
-		groups,
-		preset: {
-			person: url.searchParams.get('person'),
-			group: url.searchParams.get('group')
-		}
-	};
-};
-
-const Input = z.object({
-	title: z.string().trim().min(1, 'errors.titleMissing').max(120),
-	amount: z.string(),
-	context: z.string().regex(/^(direct|group:[0-9a-f-]{36})$/),
-	payer: z.string().uuid(),
-	participants: z.array(z.string().uuid()).min(1, 'errors.atLeastOne'),
-	mode: z.enum(['equal', 'exact']),
-	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+export const load: PageServerLoad = async ({ locals, url }) => ({
+	...(await expenseFormOptions(locals.user!.id)),
+	preset: {
+		person: url.searchParams.get('person'),
+		group: url.searchParams.get('group')
+	}
 });
 
 export const actions: Actions = {
 	default: async ({ locals, request }) => {
 		const me = locals.user!.id;
-		const fd = await request.formData();
-		const parsed = Input.safeParse({
-			title: fd.get('title'),
-			amount: fd.get('amount'),
-			context: fd.get('context'),
-			payer: fd.get('payer'),
-			participants: fd.getAll('participants'),
-			mode: fd.get('mode'),
-			date: fd.get('date')
-		});
-		if (!parsed.success) {
-			const msg = parsed.error.issues[0]!.message;
-			return fail(400, {
-				message: (msg.startsWith('errors.') ? msg : 'errors.invalidInput') as MessageKey
-			});
-		}
-		const v = parsed.data;
-		const amount = parseCents(v.amount);
-		if (!amount || amount <= 0) return fail(400, { message: 'errors.invalidAmount' as MessageKey });
-
-		// Who may appear in this context?
-		let groupId: string | null = null;
-		let allowed: Set<string>;
-		if (v.context.startsWith('group:')) {
-			groupId = v.context.slice(6);
-			allowed = new Set(await groupMemberIds(groupId));
-			if (!allowed.has(me)) return fail(403, { message: 'errors.notYourGroup' as MessageKey });
-		} else {
-			allowed = new Set([me, ...(await contactsOf(me)).map((c) => c.id)]);
-		}
-		const people = [...new Set(v.participants)];
-		if (![v.payer, ...people].every((p) => allowed.has(p)))
-			return fail(403, { message: 'errors.unknownPerson' as MessageKey });
-		if (!groupId && !people.concat(v.payer).includes(me))
-			return fail(400, { message: 'errors.directMustIncludeYou' as MessageKey });
-
-		let shares: Map<string, number>;
-		if (v.mode === 'equal') {
-			shares = new Map(
-				allocate(
-					amount,
-					people.map(() => 1)
-				).map((c, i) => [people[i]!, c])
-			);
-		} else {
-			shares = new Map();
-			for (const p of people) {
-				const c = parseCents(String(fd.get(`exact_${p}`) ?? '0'));
-				if (c === null || c < 0) return fail(400, { message: 'errors.invalidShare' as MessageKey });
-				shares.set(p, c);
-			}
-			const sum = [...shares.values()].reduce((a, b) => a + b, 0);
-			if (sum !== amount) return fail(400, { message: 'errors.sharesMismatch' as MessageKey });
-		}
-
+		const v = await parseExpenseForm(await request.formData(), me);
+		if (!v.ok) return fail(v.status, { message: v.message });
 		await createExpense({
-			groupId,
-			payerId: v.payer,
+			groupId: v.groupId,
+			payerId: v.payerId,
 			createdBy: me,
 			title: v.title,
-			shares,
-			spentAt: new Date(`${v.date}T12:00:00`)
+			icon: v.icon,
+			shares: v.shares,
+			spentAt: v.spentAt
 		});
-		if (!groupId) for (const p of people) await connect(me, p);
-		redirect(303, groupId ? `/groups/${groupId}` : '/');
+		if (!v.groupId) for (const p of v.people) await connect(me, p);
+		redirect(303, v.groupId ? `/groups/${v.groupId}` : '/');
 	}
 };

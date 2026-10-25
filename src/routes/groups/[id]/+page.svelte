@@ -5,17 +5,21 @@
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import ExpenseRow from '#lib/components/ExpenseRow.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
-	import GroupIconPicker from '#lib/components/GroupIconPicker.svelte';
+	import IconPicker from '#lib/components/IconPicker.svelte';
+	import { GROUP_ICON_SUGGESTIONS } from '#lib/icon-suggestions.ts';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import InviteBox from '#lib/components/InviteBox.svelte';
+	import Select from '#lib/components/Select.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
 	let managing = $state(false);
 	// svelte-ignore state_referenced_locally
-	let icon = $state(data.group.icon);
+	let icon = $state<string | null>(data.group.icon);
+	// svelte-ignore state_referenced_locally
+	let newCreator = $state(data.others[0]?.id ?? '');
 </script>
 
 <Header title={data.group.name} back="/groups">
@@ -83,18 +87,42 @@
 					{i.t('groups.name')}
 					<input name="name" value={data.group.name} required maxlength="60" />
 				</label>
-				<GroupIconPicker bind:value={icon} legend={i.t('groups.icon')} />
+				<IconPicker
+					bind:value={icon}
+					suggestions={GROUP_ICON_SUGGESTIONS}
+					legend={i.t('groups.icon')}
+				/>
 				<button class="btn primary"><Icon name="edit" size={18} /> {i.t('groups.save')}</button>
 				{#if form?.updated}<small class="plus">{i.t('groups.saved')}</small>{/if}
 			</form>
-			<ConfirmAction
-				action="?/leave"
-				icon="leave"
-				label={i.t('groups.leave')}
-				question={i.t('groups.leaveConfirm')}
-				confirmLabel={i.t('groups.confirm')}
-				cancelLabel={i.t('groups.cancel')}
-			/>
+			{#if data.isCreator && data.others.length === 0}
+				<p class="muted note"><Icon name="leave" size={18} /> {i.t('groups.soleMember')}</p>
+			{:else if data.isCreator}
+				<ConfirmAction
+					action="?/leave"
+					icon="leave"
+					label={i.t('groups.leave')}
+					question={i.t('groups.leaveCreatorConfirm')}
+					confirmLabel={i.t('groups.confirm')}
+					cancelLabel={i.t('groups.cancel')}
+				>
+					<Select
+						name="newCreator"
+						bind:value={newCreator}
+						label={i.t('groups.newCreator')}
+						options={data.others.map((o) => ({ value: o.id, label: o.name, icon: 'user' }))}
+					/>
+				</ConfirmAction>
+			{:else}
+				<ConfirmAction
+					action="?/leave"
+					icon="leave"
+					label={i.t('groups.leave')}
+					question={i.t('groups.leaveConfirm')}
+					confirmLabel={i.t('groups.confirm')}
+					cancelLabel={i.t('groups.cancel')}
+				/>
+			{/if}
 			{#if data.isCreator}
 				<ConfirmAction
 					action="?/delete"
@@ -149,6 +177,12 @@
 	.icon-btn[aria-expanded='true'] {
 		background: var(--surface-2);
 		color: var(--ink);
+	}
+	.note {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
 	}
 	.manage h2 {
 		gap: 8px;

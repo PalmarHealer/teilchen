@@ -46,7 +46,8 @@ export async function groupMemberIds(groupId: string): Promise<string[]> {
 	const rows = await db
 		.select({ id: groupMembers.userId })
 		.from(groupMembers)
-		.where(eq(groupMembers.groupId, groupId));
+		.where(eq(groupMembers.groupId, groupId))
+		.orderBy(groupMembers.joinedAt);
 	return rows.map((r) => r.id);
 }
 
@@ -113,6 +114,7 @@ export interface NewExpense {
 	payerId: string;
 	createdBy: string;
 	title: string;
+	icon?: string | null;
 	shares: Map<string, Cents>;
 	spentAt?: Date;
 	settlementBatch?: string;
@@ -132,6 +134,7 @@ export async function createExpense(
 			payerId: e.payerId,
 			createdBy: e.createdBy,
 			title: e.title,
+			icon: e.icon ?? null,
 			amountCents,
 			spentAt: e.spentAt ?? new Date(),
 			settlementBatch: e.settlementBatch
@@ -185,6 +188,8 @@ export async function recentExpenses(me: string, groupId?: string, limit = 50) {
 			id: expenses.id,
 			kind: expenses.kind,
 			title: expenses.title,
+			icon: expenses.icon,
+			fromReceipt: sql<boolean>`exists (select 1 from ${schema.receipts} where ${schema.receipts.expenseId} = ${expenses.id})`,
 			amountCents: expenses.amountCents,
 			spentAt: expenses.spentAt,
 			groupId: expenses.groupId,
@@ -207,4 +212,82 @@ export async function usersByIds(ids: string[]): Promise<Map<string, PublicUser>
 	if (!ids.length) return new Map();
 	const rows = await db.select(publicUser).from(users).where(inArray(users.id, ids));
 	return new Map(rows.map((u) => [u.id, u]));
+}
+
+/** One expense with its shares, its group's creator and the receipt it was booked from. */
+export async function getExpense(id: string) {
+	const [row] = await db
+		.select({ expense: expenses, groupCreatedBy: groups.createdBy })
+		.from(expenses)
+		.leftJoin(groups, eq(groups.id, expenses.groupId))
+		.where(eq(expenses.id, id));
+	if (!row) return null;
+	const shares = await db
+		.select({ userId: expenseShares.userId, cents: expenseShares.cents })
+		.from(expenseShares)
+		.where(eq(expenseShares.expenseId, id));
+	const [receipt] = await db
+		.select({ id: schema.receipts.id })
+		.from(schema.receipts)
+		.where(eq(schema.receipts.expenseId, id));
+	return {
+		...row.expense,
+		groupCreatedBy: row.groupCreatedBy,
+		shares,
+		receiptId: receipt?.id ?? null
+	};
+}
+
+export async function updateExpense(id: string, e: Omit<NewExpense, 'kind' | 'createdBy'>) {
+	const shares = [...e.shares].filter(([, c]) => c !== 0);
+	await db.transaction(async (tx) => {
+		await tx
+			.update(expenses)
+			.set({
+				groupId: e.groupId,
+				payerId: e.payerId,
+				title: e.title,
+				icon: e.icon ?? null,
+				amountCents: shares.reduce((a, [, c]) => a + c, 0),
+				...(e.spentAt ? { spentAt: e.spentAt } : {})
+			})
+			.where(eq(expenses.id, id));
+		await tx.delete(expenseShares).where(eq(expenseShares.expenseId, id));
+		if (shares.length) {
+			await tx
+				.insert(expenseShares)
+				.values(shares.map(([userId, cents]) => ({ expenseId: id, userId, cents })));
+		}
+	});
+}
+
+/**
+ * Deletes an expense. A settlement goes as a whole batch (its lines only add up together);
+ * an expense booked from a receipt sends the receipt back to the swipe queue.
+ */
+export async function deleteExpense(expense: { id: string; settlementBatch: string | null }) {
+	await db.transaction(async (tx) => {
+		const [receipt] = await tx
+			.select({ id: schema.receipts.id })
+			.from(schema.receipts)
+			.where(eq(schema.receipts.expenseId, expense.id));
+		if (receipt) {
+			await tx
+				.update(schema.receiptItems)
+				.set({ decision: null })
+				.where(eq(schema.receiptItems.receiptId, receipt.id));
+			await tx
+				.update(schema.receipts)
+				.set({ expenseId: null, dismissed: false })
+				.where(eq(schema.receipts.id, receipt.id));
+		}
+		await tx
+			.delete(expenses)
+			.where(
+				expense.settlementBatch
+					? eq(expenses.settlementBatch, expense.settlementBatch)
+					: eq(expenses.id, expense.id)
+			);
+	});
+	return expense;
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 
 	/** A destructive form action that asks inline instead of using the browser's confirm(). */
@@ -11,7 +12,8 @@
 		confirmLabel,
 		cancelLabel,
 		danger = false,
-		disabled = false
+		disabled = false,
+		children
 	}: {
 		action: string;
 		icon: string;
@@ -21,6 +23,8 @@
 		cancelLabel: string;
 		danger?: boolean;
 		disabled?: boolean;
+		/** Extra fields submitted with the confirmation */
+		children?: Snippet;
 	} = $props();
 
 	let asking = $state(false);
@@ -29,6 +33,7 @@
 {#if asking}
 	<form method="POST" {action} use:enhance class="ask" class:danger>
 		<p>{question}</p>
+		{@render children?.()}
 		<div class="row">
 			<button type="button" class="btn grow" onclick={() => (asking = false)}>{cancelLabel}</button>
 			<button class="btn grow confirm"><Icon name={icon} size={18} /> {confirmLabel}</button>

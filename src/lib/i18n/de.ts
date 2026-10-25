@@ -23,6 +23,8 @@ export const de: Dictionary = {
 		copied: 'Kopiert',
 		save: 'Speichern',
 		create: 'Erstellen',
+		iconSearch: 'Icons suchen, z. B. Pizza, Urlaub',
+		iconNoResults: 'Kein Icon gefunden',
 		prevMonth: 'Vorheriger Monat',
 		nextMonth: 'Nächster Monat'
 	},
@@ -104,7 +106,25 @@ export const de: Dictionary = {
 		exact: 'Genaue Beträge',
 		save: 'Speichern',
 		receiptTitle: 'Einkauf {date}',
-		settlementTitle: 'Ausgleich'
+		settlementTitle: 'Ausgleich',
+		icon: 'Icon',
+		edit: 'Ausgabe bearbeiten',
+		detail: 'Ausgabe',
+		paidByName: 'Bezahlt von {name}',
+		shares: 'Aufteilung',
+		delete: 'Ausgabe löschen',
+		deleteConfirm: 'Diese Ausgabe für alle Beteiligten löschen?',
+		fromReceipt: 'Aus einem Bon gebucht. Um die Aufteilung zu ändern, swipe ihn neu.',
+		resplit: 'Neu swipen',
+		resplitConfirm: 'Der Bon kommt zurück in deine Swipe-Liste, diese Buchung wird entfernt.',
+		settlementInfo:
+			'Ein Ausgleich wird pro verrechneter Gruppe gebucht und lässt sich deshalb nur als Ganzes rückgängig machen.',
+		undoSettlement: 'Ausgleich rückgängig machen',
+		undoSettlementConfirm:
+			'Den ganzen Ausgleich rückgängig machen? Die verrechneten Beträge sind dann wieder offen.',
+		readOnly: 'Ändern kann nur, wer sie angelegt hat, oder wer die Gruppe erstellt hat.',
+		confirm: 'Ja, ausführen',
+		cancel: 'Abbrechen'
 	},
 	groups: {
 		title: 'Gruppen',
@@ -132,6 +152,9 @@ export const de: Dictionary = {
 		delete: 'Gruppe löschen',
 		deleteConfirm: 'Gruppe samt Verlauf für alle löschen?',
 		deleteNeedsSettled: 'Löschbar, sobald alle ausgeglichen sind.',
+		soleMember: 'Du bist das einzige Mitglied. Zum Verlassen lösch die Gruppe.',
+		newCreator: 'Wer übernimmt als Ersteller?',
+		leaveCreatorConfirm: 'Du hast diese Gruppe erstellt. Bevor du gehst, muss jemand übernehmen.',
 		confirm: 'Ja, ausführen',
 		cancel: 'Abbrechen'
 	},
@@ -149,6 +172,8 @@ export const de: Dictionary = {
 		languageAuto: 'Browsersprache',
 		inviteHeading: 'Jemanden einladen',
 		createInvite: 'Einladungslink erstellen',
+		inviteHint:
+			'Erstellt einen Link, der 7 Tage gilt. Wer ihn annimmt, wird dein Kontakt. Dann könnt ihr Ausgaben und Bons direkt teilen, ganz ohne Gruppe.',
 		ebonHeading: 'eBons per Mail',
 		ebonText:
 			'Leite deine REWE-eBon-Mails an diese Adresse weiter, am besten mit einer automatischen Weiterleitung für den Absender:',
@@ -175,6 +200,10 @@ export const de: Dictionary = {
 		nameMissing: 'Name fehlt',
 		onlyCreatorDeletes: 'Nur wer die Gruppe erstellt hat, kann sie löschen',
 		groupNotSettled: 'Erst ausgleichen, dann kann die Gruppe gelöscht werden',
+		notAllowed: 'Das darfst du nicht',
+		soleCreatorMustDelete: 'Du bist das einzige Mitglied, lösch die Gruppe stattdessen',
+		chooseNewCreator: 'Wähle, wer die Gruppe übernimmt',
+		expenseNotFound: 'Ausgabe nicht gefunden',
 		nothingToSettle: 'Nichts zu verrechnen',
 		loginExpired: 'Login abgelaufen, bitte erneut versuchen',
 		loginRejected: 'Die Anmeldung wurde vom Identity Provider abgelehnt',

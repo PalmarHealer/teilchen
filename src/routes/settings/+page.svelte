@@ -64,6 +64,7 @@
 	</form>
 
 	<h2 class="section-title">{i.t('settings.inviteHeading')}</h2>
+	<p class="muted hint">{i.t('settings.inviteHint')}</p>
 	<form method="POST" action="?/invite" use:enhance>
 		<button class="btn block"><Icon name="userPlus" /> {i.t('settings.createInvite')}</button>
 	</form>
@@ -113,6 +114,10 @@
 </div>
 
 <style>
+	.hint {
+		font-size: 0.9rem;
+		margin: -4px 4px 0;
+	}
 	.grow {
 		display: flex;
 		flex-direction: column;

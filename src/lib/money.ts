@@ -41,3 +41,10 @@ export function splitEqually(total: Cents, count: number): Cents[] {
 		Array.from({ length: count }, () => 1)
 	);
 }
+
+/** Cents → form input text ("12,34" / "12.34"), the inverse of parseCents. */
+export function centsToInput(cents: Cents, decimal: ',' | '.' = ','): string {
+	const sign = cents < 0 ? '-' : '';
+	const abs = Math.abs(cents);
+	return `${sign}${Math.floor(abs / 100)}${decimal}${String(abs % 100).padStart(2, '0')}`;
+}
