@@ -72,48 +72,50 @@
 		{/if}
 	</section>
 
-	<h2 class="section-title">{i.t('settings.reweHeading')}</h2>
-	<section class="card stack">
-		{#if data.rewe}
-			<p class="row connected">
-				<Icon name="done" />
-				{i.t('settings.connected')}
-				{data.rewe.lastSyncAt
-					? i.t('settings.lastSync', {
-							date: i.date(data.rewe.lastSyncAt, { dateStyle: 'medium', timeStyle: 'short' })
-						})
-					: i.t('settings.firstSync')}
-			</p>
-			{#if data.rewe.lastError}<p class="error">{data.rewe.lastError}</p>{/if}
-			<form method="POST" action="?/reweDisconnect" use:enhance>
-				<button class="btn block">{i.t('settings.disconnect')}</button>
-			</form>
-		{:else if !data.reweAvailable}
-			<p class="muted">{i.t('settings.reweUnavailable')}</p>
-		{:else if form?.reweAuthUrl}
-			<p class="muted">{i.t('settings.reweDesktopOnly')}</p>
-			<ol>
-				<li>
-					<a href={form.reweAuthUrl} target="_blank" rel="noreferrer">{i.t('settings.reweStep1')}</a
-					>
-					{i.t('settings.reweStep1Hint')}
-				</li>
-				<li>{i.t('settings.reweStep0')}</li>
-				<li>{i.t('settings.reweStep2', { prefix: 'de.rewe.app://redirect?code=' })}</li>
-				<li>{i.t('settings.reweStep3')}</li>
-			</ol>
-			<form method="POST" action="?/reweFinish" use:enhance class="stack">
-				<input name="redirect" placeholder="de.rewe.app://redirect?code=…" required />
-				<button class="btn primary">{i.t('settings.connect')}</button>
-			</form>
-		{:else}
-			<p class="muted">{i.t('settings.reweIntro')}</p>
-			<form method="POST" action="?/reweStart" use:enhance>
-				<button class="btn block">{i.t('settings.reweConnect')}</button>
-			</form>
-		{/if}
-		{#if form?.reweError}<p class="error">{i.t(form.reweError)}</p>{/if}
-	</section>
+	<!-- Without the app certificate the REWE API cannot work, so the section is hidden. -->
+	{#if data.reweAvailable || data.rewe}
+		<h2 class="section-title">{i.t('settings.reweHeading')}</h2>
+		<section class="card stack">
+			{#if data.rewe}
+				<p class="row connected">
+					<Icon name="done" />
+					{i.t('settings.connected')}
+					{data.rewe.lastSyncAt
+						? i.t('settings.lastSync', {
+								date: i.date(data.rewe.lastSyncAt, { dateStyle: 'medium', timeStyle: 'short' })
+							})
+						: i.t('settings.firstSync')}
+				</p>
+				{#if data.rewe.lastError}<p class="error">{data.rewe.lastError}</p>{/if}
+				<form method="POST" action="?/reweDisconnect" use:enhance>
+					<button class="btn block">{i.t('settings.disconnect')}</button>
+				</form>
+			{:else if form?.reweAuthUrl}
+				<p class="muted">{i.t('settings.reweDesktopOnly')}</p>
+				<ol>
+					<li>
+						<a href={form.reweAuthUrl} target="_blank" rel="noreferrer"
+							>{i.t('settings.reweStep1')}</a
+						>
+						{i.t('settings.reweStep1Hint')}
+					</li>
+					<li>{i.t('settings.reweStep0')}</li>
+					<li>{i.t('settings.reweStep2', { prefix: 'de.rewe.app://redirect?code=' })}</li>
+					<li>{i.t('settings.reweStep3')}</li>
+				</ol>
+				<form method="POST" action="?/reweFinish" use:enhance class="stack">
+					<input name="redirect" placeholder="de.rewe.app://redirect?code=…" required />
+					<button class="btn primary">{i.t('settings.connect')}</button>
+				</form>
+			{:else}
+				<p class="muted">{i.t('settings.reweIntro')}</p>
+				<form method="POST" action="?/reweStart" use:enhance>
+					<button class="btn block">{i.t('settings.reweConnect')}</button>
+				</form>
+			{/if}
+			{#if form?.reweError}<p class="error">{i.t(form.reweError)}</p>{/if}
+		</section>
+	{/if}
 
 	<h2 class="section-title">{i.t('settings.uploadHeading')}</h2>
 	<form

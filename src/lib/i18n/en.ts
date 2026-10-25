@@ -153,8 +153,6 @@ export const en = {
 		reweStep2:
 			'After signing in the page seems to hang. That is expected: REWE tries to open its app. In “Network”, click the request “authenticate” (status 302), open “Response headers” and copy the value of “location”. It starts with {prefix}.',
 		reweStep3: 'Paste it here:',
-		reweUnavailable:
-			'Not available on this server: the REWE app certificate is not installed. Use the eBon email above instead.',
 		connect: 'Connect',
 		reweIntro:
 			"Loads your purchases automatically. This uses the REWE app's unofficial interface and can break at any time. The eBon email is the robust way.",
