@@ -127,6 +127,12 @@ export const receiptItems = pgTable(
 		quantity: numeric('quantity').notNull().default('1'),
 		unit: text('unit'),
 		totalCents: integer('total_cents').notNull(),
+		/** 'discount' lines aren't swiped but spread over the products (see #lib/split) */
+		kind: text('kind', { enum: ['product', 'discount'] })
+			.notNull()
+			.default('product'),
+		/** False for lines marked "*" on the receipt: discounts don't apply to them */
+		discountable: boolean('discountable').notNull().default(true),
 		decision: itemDecision('decision')
 	},
 	(t) => [index('receipt_items_receipt').on(t.receiptId)]

@@ -37,7 +37,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			name: schema.receiptItems.name,
 			quantity: schema.receiptItems.quantity,
 			unit: schema.receiptItems.unit,
-			totalCents: schema.receiptItems.totalCents
+			totalCents: schema.receiptItems.totalCents,
+			kind: schema.receiptItems.kind,
+			discountable: schema.receiptItems.discountable
 		})
 		.from(schema.receiptItems)
 		.where(eq(schema.receiptItems.receiptId, receipt.id))
@@ -92,9 +94,13 @@ export const actions: Actions = {
 			.select()
 			.from(schema.receiptItems)
 			.where(eq(schema.receiptItems.receiptId, receipt.id));
-		if (items.some((i) => !decisions[i.id]))
+		// Only products are swiped; discounts are spread over them by sharesFromItems.
+		if (items.some((i) => i.kind === 'product' && !decisions[i.id]))
 			return fail(400, { message: 'errors.notAllSwiped' as const });
-		const decided = items.map((i) => ({ ...i, decision: decisions[i.id]! }));
+		const decided = items.map((i) => ({
+			...i,
+			decision: i.kind === 'product' ? decisions[i.id]! : null
+		}));
 		const shares = sharesFromItems(me, participants, decided);
 
 		await db.transaction(async (tx) => {

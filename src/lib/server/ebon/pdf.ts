@@ -1,5 +1,5 @@
 import { extractTextItems } from 'unpdf';
-import { parseEbonText } from './parse';
+import { parseReceiptText } from './parse';
 
 /** PDF → text lines. Fragments are joined into lines by their y coordinate. */
 export async function pdfToText(pdf: Uint8Array): Promise<string> {
@@ -25,6 +25,7 @@ export async function pdfToText(pdf: Uint8Array): Promise<string> {
 	return out.join('\n');
 }
 
-export async function parseEbonPdf(pdf: Uint8Array) {
-	return parseEbonText(await pdfToText(pdf));
+/** Store eBon or online order invoice → items; null if it is neither. */
+export async function parseReceiptPdf(pdf: Uint8Array) {
+	return parseReceiptText(await pdfToText(pdf));
 }

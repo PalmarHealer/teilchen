@@ -3,7 +3,7 @@ import { isLocale, LANG_COOKIE, type Locale } from '#lib/i18n/index.ts';
 import { randomToken, sha256 } from '#lib/server/crypto.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { optionalEnv } from '#lib/server/db/env.ts';
-import { parseEbonPdf } from '#lib/server/ebon/pdf.ts';
+import { parseReceiptPdf } from '#lib/server/ebon/pdf.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -39,7 +39,7 @@ export const actions: Actions = {
 		let imported = 0;
 		for (const file of files) {
 			const bytes = new Uint8Array(await file.arrayBuffer());
-			const bon = await parseEbonPdf(bytes).catch(() => null);
+			const bon = await parseReceiptPdf(bytes).catch(() => null);
 			if (!bon) continue;
 			const id = `upload:${sha256(Buffer.from(bytes).toString('base64'))}`;
 			if (await importEbon(locals.user!.id, id, bon)) imported++;

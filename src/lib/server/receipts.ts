@@ -1,8 +1,12 @@
 import { db, schema } from './db';
-import type { Ebon } from './ebon/parse';
+import type { ParsedReceipt } from './ebon/parse';
 
 /** Stores a parsed receipt with its items. Returns false if it already exists. */
-export async function importEbon(ownerId: string, externalId: string, bon: Ebon): Promise<boolean> {
+export async function importEbon(
+	ownerId: string,
+	externalId: string,
+	bon: ParsedReceipt
+): Promise<boolean> {
 	return db.transaction(async (tx) => {
 		const [receipt] = await tx
 			.insert(schema.receipts)
@@ -13,7 +17,7 @@ export async function importEbon(ownerId: string, externalId: string, bon: Ebon)
 				market: bon.market,
 				purchasedAt: bon.purchasedAt,
 				totalCents: bon.totalCents,
-				raw: { bonNr: bon.bonNr, mismatch: bon.mismatch }
+				raw: { number: bon.number, mismatch: bon.mismatch }
 			})
 			.onConflictDoNothing()
 			.returning({ id: schema.receipts.id });
@@ -26,7 +30,9 @@ export async function importEbon(ownerId: string, externalId: string, bon: Ebon)
 					name: it.name,
 					quantity: String(it.quantity),
 					unit: it.unit,
-					totalCents: it.totalCents
+					totalCents: it.totalCents,
+					kind: it.kind,
+					discountable: it.discountable
 				}))
 			);
 		}

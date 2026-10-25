@@ -17,6 +17,15 @@ describe('looksLikeEbon', () => {
 		).toBe(true);
 	});
 
+	it('accepts the invoice of a REWE online order', () => {
+		expect(
+			looksLikeEbon({
+				texts: ['Deine Rechnung zur Bestellung B-AAA-BBB', 'REWE Lieferservice <service@rewe.de>'],
+				pdfNames: ['document.pdf']
+			})
+		).toBe(true);
+	});
+
 	it('ignores forwarded login codes and other mails', () => {
 		expect(
 			looksLikeEbon({ texts: ['Dein REWE Anmeldecode: 123456', 'noreply@rewe.de'], pdfNames: [] })

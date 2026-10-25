@@ -3,7 +3,7 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser, type Attachment, type ParsedMail } from 'mailparser';
 import { db, schema } from '#lib/server/db/index.ts';
 import { env, optionalEnv } from '#lib/server/db/env.ts';
-import { parseEbonPdf } from '#lib/server/ebon/pdf.ts';
+import { parseReceiptPdf } from '#lib/server/ebon/pdf.ts';
 import { looksLikeEbon } from '#lib/server/ebon/classify.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
@@ -110,11 +110,11 @@ async function handleMail(mail: ParsedMail) {
 
 	let imported = 0;
 	for (const [i, pdf] of pdfs.entries()) {
-		const bon = await parseEbonPdf(new Uint8Array(pdf.content)).catch((e: unknown) => {
+		const bon = await parseReceiptPdf(new Uint8Array(pdf.content)).catch((e: unknown) => {
 			throw new BrokenMail(`unreadable PDF ${pdf.filename ?? i}: ${String(e)}`);
 		});
 		if (!bon) continue;
-		const externalId = `mail:${bon.bonNr ?? messageId}:${bon.purchasedAt.toISOString()}:${i}`;
+		const externalId = `mail:${bon.number ?? messageId}:${bon.purchasedAt.toISOString()}:${i}`;
 		if (await importEbon(user.id, externalId, bon)) imported++;
 	}
 	return log(imported ? 'imported' : 'no_ebon', `${imported}/${pdfs.length}`);

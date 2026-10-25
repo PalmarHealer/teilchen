@@ -6,7 +6,7 @@
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
-	import { sharesFromItems, type Decision } from '#lib/split.ts';
+	import { sharesFromItems, swipeTotals, type Decision } from '#lib/split.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
@@ -15,7 +15,9 @@
 	let decisions = $state<Record<string, Decision>>({});
 	let history = $state<string[]>([]);
 
-	const queue = $derived(data.items.filter((it) => !decisions[it.id]));
+	// Only products are swiped; discounts/coupons are spread over them when booking.
+	const products = $derived(data.items.filter((it) => it.kind === 'product'));
+	const queue = $derived(products.filter((it) => !decisions[it.id]));
 	const current = $derived(queue[0]);
 	const me = $derived(data.user!.id);
 
@@ -40,13 +42,19 @@
 		};
 	});
 
+	const splitItems = $derived(
+		data.items.map((it) => ({
+			totalCents: it.totalCents,
+			kind: it.kind,
+			discountable: it.discountable,
+			decision: it.kind === 'product' ? (decisions[it.id] ?? null) : null
+		}))
+	);
+	const totals = $derived(swipeTotals(splitItems));
+
 	const preview = $derived.by(() => {
 		if (!targetInfo || queue.length) return [];
-		const items = data.items.map((it) => ({
-			totalCents: it.totalCents,
-			decision: decisions[it.id]!
-		}));
-		const shares = sharesFromItems(me, targetInfo.participants, items);
+		const shares = sharesFromItems(me, targetInfo.participants, splitItems);
 		const names = new Map(data.contacts.map((c) => [c.id, c.name]));
 		return [...shares]
 			.filter(([, c]) => c !== 0)
@@ -124,7 +132,7 @@
 	<div class="stack">
 		<p class="muted intro">
 			{data.receipt.market ?? 'REWE'} · <Amount cents={data.receipt.totalCents} /> ·
-			{i.t('swipe.items', { n: data.items.length })}. {i.t('swipe.whoWith')}
+			{i.t('swipe.items', { n: products.length })}. {i.t('swipe.whoWith')}
 		</p>
 		{#if data.groups.length}
 			<h2 class="section-title">{i.t('swipe.groups')}</h2>
@@ -164,10 +172,10 @@
 	</div>
 {:else if current}
 	<div class="progress" aria-label={i.t('swipe.progress')}>
-		<span style:width="{(history.length / data.items.length) * 100}%"></span>
+		<span style:width="{(history.length / products.length) * 100}%"></span>
 	</div>
 	<p class="muted status">
-		{history.length + 1} / {data.items.length} · {i.t('swipe.with')}
+		{history.length + 1} / {products.length} · {i.t('swipe.with')}
 		<strong>{targetInfo?.label}</strong>
 		<button class="link" onclick={() => (target = null)}>{i.t('swipe.change')}</button>
 	</p>
@@ -241,6 +249,29 @@
 {:else}
 	<div class="stack">
 		<h2 class="row done"><Icon name="party" size={28} /> {i.t('swipe.finished')}</h2>
+		<ul class="list piles">
+			<li class="item">
+				<Icon name="user" size={20} /><span class="grow">{i.t('swipe.pileMine')}</span>
+				<Amount cents={totals.mine} />
+			</li>
+			<li class="item">
+				<Icon name="arrowUp" size={20} /><span class="grow"
+					>{i.t('swipe.pileTheirs', { name: targetInfo?.theirs ?? '' })}</span
+				>
+				<Amount cents={totals.theirs} />
+			</li>
+			<li class="item">
+				<Icon name="share" size={20} /><span class="grow">{i.t('swipe.pileShared')}</span>
+				<Amount cents={totals.shared} />
+			</li>
+			{#if totals.discount}
+				<li class="item discount">
+					<Icon name="sparkles" size={20} /><span class="grow">{i.t('swipe.discountSpread')}</span>
+					<Amount cents={totals.discount} />
+				</li>
+			{/if}
+		</ul>
+		<h2 class="section-title">{i.t('swipe.perPerson')}</h2>
 		<ul class="list">
 			{#each preview as p (p.id)}
 				<li class="item">
@@ -261,6 +292,12 @@
 {/if}
 
 <style>
+	.piles :global(svg) {
+		color: var(--muted);
+	}
+	.discount {
+		color: var(--plus);
+	}
 	.intro {
 		margin: 0;
 	}
