@@ -6,14 +6,22 @@ import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseEbonPdf } from '#lib/server/ebon/pdf.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
-/** Mails that could not be processed; kept briefly for inspection, then purged. */
+/** Mails that could not be processed; kept for inspection, then purged. */
 const FAILED = 'Failed';
+/** Counted from delivery (MOVE keeps INTERNALDATE), so it must exceed GIVE_UP_AFTER_DAYS. */
 const FAILED_RETENTION_DAYS = 14;
+/** A mail that keeps failing for transient reasons (DB, network) is given up after this. */
+const GIVE_UP_AFTER_DAYS = 3;
+
+/** The mail itself is unusable (unparseable mail or PDF): retrying cannot help. */
+class BrokenMail extends Error {}
 
 /**
- * Imports REWE eBons from the shared inbox. The INBOX is always emptied: handled mails are
- * deleted (outcome in inbound_mails), failing ones move to FAILED and expire there, so a
- * persistent error can never fill up the mailbox.
+ * Imports REWE eBons from the shared inbox without letting it fill up:
+ * - handled mails are deleted (outcome in inbound_mails)
+ * - broken mails move to FAILED right away
+ * - transient errors leave the mail in INBOX for the next poll, until GIVE_UP_AFTER_DAYS
+ * - FAILED is purged after FAILED_RETENTION_DAYS
  */
 export async function pollMailbox() {
 	if (!optionalEnv('IMAP_HOST')) return;
@@ -40,13 +48,30 @@ async function drainInbox(imap: ImapFlow) {
 		// All mails, not just unseen ones: someone may have opened one in a mail client.
 		const uids = (await imap.search({ all: true }, { uid: true })) || [];
 		for (const uid of uids) {
+			let received: Date | undefined;
 			try {
-				const msg = await imap.fetchOne(String(uid), { source: true }, { uid: true });
-				if (msg && msg.source) await handleMail(await simpleParser(msg.source));
+				const msg = await imap.fetchOne(
+					String(uid),
+					{ source: true, internalDate: true },
+					{ uid: true }
+				);
+				if (!msg || !msg.source) continue;
+				received = msg.internalDate ? new Date(msg.internalDate) : undefined;
+				const mail = await simpleParser(msg.source).catch((e: unknown) => {
+					throw new BrokenMail(`unparseable mail: ${String(e)}`);
+				});
+				await handleMail(mail);
 				await imap.messageDelete(String(uid), { uid: true });
 			} catch (e) {
-				console.error('[mail] moving to', FAILED, uid, e);
-				await imap.messageMove(String(uid), FAILED, { uid: true });
+				const tooOld = received && Date.now() - received.getTime() > GIVE_UP_AFTER_DAYS * 864e5;
+				if (!(e instanceof BrokenMail) && !tooOld) {
+					console.warn('[mail] transient failure, retrying next poll:', uid, e);
+					continue;
+				}
+				console.error('[mail] giving up, moving to', FAILED, uid, e);
+				await imap
+					.messageMove(String(uid), FAILED, { uid: true })
+					.catch((moveError: unknown) => console.error('[mail] move failed', uid, moveError));
 			}
 		}
 	} finally {
@@ -81,7 +106,9 @@ async function handleMail(mail: ParsedMail) {
 
 	let imported = 0;
 	for (const [i, pdf] of pdfs.entries()) {
-		const bon = await parseEbonPdf(new Uint8Array(pdf.content));
+		const bon = await parseEbonPdf(new Uint8Array(pdf.content)).catch((e: unknown) => {
+			throw new BrokenMail(`unreadable PDF ${pdf.filename ?? i}: ${String(e)}`);
+		});
 		if (!bon) continue;
 		const externalId = `mail:${bon.bonNr ?? messageId}:${bon.purchasedAt.toISOString()}:${i}`;
 		if (await importEbon(user.id, 'ebon_mail', externalId, bon)) imported++;
@@ -96,7 +123,10 @@ async function collectPdfs(attachments: Attachment[], depth = 0): Promise<Attach
 		if (a.contentType === 'application/pdf' || a.filename?.toLowerCase().endsWith('.pdf'))
 			out.push(a);
 		else if (a.contentType === 'message/rfc822' && depth < 3) {
-			out.push(...(await collectPdfs((await simpleParser(a.content)).attachments, depth + 1)));
+			const inner = await simpleParser(a.content).catch((e: unknown) => {
+				throw new BrokenMail(`unparseable attached mail: ${String(e)}`);
+			});
+			out.push(...(await collectPdfs(inner.attachments, depth + 1)));
 		}
 	}
 	return out;

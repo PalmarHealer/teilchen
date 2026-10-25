@@ -41,7 +41,8 @@ export function negotiate(header: string | null): Locale {
 		.split(',')
 		.map((part) => {
 			const [tag = '', q] = part.trim().split(';q=');
-			return { lang: tag.slice(0, 2).toLowerCase(), q: q ? Number(q) : 1 };
+			// Malformed q values count as 0 so the sort comparator never sees NaN.
+			return { lang: tag.slice(0, 2).toLowerCase(), q: q === undefined ? 1 : Number(q) || 0 };
 		})
 		.sort((a, b) => b.q - a.q);
 	return ranked.map((r) => r.lang).find(isLocale) ?? 'en';

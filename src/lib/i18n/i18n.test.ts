@@ -7,6 +7,7 @@ describe('i18n', () => {
 		expect(negotiate('fr-FR,en;q=0.5,de;q=0.7')).toBe('de');
 		expect(negotiate('fr-FR')).toBe('en');
 		expect(negotiate(null)).toBe('en');
+		expect(negotiate('en;q=garbage,de;q=0.5')).toBe('de');
 	});
 
 	it('interpolates variables and plurals', () => {
