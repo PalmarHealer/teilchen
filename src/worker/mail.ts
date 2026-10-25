@@ -59,7 +59,7 @@ async function purgeFailed(imap: ImapFlow) {
 	try {
 		const before = new Date(Date.now() - FAILED_RETENTION_DAYS * 864e5);
 		const old = (await imap.search({ before }, { uid: true })) || [];
-		if (old.length) await imap.messageDelete(old.map(String), { uid: true });
+		if (old.length) await imap.messageDelete(old, { uid: true });
 	} finally {
 		lock.release();
 	}
