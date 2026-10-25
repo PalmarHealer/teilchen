@@ -6,7 +6,7 @@ import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseEbonPdf } from '#lib/server/ebon/pdf.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
-/** Liest neue Mails im eBon-Postfach und importiert angehängte REWE-eBons. */
+/** Reads new mails in the eBon inbox and imports attached REWE eBons. */
 export async function pollMailbox() {
 	if (!optionalEnv('IMAP_HOST')) return;
 	const imap = new ImapFlow({
@@ -22,8 +22,15 @@ export async function pollMailbox() {
 		const uids = (await imap.search({ seen: false }, { uid: true })) || [];
 		for (const uid of uids) {
 			const msg = await imap.fetchOne(String(uid), { source: true }, { uid: true });
-			if (msg && msg.source) await handleMail(await simpleParser(msg.source));
-			await imap.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+			try {
+				if (msg && msg.source) await handleMail(await simpleParser(msg.source));
+				// The outcome is recorded in inbound_mails, so the inbox doesn't need to keep the mail.
+				await imap.messageDelete(String(uid), { uid: true });
+			} catch (e) {
+				// Keep failed mails (marked as read) for inspection instead of retrying forever.
+				console.error('[mail]', uid, e);
+				await imap.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+			}
 		}
 	} finally {
 		lock.release();
@@ -55,7 +62,7 @@ async function handleMail(mail: ParsedMail) {
 	return log(imported ? 'imported' : 'no_ebon', `${imported}/${pdfs.length}`);
 }
 
-/** Weitergeleitete Mails können das Original als message/rfc822-Anhang enthalten. */
+/** Forwarded mails may carry the original as a message/rfc822 attachment. */
 async function collectPdfs(attachments: Attachment[], depth = 0): Promise<Attachment[]> {
 	const out: Attachment[] = [];
 	for (const a of attachments) {
@@ -80,7 +87,7 @@ function addresses(mail: ParsedMail): string[] {
 	return list.filter(Boolean);
 }
 
-/** Zuordnung: zuerst über teilchen+<token>@…, sonst über die Absenderadresse (= Weiterleitung). */
+/** Matching: first via teilchen+<token>@…, otherwise via the sender address (= whoever forwarded it). */
 async function findUser(mail: ParsedMail) {
 	for (const addr of addresses(mail)) {
 		const token = addr.match(/\+([a-z0-9]+)@/)?.[1];

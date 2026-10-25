@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseEbonText } from './parse';
 
-// Aufbau nach anonymisierten echten eBons (e-kotov/rewe-ebon-parser)
+// Layout follows anonymised real eBons (e-kotov/rewe-ebon-parser)
 const SAMPLE = `REWE Markt GmbH
 Musterstr. 1
 12345 Musterstadt
@@ -25,7 +25,7 @@ Markt:4711 Kasse:2 Bed.:123456`;
 describe('parseEbonText', () => {
 	const bon = parseEbonText(SAMPLE)!;
 
-	it('liest Positionen, Mengen und Summe', () => {
+	it('reads items, quantities and total', () => {
 		expect(bon.totalCents).toBe(1553);
 		expect(bon.items.map((i) => [i.name, i.totalCents])).toEqual([
 			['BIO HACK SW RD', 1238],
@@ -38,17 +38,17 @@ describe('parseEbonText', () => {
 		expect(bon.mismatch).toBe(false);
 	});
 
-	it('liest Datum in Berliner Zeit und Bon-Nr.', () => {
+	it('reads the date in Berlin time and the receipt number', () => {
 		expect(bon.purchasedAt.toISOString()).toBe('2026-07-11T12:00:00.000Z');
 		expect(bon.bonNr).toBe('1544');
 		expect(bon.market).toBe('REWE Markt GmbH, Musterstr. 1, 12345 Musterstadt');
 	});
 
-	it('meldet fehlende Positionen als mismatch', () => {
+	it('flags missing items as mismatch', () => {
 		expect(parseEbonText(SAMPLE.replace('BANANE CHIQUITA 2,61 B\n', ''))!.mismatch).toBe(true);
 	});
 
-	it('gibt null für Nicht-eBons', () => {
+	it('returns null for non-eBons', () => {
 		expect(parseEbonText('Hallo Welt')).toBeNull();
 	});
 });

@@ -23,7 +23,7 @@ export const users = pgTable('users', {
 	email: text('email').notNull(),
 	name: text('name').notNull(),
 	avatarUrl: text('avatar_url'),
-	/** Persönlicher Teil der eBon-Weiterleitungsadresse: teilchen+<token>@… */
+	/** Personal part of the eBon forwarding address: teilchen+<token>@… */
 	inboxToken: text('inbox_token')
 		.notNull()
 		.unique()
@@ -32,7 +32,7 @@ export const users = pgTable('users', {
 });
 
 export const sessions = pgTable('sessions', {
-	/** sha256 des Cookie-Tokens */
+	/** sha256 of the cookie token */
 	id: text('id').primaryKey(),
 	userId: uuid('user_id')
 		.notNull()
@@ -40,7 +40,7 @@ export const sessions = pgTable('sessions', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
 });
 
-/** Bekanntschaft zwischen zwei Personen (userA < userB), entsteht über Einladungslinks oder Gruppen. */
+/** Acquaintance between two people (userA < userB), created via invite links or groups. */
 export const connections = pgTable(
 	'connections',
 	{
@@ -58,7 +58,7 @@ export const connections = pgTable(
 export const groups = pgTable('groups', {
 	id: id(),
 	name: text('name').notNull(),
-	/** Schlüssel aus #lib/group-icons */
+	/** Key from #lib/group-icons */
 	icon: text('icon').notNull().default('users'),
 	createdBy: uuid('created_by')
 		.notNull()
@@ -93,7 +93,7 @@ export const reweAccounts = pgTable('rewe_accounts', {
 	userId: uuid('user_id')
 		.primaryKey()
 		.references(() => users.id, { onDelete: 'cascade' }),
-	/** AES-GCM-verschlüsselt mit APP_SECRET, siehe $lib/server/crypto */
+	/** AES-GCM encrypted with APP_SECRET, see #lib/server/crypto */
 	tokensEnc: text('tokens_enc').notNull(),
 	lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
 	lastError: text('last_error'),
@@ -110,12 +110,12 @@ export const receipts = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		source: receiptSource('source').notNull(),
-		/** REWE-Bon-ID bzw. Message-ID – verhindert Doppelimporte */
+		/** REWE receipt ID or mail Message-ID – prevents duplicate imports */
 		externalId: text('external_id').notNull(),
 		market: text('market'),
 		purchasedAt: timestamp('purchased_at', { withTimezone: true }).notNull(),
 		totalCents: integer('total_cents').notNull(),
-		/** Erst gesetzt, wenn alle Positionen geswiped sind und die Ausgabe gebucht wurde */
+		/** Only set once all items are swiped and the expense is booked */
 		expenseId: uuid('expense_id').references(() => expenses.id, { onDelete: 'set null' }),
 		dismissed: boolean('dismissed').notNull().default(false),
 		raw: jsonb('raw'),
@@ -150,7 +150,7 @@ export const expenses = pgTable(
 	{
 		id: id(),
 		kind: expenseKind('kind').notNull().default('expense'),
-		/** null = direkte Ausgabe zwischen Personen */
+		/** null = direct expense between people */
 		groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }),
 		payerId: uuid('payer_id')
 			.notNull()
@@ -160,7 +160,7 @@ export const expenses = pgTable(
 			.references(() => users.id),
 		title: text('title').notNull(),
 		amountCents: integer('amount_cents').notNull(),
-		/** Verbindet die Kontext-Zeilen eines verrechneten Ausgleichs */
+		/** Links the per-context lines of one netted settlement */
 		settlementBatch: uuid('settlement_batch'),
 		spentAt: timestamp('spent_at', { withTimezone: true }).notNull().defaultNow(),
 		createdAt: createdAt()

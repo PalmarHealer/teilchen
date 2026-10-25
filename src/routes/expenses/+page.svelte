@@ -2,13 +2,17 @@
 	import ExpenseRow from '#lib/components/ExpenseRow.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data } = $props();
+	const i = useI18n();
 </script>
 
-<Header title="Ausgaben">
+<Header title={i.t('expenses.title')}>
 	{#snippet actions()}
-		<a class="btn primary" href="/ausgaben/neu" aria-label="Neue Ausgabe"><Icon name="plus" /></a>
+		<a class="btn primary" href="/expenses/new" aria-label={i.t('expenses.new')}
+			><Icon name="plus" /></a
+		>
 	{/snippet}
 </Header>
 
@@ -19,5 +23,5 @@
 		{/each}
 	</ul>
 {:else}
-	<p class="card muted">Noch keine Ausgaben.</p>
+	<p class="card muted">{i.t('expenses.empty')}</p>
 {/if}

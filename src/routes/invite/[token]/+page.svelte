@@ -1,19 +1,22 @@
 <script lang="ts">
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
+	import { useI18n } from '#lib/i18n/index.ts';
+
 	let { data } = $props();
+	const i = useI18n();
 </script>
 
 <div class="card stack invite">
 	<GroupIcon icon={data.groupIcon ?? 'users'} size={72} />
 	<h1>
 		{#if data.groupName}
-			{data.inviterName} lädt dich in „{data.groupName}“ ein
+			{i.t('invite.group', { inviter: data.inviterName, group: data.groupName })}
 		{:else}
-			{data.inviterName} möchte mit dir Kosten teilen
+			{i.t('invite.direct', { inviter: data.inviterName })}
 		{/if}
 	</h1>
 	<form method="POST">
-		<button class="btn primary block">Annehmen</button>
+		<button class="btn primary block">{i.t('invite.accept')}</button>
 	</form>
 </div>
 

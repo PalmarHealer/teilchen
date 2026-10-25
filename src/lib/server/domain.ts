@@ -10,7 +10,7 @@ const { users, groups, groupMembers, connections, expenses, expenseShares } = sc
 export type PublicUser = Pick<typeof users.$inferSelect, 'id' | 'name' | 'avatarUrl'>;
 const publicUser = { id: users.id, name: users.name, avatarUrl: users.avatarUrl };
 
-/** Alle Personen, mit denen ich direkt verbunden bin oder eine Gruppe teile. */
+/** Everyone I am directly connected to or share a group with. */
 export async function contactsOf(me: string): Promise<PublicUser[]> {
 	const direct = db
 		.select({
@@ -60,7 +60,7 @@ export async function connect(a: string, b: string) {
 	await db.insert(connections).values({ userA, userB }).onConflictDoNothing();
 }
 
-/** Alle Buchungen, an denen `me` beteiligt ist (als Zahler oder mit Anteil). */
+/** All bookings `me` is part of (as payer or with a share). */
 export async function entriesFor(me: string): Promise<LedgerEntry[]> {
 	const involved = db
 		.select({ id: expenseShares.expenseId })
@@ -86,7 +86,7 @@ export async function entriesFor(me: string): Promise<LedgerEntry[]> {
 	return [...byId.values()];
 }
 
-/** Alle Buchungen einer Gruppe (für Gruppensalden). */
+/** All bookings of a group (for group balances). */
 export async function entriesForGroup(groupId: string): Promise<LedgerEntry[]> {
 	const rows = await db
 		.select({
@@ -146,10 +146,10 @@ export async function createExpense(
 }
 
 /**
- * Personenbezogener Ausgleich: eine Netto-Zahlung, aber pro Kontext (Gruppe/direkt) eine
- * Ausgleichsbuchung, damit jede Gruppe für alle anderen Mitglieder stimmig bleibt.
+ * Person-based settlement: one net payment, but one settlement booking per context (group/direct)
+ * so that every group stays consistent for all its other members.
  */
-export async function settleWith(me: string, other: string) {
+export async function settleWith(me: string, other: string, title: string) {
 	const plan = planPersonSettlement(me, other, await entriesFor(me));
 	if (!plan.lines.length) return plan;
 	const batch = randomUUID();
@@ -161,7 +161,7 @@ export async function settleWith(me: string, other: string) {
 					groupId: l.contextId,
 					payerId: l.fromId,
 					createdBy: me,
-					title: 'Ausgleich',
+					title,
 					shares: new Map([[l.toId, l.cents]]),
 					settlementBatch: batch
 				},

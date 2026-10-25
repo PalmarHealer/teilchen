@@ -1,8 +1,8 @@
 {
 	"name": "Teilchen",
 	"short_name": "Teilchen",
-	"description": "Einkäufe swipen, Kosten teilen, fair verrechnen.",
-	"lang": "de",
+	"description": "Swipe groceries, split costs, settle up fairly.",
+	"lang": "en",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",
@@ -14,7 +14,7 @@
 		{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
 	],
 	"shortcuts": [
-		{ "name": "Swipen", "url": "/swipe" },
-		{ "name": "Neue Ausgabe", "url": "/ausgaben/neu" }
+		{ "name": "Swipe", "url": "/swipe" },
+		{ "name": "New expense", "url": "/expenses/new" }
 	]
 }

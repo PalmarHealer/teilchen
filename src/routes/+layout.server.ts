@@ -3,7 +3,8 @@ import { db, schema } from '#lib/server/db/index.ts';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
-	if (!locals.user) return { user: null, openReceipts: 0 };
+	const locale = locals.locale;
+	if (!locals.user) return { user: null, openReceipts: 0, locale };
 	const open = await db.$count(
 		schema.receipts,
 		and(
@@ -13,5 +14,5 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		)
 	);
 	const { id, name, avatarUrl, email } = locals.user;
-	return { user: { id, name, avatarUrl, email }, openReceipts: open };
+	return { user: { id, name, avatarUrl, email }, openReceipts: open, locale };
 };

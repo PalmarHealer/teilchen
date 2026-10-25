@@ -3,4 +3,4 @@ import { client, db } from './index';
 
 await migrate(db, { migrationsFolder: './drizzle' });
 await client.end();
-console.log('Migrationen angewendet');
+console.log('Migrations applied');

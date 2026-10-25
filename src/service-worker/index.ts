@@ -24,8 +24,8 @@ sw.addEventListener('activate', (event) => {
 	);
 });
 
-// Build-Assets: Cache zuerst. Seiten & Daten: immer Netz (Salden müssen aktuell sein),
-// bei Offline die zuletzt gesehene Version.
+// Build assets: cache first. Pages & data: always network (balances must be current),
+// falling back to the last seen version when offline.
 sw.addEventListener('fetch', (event) => {
 	const req = event.request;
 	const url = new URL(req.url);

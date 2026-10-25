@@ -19,16 +19,19 @@ export default ts.config(
 	{
 		rules: {
 			'no-undef': 'off',
-			// Kein base-path im Einsatz; resolve() für jeden Link wäre nur Rauschen.
+			// No base path in use; resolve() on every link would just be noise.
 			'svelte/no-navigation-without-resolve': 'off',
-			// Geld nur als Integer-Cent: parseFloat/toFixed auf Beträgen führt zu Rundungsfehlern.
+			// Money only as integer cents: parseFloat/toFixed on amounts causes rounding errors.
 			'no-restricted-properties': [
 				'error',
-				{ property: 'toFixed', message: 'Beträge über formatCents() aus #lib/money formatieren.' }
+				{
+					property: 'toFixed',
+					message: 'Format amounts with i18n.money() / formatMoney() from #lib/i18n.'
+				}
 			],
 			'no-restricted-globals': [
 				'error',
-				{ name: 'parseFloat', message: 'Beträge über parseCents() aus #lib/money parsen.' }
+				{ name: 'parseFloat', message: 'Parse amounts with parseCents() from #lib/money.' }
 			]
 		}
 	}

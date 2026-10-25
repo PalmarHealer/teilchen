@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { sharesFromItems } from './split';
 
 describe('sharesFromItems', () => {
-	it('teilt nach Swipe-Entscheidung', () => {
+	it('splits according to the swipe decision', () => {
 		const s = sharesFromItems(
 			'me',
 			['me', 'ben', 'cleo'],
@@ -16,7 +16,7 @@ describe('sharesFromItems', () => {
 		expect([...s.values()].reduce((a, b) => a + b)).toBe(900);
 	});
 
-	it('gibt negative Posten (Leergut, Rabatt) ebenfalls anteilig weiter', () => {
+	it('passes negative items (bottle returns, discounts) on proportionally', () => {
 		const s = sharesFromItems('me', ['ben'], [{ totalCents: -30, decision: 'shared' }]);
 		expect(Object.fromEntries(s)).toEqual({ me: -15, ben: -15 });
 	});

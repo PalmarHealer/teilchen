@@ -18,4 +18,4 @@ function every(ms: number, name: string, job: () => Promise<void>) {
 
 every(MAIL_EVERY, 'mail', pollMailbox);
 every(REWE_EVERY, 'rewe', syncReweAccounts);
-console.log('Teilchen-Worker läuft');
+console.log('Teilchen worker running');

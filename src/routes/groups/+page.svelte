@@ -4,29 +4,31 @@
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { GROUP_ICONS } from '#lib/group-icons.ts';
+	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data, form } = $props();
+	const i = useI18n();
 	let icon = $state<string>('home');
 </script>
 
-<Header title="Gruppen" />
+<Header title={i.t('groups.title')} />
 
 <div class="stack">
 	{#if data.groups.length}
 		<ul class="list">
 			{#each data.groups as g (g.id)}
 				<li>
-					<a href="/gruppen/{g.id}"><GroupIcon icon={g.icon} size={36} />{g.name}</a>
+					<a href="/groups/{g.id}"><GroupIcon icon={g.icon} size={36} />{g.name}</a>
 				</li>
 			{/each}
 		</ul>
 	{/if}
 
 	<form method="POST" action="?/create" use:enhance class="card stack">
-		<h2>Neue Gruppe</h2>
-		<input name="name" placeholder="WG, Urlaub, Pärchen…" required maxlength="60" />
+		<h2>{i.t('groups.newGroup')}</h2>
+		<input name="name" placeholder={i.t('groups.namePlaceholder')} required maxlength="60" />
 		<fieldset class="icons">
-			<legend class="muted">Symbol</legend>
+			<legend class="muted">{i.t('groups.icon')}</legend>
 			{#each GROUP_ICONS as key (key)}
 				<label class="pick" title={key}>
 					<input type="radio" name="icon" value={key} bind:group={icon} />
@@ -34,8 +36,8 @@
 				</label>
 			{/each}
 		</fieldset>
-		{#if form?.message}<p class="error">{form.message}</p>{/if}
-		<button class="btn primary"><Icon name="plus" /> Erstellen</button>
+		{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
+		<button class="btn primary"><Icon name="plus" /> {i.t('groups.create')}</button>
 	</form>
 </div>
 

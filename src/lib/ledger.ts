@@ -1,9 +1,9 @@
 import type { Cents } from './money';
 
 /**
- * Eine Buchung: `payerId` hat bezahlt, jede Share ist der Anteil, den die Person konsumiert hat.
- * Ausgleichszahlungen sind ebenfalls Buchungen (Zahler = wer zurückzahlt, eine Share = Empfänger).
- * `contextId` = Gruppe oder null für direkte 1:1-Ausgaben.
+ * A booking: `payerId` paid, each share is the part a person consumed.
+ * Settlements are bookings too (payer = whoever pays back, single share = recipient).
+ * `contextId` = group, or null for direct person-to-person expenses.
  */
 export interface LedgerEntry {
 	contextId: string | null;
@@ -12,13 +12,13 @@ export interface LedgerEntry {
 }
 
 export interface PersonBalance {
-	/** > 0: die andere Person schuldet mir; < 0: ich schulde ihr. Über alle Kontexte verrechnet. */
+	/** > 0: the other person owes me; < 0: I owe them. Netted across all contexts. */
 	net: Cents;
-	/** Gleiche Vorzeichenlogik, pro Gruppe bzw. `null` für direkt. */
+	/** Same sign convention, per group or `null` for direct. */
 	byContext: Map<string | null, Cents>;
 }
 
-/** Saldo von `me` gegenüber jeder Person, mit der es Buchungen gibt – gruppenübergreifend gegengerechnet. */
+/** Balance of `me` towards every person they share bookings with, netted across groups. */
 export function personBalances(me: string, entries: LedgerEntry[]): Map<string, PersonBalance> {
 	const result = new Map<string, PersonBalance>();
 	const add = (other: string, ctx: string | null, cents: Cents) => {
@@ -49,11 +49,11 @@ export interface SettlementLine {
 }
 
 export interface SettlementPlan {
-	/** Was tatsächlich überwiesen wird (oder null, wenn sich alles aufhebt). */
+	/** What is actually transferred (or null when everything cancels out). */
 	transfer: { fromId: string; toId: string; cents: Cents } | null;
 	/**
-	 * Buchungen pro Kontext, die jeden Einzelsaldo auf 0 setzen. Ihre Summe entspricht `transfer`,
-	 * d.h. Gruppen bleiben für alle anderen Mitglieder korrekt, obwohl nur einmal netto gezahlt wird.
+	 * One booking per context that zeroes each individual balance. Their sum equals `transfer`,
+	 * so groups stay correct for all other members even though only the net amount is paid.
 	 */
 	lines: SettlementLine[];
 }
@@ -81,7 +81,7 @@ export function planPersonSettlement(
 	return { transfer, lines };
 }
 
-/** Wandelt einen Plan in Ledger-Buchungen (Zahler = wer zahlt, Share = Empfänger). */
+/** Turns a plan into ledger bookings (payer = who pays, share = recipient). */
 export function settlementEntries(plan: SettlementPlan): LedgerEntry[] {
 	return plan.lines.map((l) => ({
 		contextId: l.contextId,

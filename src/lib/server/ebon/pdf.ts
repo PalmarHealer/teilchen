@@ -1,7 +1,7 @@
 import { extractTextItems } from 'unpdf';
 import { parseEbonText } from './parse';
 
-/** PDF → Textzeilen. Fragmente werden über die y-Koordinate zu Zeilen zusammengesetzt. */
+/** PDF → text lines. Fragments are joined into lines by their y coordinate. */
 export async function pdfToText(pdf: Uint8Array): Promise<string> {
 	const { items } = await extractTextItems(pdf);
 	const out: string[] = [];

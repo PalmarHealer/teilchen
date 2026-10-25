@@ -1,7 +1,7 @@
 import { db, schema } from './db';
 import type { Ebon } from './ebon/parse';
 
-/** Speichert einen geparsten Bon samt Positionen. Gibt false zurück, wenn er schon existiert. */
+/** Stores a parsed receipt with its items. Returns false if it already exists. */
 export async function importEbon(
 	ownerId: string,
 	source: 'rewe_api' | 'ebon_mail',

@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { useI18n } from '../i18n/index.ts';
 	import Icon from './Icon.svelte';
 	let { title, back, actions }: { title: string; back?: string; actions?: Snippet } = $props();
+	const i = useI18n();
 </script>
 
 <header>
 	{#if back}
-		<a class="back" href={back} aria-label="Zurück"><Icon name="back" /></a>
+		<a class="back" href={back} aria-label={i.t('common.back')}><Icon name="back" /></a>
 	{/if}
 	<h1>{title}</h1>
 	<div class="actions">{@render actions?.()}</div>

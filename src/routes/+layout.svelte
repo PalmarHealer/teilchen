@@ -2,17 +2,23 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
+	import { provideI18n, type MessageKey } from '#lib/i18n/index.ts';
 	import type { Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
+	const i = provideI18n(() => data.locale);
+	// The server sets <html lang>; keep it right when the language changes without a reload.
+	$effect(() => {
+		document.documentElement.lang = data.locale;
+	});
 
-	const nav: { href: string; label: string; icon: IconName }[] = [
-		{ href: '/', label: 'Übersicht', icon: 'home' },
-		{ href: '/swipe', label: 'Swipen', icon: 'swipe' },
-		{ href: '/ausgaben', label: 'Ausgaben', icon: 'list' },
-		{ href: '/gruppen', label: 'Gruppen', icon: 'users' },
-		{ href: '/einstellungen', label: 'Profil', icon: 'user' }
+	const nav: { href: string; label: MessageKey; icon: IconName }[] = [
+		{ href: '/', label: 'nav.overview', icon: 'home' },
+		{ href: '/swipe', label: 'nav.swipe', icon: 'swipe' },
+		{ href: '/expenses', label: 'nav.expenses', icon: 'list' },
+		{ href: '/groups', label: 'nav.groups', icon: 'users' },
+		{ href: '/settings', label: 'nav.profile', icon: 'user' }
 	];
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
@@ -20,7 +26,7 @@
 
 {#if data.user}
 	<div class="shell">
-		<nav aria-label="Hauptnavigation">
+		<nav aria-label={i.t('nav.main')}>
 			<a class="brand" href="/">
 				<img src="/icon.svg" alt="" width="32" height="32" /><span>Teilchen</span>
 			</a>
@@ -32,7 +38,7 @@
 							<span class="badge">{data.openReceipts}</span>
 						{/if}
 					</span>
-					<span class="label">{item.label}</span>
+					<span class="label">{i.t(item.label)}</span>
 				</a>
 			{/each}
 		</nav>
@@ -51,7 +57,7 @@
 		padding-bottom: 24px;
 	}
 
-	/* Mobil: Tab-Bar unten */
+	/* Mobile: tab bar at the bottom */
 	nav {
 		position: fixed;
 		z-index: 10;
@@ -100,7 +106,7 @@
 		place-items: center;
 	}
 
-	/* Desktop: Inhalt bleibt Hochformat, Navigation wandert links daneben */
+	/* Desktop: content stays portrait, navigation moves to the left of it */
 	@media (min-width: 860px) {
 		:global(body) {
 			background: var(--outer);

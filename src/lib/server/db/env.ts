@@ -1,7 +1,7 @@
-/** Server-Env, nutzbar in SvelteKit und im Worker (daher process.env statt $env). */
+/** Server env, usable in SvelteKit and in the worker (hence process.env instead of $env). */
 export function env(name: string): string {
 	const v = process.env[name];
-	if (!v) throw new Error(`Umgebungsvariable ${name} fehlt`);
+	if (!v) throw new Error(`Environment variable ${name} is missing`);
 	return v;
 }
 

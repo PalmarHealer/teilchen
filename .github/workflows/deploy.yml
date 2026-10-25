@@ -42,13 +42,13 @@ jobs:
     needs: image
     runs-on: ubuntu-latest
     steps:
-      - name: Portainer-Stack neu deployen
+      - name: Redeploy Portainer stack
         env:
           WEBHOOK: ${{ secrets.PORTAINER_STACK_WEBHOOK }}
         run: |
           if [ -z "$WEBHOOK" ]; then
-            echo "::warning::PORTAINER_STACK_WEBHOOK fehlt, kein Redeploy"
+            echo "::warning::PORTAINER_STACK_WEBHOOK missing, no redeploy"
             exit 0
           fi
           curl -sfS -X POST "$WEBHOOK" > /dev/null
-          echo "Redeploy ausgelöst"
+          echo "Redeploy triggered"

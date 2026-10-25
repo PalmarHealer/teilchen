@@ -1,4 +1,4 @@
-/** Lokale Demo-Daten. Gibt einen Session-Token aus: als Cookie `teilchen_session` setzen. */
+/** Local demo data. Prints a session token: set it as the `teilchen_session` cookie. */
 import { sha256, randomToken } from '../crypto.ts';
 import { connect, createExpense } from '../domain.ts';
 import { parseEbonText } from '../ebon/parse.ts';
@@ -19,27 +19,27 @@ const cleo = await mk('dev-cleo', 'Cleo Clausen', 'cleo@example.de');
 
 const [wg] = await db
 	.insert(schema.groups)
-	.values({ name: 'WG Südstadt', icon: 'home', createdBy: me.id })
+	.values({ name: 'Flat share', icon: 'home', createdBy: me.id })
 	.returning();
 await db
 	.insert(schema.groupMembers)
 	.values([me, ben, cleo].map((u) => ({ groupId: wg!.id, userId: u.id })));
 await connect(me.id, ben.id);
 
-// Ich lege Ben 20 € fürs Kino aus …
+// I advance Ben €20 for the cinema …
 await createExpense({
 	groupId: null,
 	payerId: me.id,
 	createdBy: me.id,
-	title: 'Kino',
+	title: 'Cinema',
 	shares: new Map([[ben.id, 2000]])
 });
-// … Ben zahlt in der WG 45 € Putzmittel für alle drei.
+// … Ben pays €45 of cleaning supplies for all three in the flat.
 await createExpense({
 	groupId: wg!.id,
 	payerId: ben.id,
 	createdBy: ben.id,
-	title: 'Putzmittel & Klopapier',
+	title: 'Cleaning supplies',
 	shares: new Map([
 		[me.id, 1500],
 		[ben.id, 1500],
@@ -50,7 +50,7 @@ await createExpense({
 	groupId: wg!.id,
 	payerId: cleo.id,
 	createdBy: cleo.id,
-	title: 'Internet Oktober',
+	title: 'Internet October',
 	shares: new Map([
 		[me.id, 1333],
 		[ben.id, 1333],

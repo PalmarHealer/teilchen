@@ -1,13 +1,7 @@
-/** Alle Beträge sind Integer-Cent. */
+/** All amounts are integer cents. Formatting lives in #lib/i18n (locale-dependent). */
 export type Cents = number;
 
-const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
-
-export function formatCents(cents: Cents): string {
-	return formatter.format(cents / 100);
-}
-
-/** Parst "12,34", "12.34", "-1,5", "3" zu Cent. Gibt null bei ungültiger Eingabe. */
+/** Parses "12,34", "12.34", "-1,5", "3" into cents. Returns null for invalid input. */
 export function parseCents(input: string): Cents | null {
 	const m = input
 		.trim()
@@ -20,13 +14,13 @@ export function parseCents(input: string): Cents | null {
 }
 
 /**
- * Verteilt `total` auf Gewichte, sodass die Summe exakt stimmt.
- * Rest-Cent gehen an die Einträge mit dem größten Nachkommarest (Largest-Remainder).
+ * Distributes `total` across weights so that the sum is exact.
+ * Leftover cents go to the entries with the largest fractional remainder (largest remainder method).
  */
 export function allocate(total: Cents, weights: number[]): Cents[] {
 	const sum = weights.reduce((a, b) => a + b, 0);
 	if (weights.length === 0) return [];
-	if (sum <= 0) throw new Error('allocate: Gewichte müssen positiv sein');
+	if (sum <= 0) throw new Error('allocate: weights must be positive');
 	const sign = total < 0 ? -1 : 1;
 	const abs = Math.abs(total);
 	const raw = weights.map((w) => (abs * w) / sum);

@@ -1,70 +1,71 @@
 # Teilchen
 
-Einkäufe swipen, Kosten teilen, fair verrechnen. Teilchen ist eine PWA. Auf dem Desktop bleibt der Inhalt im Hochformat, die Navigation sitzt links daneben.
+Swipe groceries, split costs, settle up fairly. Teilchen is a PWA. On desktop the content stays in a portrait column and the navigation sits to its left. The UI speaks English and German and follows the browser language unless you pick one in the profile.
 
-- **Swipen:** REWE-Bons Position für Position zuordnen.
-  - ← meins
-  - → mit allen teilen
-  - ↑ gehört der anderen Person bzw. der Gruppe
-- **Klassisches Splitten:** Ausgaben direkt oder in Gruppen, gleich oder mit genauen Beträgen.
-- **Smarte Verrechnung:** Abgerechnet wird pro Person. Was zwei Leute direkt und in Gruppen offen haben, wird gegengerechnet und mit einer einzigen Zahlung ausgeglichen. Die Gruppen bleiben dabei für alle anderen korrekt.
+- **Swipe:** assign REWE receipts item by item.
+  - ← mine
+  - → share with everyone
+  - ↑ belongs to the other person or the group
+- **Classic splitting:** expenses directly or in groups, equally or with exact amounts.
+- **Smart netting:** settling happens per person. Whatever two people have open directly and across groups is netted and settled with one single payment. The groups stay correct for everyone else.
 - **Import:**
-  - eBon-Mail weiterleiten (IMAP-Postfach)
-  - PDF hochladen
-  - REWE-Konto verbinden (inoffizielle API)
+  - forward eBon emails (IMAP inbox)
+  - upload a PDF
+  - connect a REWE account (unofficial API)
 
 ## Setup
 
 ```sh
-cp .env.example .env              # Werte ausfüllen
+cp .env.example .env              # fill in the values
 docker compose up -d --build      # app :3000, worker, postgres
 ```
 
-Lokal entwickeln:
+Local development:
 
 ```sh
 pnpm install
 docker compose up -d db
 pnpm db:migrate
-pnpm db:seed    # Demo-Daten; gibt einen Session-Token aus (Cookie `teilchen_session`)
+pnpm db:seed    # demo data; prints a session token (cookie `teilchen_session`)
 pnpm dev
-pnpm worker     # Mail- & REWE-Import
+pnpm worker     # mail & REWE import
 ```
 
 ### Authentik
 
-1. Neuen Provider vom Typ **OAuth2/OpenID** anlegen:
-   - Typ: confidential
-   - Redirect-URI: `$ORIGIN/auth/callback`
-   - Scopes: `openid profile email`
-2. Daraus eine Application anlegen.
-3. `OIDC_ISSUER` setzen, zum Beispiel `https://auth.example.de/application/o/teilchen/`.
-4. Client-ID und Client-Secret in `.env` eintragen.
+1. Create a provider of type **OAuth2/OpenID**:
+   - type: confidential
+   - redirect URI: `$ORIGIN/auth/callback`
+   - scopes: `openid profile email`
+2. Create an application for it.
+3. Set `OIDC_ISSUER`, e.g. `https://auth.example.com/application/o/teilchen/`.
+4. Put the client ID and client secret into `.env`.
 
-### eBon-Postfach
+### eBon inbox
 
-1. `INBOX_ADDRESS` (zum Beispiel `teilchen@nauren.de`) und die IMAP-Zugangsdaten setzen.
-2. Jede Person bekommt unter „Profil“ ihre Adresse `teilchen+<token>@nauren.de`.
-   - Dafür muss der Mailserver Plus-Adressen in dasselbe Postfach zustellen.
-3. Ohne Plus-Adresse wird die Person über den Absender der Weiterleitung erkannt.
+1. Set `INBOX_ADDRESS` (e.g. `teilchen@example.com`) and the IMAP credentials.
+2. Everyone gets their own address `teilchen+<token>@example.com` in the profile.
+   - This needs a mail server that delivers plus addresses into the same mailbox.
+3. Without the plus part, the person is recognised by the sender of the forwarded mail.
+4. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Mails that fail stay in the inbox, marked as read.
 
-### REWE-Konto (optional, inoffiziell)
+### REWE account (optional, unofficial)
 
-Der Worker braucht das mTLS-Client-Zertifikat der REWE-App als `certs/rewe.pem` und `certs/rewe.key`.
+The worker needs the REWE app's mTLS client certificate as `certs/rewe.pem` and `certs/rewe.key`.
 
-So kommst du dran:
+To get it:
 
-1. Aus der Android-APK `res/raw/mtls_prod.pfx` extrahieren (siehe [rewerse-engineering](https://github.com/ByteSizedMarius/rewerse-engineering/blob/main/docs/readme.md)).
-2. Mit `openssl pkcs12 -legacy` in PEM und Key umwandeln.
+1. Extract `res/raw/mtls_prod.pfx` from the Android APK (see [rewerse-engineering](https://github.com/ByteSizedMarius/rewerse-engineering/blob/main/docs/readme.md)).
+2. Convert it to PEM and key with `openssl pkcs12 -legacy`.
 
-Die Nutzung ist nicht von REWE autorisiert. Die API kann jederzeit brechen oder durch Cloudflare blockiert werden.
+This use is not authorised by REWE. The API can break or be blocked by Cloudflare at any time.
 
 ## Deployment
 
-Jeder Push auf `main` läuft durch dieselben Schritte:
+Every push to `main` runs the same steps:
 
 1. `pnpm verify`
-2. Image nach `ghcr.io/palmarhealer/teilchen:latest`
-3. Das GitHub-Secret `PORTAINER_STACK_WEBHOOK` stößt den Portainer-Stack `teilchen` auf Vienna an.
+2. image to `ghcr.io/palmarhealer/teilchen:latest`
+3. the GitHub secret `PORTAINER_STACK_WEBHOOK` triggers a redeploy of the Portainer stack `teilchen`.
 
-Der Stack nutzt `deploy/portainer-compose.yml`. Secrets liegen nur in den Stack-Variablen in Portainer. Nach außen erreichbar ist er über Nginx Proxy Manager: `teilchen.nauren.de` → `teilchen-app:3000`.
+The stack uses `deploy/portainer-compose.yml`. Secrets live only in the Portainer stack variables. It is reachable through Nginx Proxy Manager: `teilchen.nauren.de` → `teilchen-app:3000`.

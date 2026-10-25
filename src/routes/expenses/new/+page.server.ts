@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
+import type { MessageKey } from '#lib/i18n/index.ts';
 import { allocate, parseCents } from '#lib/money.ts';
 import {
 	connect,
@@ -26,11 +27,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 const Input = z.object({
-	title: z.string().trim().min(1, 'Titel fehlt').max(120),
+	title: z.string().trim().min(1, 'errors.titleMissing').max(120),
 	amount: z.string(),
 	context: z.string().regex(/^(direct|group:[0-9a-f-]{36})$/),
 	payer: z.string().uuid(),
-	participants: z.array(z.string().uuid()).min(1, 'Mindestens eine Person auswählen'),
+	participants: z.array(z.string().uuid()).min(1, 'errors.atLeastOne'),
 	mode: z.enum(['equal', 'exact']),
 	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 });
@@ -48,26 +49,31 @@ export const actions: Actions = {
 			mode: fd.get('mode'),
 			date: fd.get('date')
 		});
-		if (!parsed.success) return fail(400, { message: parsed.error.issues[0]!.message });
+		if (!parsed.success) {
+			const msg = parsed.error.issues[0]!.message;
+			return fail(400, {
+				message: (msg.startsWith('errors.') ? msg : 'errors.invalidInput') as MessageKey
+			});
+		}
 		const v = parsed.data;
 		const amount = parseCents(v.amount);
-		if (!amount || amount <= 0) return fail(400, { message: 'Betrag ungültig' });
+		if (!amount || amount <= 0) return fail(400, { message: 'errors.invalidAmount' as MessageKey });
 
-		// Wer darf in diesem Kontext vorkommen?
+		// Who may appear in this context?
 		let groupId: string | null = null;
 		let allowed: Set<string>;
 		if (v.context.startsWith('group:')) {
 			groupId = v.context.slice(6);
 			allowed = new Set(await groupMemberIds(groupId));
-			if (!allowed.has(me)) return fail(403, { message: 'Keine Gruppe von dir' });
+			if (!allowed.has(me)) return fail(403, { message: 'errors.notYourGroup' as MessageKey });
 		} else {
 			allowed = new Set([me, ...(await contactsOf(me)).map((c) => c.id)]);
 		}
 		const people = [...new Set(v.participants)];
 		if (![v.payer, ...people].every((p) => allowed.has(p)))
-			return fail(403, { message: 'Unbekannte Person' });
+			return fail(403, { message: 'errors.unknownPerson' as MessageKey });
 		if (!groupId && !people.concat(v.payer).includes(me))
-			return fail(400, { message: 'Direkte Ausgaben müssen dich betreffen' });
+			return fail(400, { message: 'errors.directMustIncludeYou' as MessageKey });
 
 		let shares: Map<string, number>;
 		if (v.mode === 'equal') {
@@ -81,11 +87,11 @@ export const actions: Actions = {
 			shares = new Map();
 			for (const p of people) {
 				const c = parseCents(String(fd.get(`exact_${p}`) ?? '0'));
-				if (c === null || c < 0) return fail(400, { message: 'Einzelbetrag ungültig' });
+				if (c === null || c < 0) return fail(400, { message: 'errors.invalidShare' as MessageKey });
 				shares.set(p, c);
 			}
 			const sum = [...shares.values()].reduce((a, b) => a + b, 0);
-			if (sum !== amount) return fail(400, { message: 'Einzelbeträge ergeben nicht die Summe' });
+			if (sum !== amount) return fail(400, { message: 'errors.sharesMismatch' as MessageKey });
 		}
 
 		await createExpense({
@@ -97,6 +103,6 @@ export const actions: Actions = {
 			spentAt: new Date(`${v.date}T12:00:00`)
 		});
 		if (!groupId) for (const p of people) await connect(me, p);
-		redirect(303, groupId ? `/gruppen/${groupId}` : '/');
+		redirect(303, groupId ? `/groups/${groupId}` : '/');
 	}
 };

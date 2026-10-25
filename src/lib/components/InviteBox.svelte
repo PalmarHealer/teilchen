@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { useI18n } from '../i18n/index.ts';
 	import Icon from './Icon.svelte';
 
 	let { url, text }: { url: string; text: string } = $props();
 	let copied = $state(false);
+	const i = useI18n();
 
 	async function share() {
 		if (navigator.share) {
@@ -18,7 +20,7 @@
 	<input readonly value={url} onfocus={(e) => e.currentTarget.select()} />
 	<button type="button" class="btn primary" onclick={share}>
 		<Icon name="share" />
-		{copied ? 'Kopiert!' : 'Link teilen'}
+		{copied ? i.t('common.copied') : i.t('invite.share')}
 	</button>
-	<small class="muted">Gültig für 7 Tage.</small>
+	<small class="muted">{i.t('invite.validFor')}</small>
 </div>

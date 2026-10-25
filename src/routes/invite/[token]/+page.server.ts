@@ -16,7 +16,7 @@ async function validInvite(token: string) {
 		.innerJoin(schema.users, eq(schema.users.id, schema.invites.inviterId))
 		.leftJoin(schema.groups, eq(schema.groups.id, schema.invites.groupId))
 		.where(and(eq(schema.invites.token, token), gt(schema.invites.expiresAt, new Date())));
-	if (!row) error(404, 'Einladung ungültig oder abgelaufen');
+	if (!row) error(404, 'errors.inviteInvalid');
 	return row;
 }
 
@@ -35,8 +35,8 @@ export const actions: Actions = {
 				.insert(schema.groupMembers)
 				.values({ groupId: invite.groupId, userId: me })
 				.onConflictDoNothing();
-			redirect(303, `/gruppen/${invite.groupId}`);
+			redirect(303, `/groups/${invite.groupId}`);
 		}
-		redirect(303, `/personen/${invite.inviterId}`);
+		redirect(303, `/people/${invite.inviterId}`);
 	}
 };

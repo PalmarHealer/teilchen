@@ -13,7 +13,7 @@ export const actions: Actions = {
 		const fd = await request.formData();
 		const name = String(fd.get('name') ?? '').trim();
 		const icon = fd.get('icon');
-		if (!name) return fail(400, { message: 'Name fehlt' });
+		if (!name) return fail(400, { message: 'errors.nameMissing' as const });
 		const id = await db.transaction(async (tx) => {
 			const [g] = await tx
 				.insert(schema.groups)
@@ -26,6 +26,6 @@ export const actions: Actions = {
 			await tx.insert(schema.groupMembers).values({ groupId: g!.id, userId: locals.user!.id });
 			return g!.id;
 		});
-		redirect(303, `/gruppen/${id}`);
+		redirect(303, `/groups/${id}`);
 	}
 };

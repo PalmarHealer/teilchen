@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { useI18n } from '../i18n/index.ts';
 	import Amount from './Amount.svelte';
 	import Icon from './Icon.svelte';
 
@@ -13,11 +14,10 @@
 		myShare: number;
 	}
 	let { expense: e, me }: { expense: Row; me: string } = $props();
-	/** Was diese Buchung an meinem Saldo ändert. */
+	const i = useI18n();
+	/** How this booking changes my balance. */
 	const effect = $derived(e.payerId === me ? e.amountCents - e.myShare : -e.myShare);
-	const date = $derived(
-		new Date(e.spentAt).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })
-	);
+	const date = $derived(i.date(e.spentAt));
 </script>
 
 <div class="item">
@@ -27,13 +27,15 @@
 	<span class="grow">
 		<span class="title">{e.title}</span>
 		<small class="muted"
-			>{date} · {e.payerId === me ? 'du' : e.payerName} · <Amount cents={e.amountCents} /></small
+			>{date} · {e.payerId === me ? i.t('common.you') : e.payerName} · <Amount
+				cents={e.amountCents}
+			/></small
 		>
 	</span>
 	{#if effect !== 0}
 		<strong><Amount cents={effect} signed /></strong>
 	{:else}
-		<small class="muted">nicht beteiligt</small>
+		<small class="muted">{i.t('common.notInvolved')}</small>
 	{/if}
 </div>
 

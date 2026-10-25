@@ -1,6 +1,6 @@
 /**
- * Inoffizielle REWE-Mobile-API (Route der REWE-App). Kein öffentlicher Vertrag – kann jederzeit brechen.
- * Quellen: github.com/yannick-cw/korb (Auth.hs, ReweApi.hs), github.com/ByteSizedMarius/rewerse-engineering
+ * Unofficial REWE mobile API (what the REWE app uses). No public contract – can break at any time.
+ * Sources: github.com/yannick-cw/korb (Auth.hs, ReweApi.hs), github.com/ByteSizedMarius/rewerse-engineering
  */
 import { readFileSync } from 'node:fs';
 import { Agent, request } from 'node:https';
@@ -17,7 +17,7 @@ const UA = 'REWE-Mobile-Client/5.18.1.54501 Android/14 Phone/Google_Pixel_8';
 export interface ReweTokens {
 	accessToken: string;
 	refreshToken: string;
-	/** Unix-Sekunden */
+	/** Unix seconds */
 	expiresAt: number;
 }
 
@@ -41,7 +41,7 @@ async function tokenRequest(body: Record<string, string>): Promise<ReweTokens> {
 		headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': UA },
 		body: new URLSearchParams({ client_id: CLIENT_ID, ...body })
 	});
-	if (!res.ok) throw new Error(`REWE-Token-Endpunkt: ${res.status} ${await res.text()}`);
+	if (!res.ok) throw new Error(`REWE token endpoint: ${res.status} ${await res.text()}`);
 	const json = (await res.json()) as {
 		access_token: string;
 		refresh_token: string;
@@ -54,10 +54,10 @@ async function tokenRequest(body: Record<string, string>): Promise<ReweTokens> {
 	};
 }
 
-/** `pasted` ist die fehlgeschlagene Weiterleitung `de.rewe.app://redirect?code=…` aus dem Browser. */
+/** `pasted` is the failed redirect `de.rewe.app://redirect?code=…` copied from the browser. */
 export function reweExchangeCode(pasted: string, verifier: string) {
 	const code = pasted.trim().match(/[?&]code=([^&#\s]+)/)?.[1];
-	if (!code) throw new Error('In der eingefügten URL steckt kein ?code=…');
+	if (!code) throw new Error('The pasted URL contains no ?code=…');
 	return tokenRequest({
 		grant_type: 'authorization_code',
 		code: decodeURIComponent(code),
@@ -75,8 +75,7 @@ let agent: Agent | undefined;
 function mtlsAgent() {
 	const cert = optionalEnv('REWE_CERT_PATH');
 	const key = optionalEnv('REWE_KEY_PATH');
-	if (!cert || !key)
-		throw new Error('REWE_CERT_PATH/REWE_KEY_PATH nicht gesetzt (mTLS-Zertifikat)');
+	if (!cert || !key) throw new Error('REWE_CERT_PATH/REWE_KEY_PATH not set (mTLS certificate)');
 	agent ??= new Agent({ cert: readFileSync(cert), key: readFileSync(key), keepAlive: true });
 	return agent;
 }
@@ -112,7 +111,7 @@ function apiGet(
 			}
 		);
 		req.on('error', reject);
-		req.setTimeout(30_000, () => req.destroy(new Error('REWE-API Timeout')));
+		req.setTimeout(30_000, () => req.destroy(new Error('REWE API timeout')));
 		req.end();
 	});
 }
@@ -128,7 +127,7 @@ export interface ReweEbonSummary {
 export async function reweListEbons(accessToken: string, page = 1): Promise<ReweEbonSummary[]> {
 	const res = await apiGet(`/ebons?objectsPerPage=20&page=${page}`, accessToken);
 	if (res.type.includes('html'))
-		throw new Error('REWE-API blockiert (Cloudflare-Seite statt JSON)');
+		throw new Error('REWE API blocked (Cloudflare page instead of JSON)');
 	if (res.status !== 200) throw new Error(`REWE /ebons: ${res.status}`);
 	const json = JSON.parse(res.body.toString('utf8')) as {
 		data?: { getEbons?: { items?: ReweEbonSummary[] } };

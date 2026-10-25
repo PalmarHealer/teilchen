@@ -1,12 +1,17 @@
 <script lang="ts">
+	import { useI18n } from '#lib/i18n/index.ts';
+
 	let { data } = $props();
+	const i = useI18n();
 </script>
 
 <div class="hero">
 	<img src="/icon.svg" alt="" width="96" height="96" />
 	<h1>Teilchen</h1>
-	<p class="muted">Einkäufe swipen, Kosten teilen, fair verrechnen.</p>
-	<a class="btn primary block" href="/auth/login?next={encodeURIComponent(data.next)}">Anmelden</a>
+	<p class="muted">{i.t('app.tagline')}</p>
+	<a class="btn primary block" href="/auth/login?next={encodeURIComponent(data.next)}"
+		>{i.t('login.button')}</a
+	>
 </div>
 
 <style>

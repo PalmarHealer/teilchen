@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
+import { formatDate, translate } from '#lib/i18n/index.ts';
 import { sharesFromItems } from '#lib/split.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import {
@@ -23,7 +24,7 @@ async function ownReceipt(id: string, userId: string) {
 				isNull(schema.receipts.expenseId)
 			)
 		);
-	if (!receipt) error(404, 'Einkauf nicht gefunden oder schon gebucht');
+	if (!receipt) error(404, 'errors.receiptNotFound');
 	return receipt;
 }
 
@@ -71,7 +72,7 @@ export const actions: Actions = {
 			target: form.get('target'),
 			decisions: JSON.parse(String(form.get('decisions') ?? '{}'))
 		});
-		if (!parsed.success) return fail(400, { message: 'Ungültige Eingabe' });
+		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
 		const { target, decisions } = parsed.data;
 
 		const [kind, targetId] = target.split(':') as ['user' | 'group', string];
@@ -79,11 +80,11 @@ export const actions: Actions = {
 		let groupId: string | null = null;
 		if (kind === 'group') {
 			participants = await groupMemberIds(targetId);
-			if (!participants.includes(me)) return fail(403, { message: 'Keine Gruppe von dir' });
+			if (!participants.includes(me)) return fail(403, { message: 'errors.notYourGroup' as const });
 			groupId = targetId;
 		} else {
 			if (!(await contactsOf(me)).some((c) => c.id === targetId))
-				return fail(403, { message: 'Unbekannte Person' });
+				return fail(403, { message: 'errors.unknownPerson' as const });
 			participants = [me, targetId];
 		}
 
@@ -92,7 +93,7 @@ export const actions: Actions = {
 			.from(schema.receiptItems)
 			.where(eq(schema.receiptItems.receiptId, receipt.id));
 		if (items.some((i) => !decisions[i.id]))
-			return fail(400, { message: 'Noch nicht alles geswiped' });
+			return fail(400, { message: 'errors.notAllSwiped' as const });
 		const decided = items.map((i) => ({ ...i, decision: decisions[i.id]! }));
 		const shares = sharesFromItems(me, participants, decided);
 
@@ -111,13 +112,17 @@ export const actions: Actions = {
 					.where(eq(schema.receipts.id, receipt.id));
 				return;
 			}
-			const date = receipt.purchasedAt.toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' });
+			const date = formatDate(locals.locale, receipt.purchasedAt, {
+				day: '2-digit',
+				month: '2-digit',
+				year: 'numeric'
+			});
 			const expenseId = await createExpense(
 				{
 					groupId,
 					payerId: me,
 					createdBy: me,
-					title: `Einkauf ${date}`,
+					title: translate(locals.locale, 'expenses.receiptTitle', { date }),
 					shares,
 					spentAt: receipt.purchasedAt
 				},

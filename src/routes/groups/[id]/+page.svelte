@@ -6,24 +6,26 @@
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import InviteBox from '#lib/components/InviteBox.svelte';
+	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data, form } = $props();
+	const i = useI18n();
 </script>
 
-<Header title={data.group.name} back="/gruppen" />
+<Header title={data.group.name} back="/groups" />
 
 <div class="stack">
-	<h2 class="section-title">Mitglieder</h2>
+	<h2 class="section-title">{i.t('groups.members')}</h2>
 	<ul class="list">
 		{#each data.members as m (m.id)}
 			<li>
-				<a href={m.withMe === null ? '/einstellungen' : `/personen/${m.id}`}>
+				<a href={m.withMe === null ? '/settings' : `/people/${m.id}`}>
 					<Avatar name={m.name} src={m.avatarUrl} size={36} />
 					<span class="grow">
-						{m.name}{m.withMe === null ? ' (du)' : ''}
+						{m.withMe === null ? i.t('common.youSuffix', { name: m.name }) : m.name}
 						{#if m.withMe}
 							<small class="muted"
-								>· {m.withMe > 0 ? 'schuldet dir' : 'du schuldest'}
+								>· {m.withMe > 0 ? i.t('overview.owesYou') : i.t('overview.youOweShort')}
 								<Amount cents={Math.abs(m.withMe)} /></small
 							>
 						{/if}
@@ -33,25 +35,22 @@
 			</li>
 		{/each}
 	</ul>
-	<p class="muted hint">
-		Abgerechnet wird pro Person, nicht pro Gruppe: Auf der Personenseite wird alles, was ihr
-		untereinander offen habt, gegengerechnet.
-	</p>
+	<p class="muted hint">{i.t('groups.hint')}</p>
 
 	<div class="row">
-		<a class="btn primary grow" href="/ausgaben/neu?group={data.group.id}"
-			><Icon name="plus" /> Ausgabe</a
+		<a class="btn primary grow" href="/expenses/new?group={data.group.id}"
+			><Icon name="plus" /> {i.t('groups.expense')}</a
 		>
 		<form method="POST" action="?/invite" use:enhance class="grow">
-			<button class="btn block"><Icon name="user" /> Einladen</button>
+			<button class="btn block"><Icon name="userPlus" /> {i.t('groups.invite')}</button>
 		</form>
 	</div>
 	{#if form?.inviteUrl}
-		<InviteBox url={form.inviteUrl} text="Komm in die Gruppe {data.group.name} auf Teilchen" />
+		<InviteBox url={form.inviteUrl} text={i.t('groups.inviteText', { name: data.group.name })} />
 	{/if}
 
 	{#if data.expenses.length}
-		<h2 class="section-title">Verlauf</h2>
+		<h2 class="section-title">{i.t('groups.history')}</h2>
 		<ul class="list">
 			{#each data.expenses as e (e.id)}
 				<li><ExpenseRow expense={e} me={data.user!.id} /></li>

@@ -1,5 +1,5 @@
-# Produktions-Stack in Portainer (Vienna). Die Werte kommen aus den Stack-Variablen,
-# erreichbar ist die App über Nginx Proxy Manager im nginx_network (teilchen-app:3000).
+# Production stack in Portainer (Vienna). Values come from the stack variables;
+# the app is reached through Nginx Proxy Manager on nginx_network (teilchen-app:3000).
 services:
   app:
     image: ghcr.io/palmarhealer/teilchen:latest
@@ -29,7 +29,7 @@ services:
     container_name: teilchen-worker
     command: ['node_modules/.bin/tsx', 'src/worker/index.ts']
     environment: *env
-    # REWE-mTLS-Zertifikat (rewe.pem/rewe.key) hier ablegen, siehe README
+    # Put the REWE mTLS certificate (rewe.pem/rewe.key) here, see README
     volumes:
       - teilchen_certs:/certs:ro
     depends_on:

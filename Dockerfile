@@ -16,5 +16,5 @@ COPY --from=build /app/src src
 COPY --from=build /app/drizzle drizzle
 USER node
 EXPOSE 3000
-# Worker: docker compose überschreibt das Kommando mit `node_modules/.bin/tsx src/worker/index.ts`
+# Worker: compose overrides the command with `node_modules/.bin/tsx src/worker/index.ts`
 CMD ["sh", "-c", "node_modules/.bin/tsx src/lib/server/db/migrate.ts && node build"]

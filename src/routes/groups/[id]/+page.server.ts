@@ -9,12 +9,12 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const me = locals.user!.id;
 	const memberIds = await groupMemberIds(params.id);
-	if (!memberIds.includes(me)) error(404, 'Gruppe nicht gefunden');
+	if (!memberIds.includes(me)) error(404, 'errors.groupNotFound');
 	const [group] = await db.select().from(schema.groups).where(eq(schema.groups.id, params.id));
 	const members = await usersByIds(memberIds);
 	const entries = await entriesForGroup(params.id);
 
-	// Saldo jedes Mitglieds in der Gruppe = bezahlt − verbraucht
+	// Each member's group balance = paid − consumed
 	const totals = new Map(memberIds.map((id) => [id, 0]));
 	for (const e of entries) {
 		for (const s of e.shares) {
@@ -44,6 +44,6 @@ export const actions: Actions = {
 			groupId: params.id,
 			expiresAt: new Date(Date.now() + 7 * 864e5)
 		});
-		return { inviteUrl: new URL(`/einladung/${token}`, url.origin).toString() };
+		return { inviteUrl: new URL(`/invite/${token}`, url.origin).toString() };
 	}
 };

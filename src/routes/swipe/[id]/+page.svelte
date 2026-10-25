@@ -5,15 +5,17 @@
 	import Header from '#lib/components/Header.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { useI18n } from '#lib/i18n/index.ts';
 	import { sharesFromItems, type Decision } from '#lib/split.ts';
 
 	let { data, form } = $props();
+	const i = useI18n();
 
 	let target = $state<string | null>(null);
 	let decisions = $state<Record<string, Decision>>({});
 	let history = $state<string[]>([]);
 
-	const queue = $derived(data.items.filter((i) => !decisions[i.id]));
+	const queue = $derived(data.items.filter((it) => !decisions[it.id]));
 	const current = $derived(queue[0]);
 	const me = $derived(data.user!.id);
 
@@ -22,15 +24,28 @@
 		const [kind, id] = target.split(':');
 		if (kind === 'group') {
 			const g = data.groups.find((g) => g.id === id)!;
-			return { label: g.name, icon: g.icon, participants: g.memberIds, theirs: 'Gruppe' };
+			return {
+				label: g.name,
+				icon: g.icon,
+				participants: g.memberIds,
+				theirs: i.t('swipe.theirsGroup')
+			};
 		}
 		const c = data.contacts.find((c) => c.id === id)!;
-		return { label: c.name, icon: null, participants: [me, c.id], theirs: c.name.split(' ')[0] };
+		return {
+			label: c.name,
+			icon: null,
+			participants: [me, c.id],
+			theirs: c.name.split(' ')[0] ?? c.name
+		};
 	});
 
 	const preview = $derived.by(() => {
 		if (!targetInfo || queue.length) return [];
-		const items = data.items.map((i) => ({ totalCents: i.totalCents, decision: decisions[i.id]! }));
+		const items = data.items.map((it) => ({
+			totalCents: it.totalCents,
+			decision: decisions[it.id]!
+		}));
 		const shares = sharesFromItems(me, targetInfo.participants, items);
 		const names = new Map(data.contacts.map((c) => [c.id, c.name]));
 		return [...shares]
@@ -38,7 +53,7 @@
 			.map(([id, cents]) => ({
 				id,
 				cents,
-				name: id === me ? 'Du' : (names.get(id) ?? 'Mitglied')
+				name: id === me ? i.t('common.you') : (names.get(id) ?? i.t('common.member'))
 			}));
 	});
 
@@ -53,7 +68,7 @@
 		if (id) delete decisions[id];
 	}
 
-	// --- Gesten ---
+	// --- Gestures ---
 	let dx = $state(0);
 	let dy = $state(0);
 	let dragging = $state(false);
@@ -92,19 +107,14 @@
 		else if (e.key === 'Backspace') undo();
 	}
 
-	const labels: Record<Decision, string> = { mine: 'Meins', shared: 'Teilen', theirs: '' };
 	const fmtQty = (q: string, unit: string | null) =>
-		unit === 'kg' ? `${q.replace('.', ',')} kg` : Number(q) > 1 ? `${q}×` : '';
+		unit === 'kg' ? `${Number(q).toLocaleString(i.locale)} kg` : Number(q) > 1 ? `${q}×` : '';
 </script>
 
 <svelte:window onkeydown={key} />
 
 <Header
-	title={new Date(data.receipt.purchasedAt).toLocaleDateString('de-DE', {
-		weekday: 'long',
-		day: '2-digit',
-		month: 'long'
-	})}
+	title={i.date(data.receipt.purchasedAt, { weekday: 'long', day: '2-digit', month: 'long' })}
 	back="/swipe"
 />
 
@@ -112,24 +122,24 @@
 	<div class="stack">
 		<p class="muted intro">
 			{data.receipt.market ?? 'REWE'} · <Amount cents={data.receipt.totalCents} /> ·
-			{data.items.length} Positionen. Mit wem teilst du diesen Einkauf?
+			{i.t('swipe.items', { n: data.items.length })}. {i.t('swipe.whoWith')}
 		</p>
 		{#if data.groups.length}
-			<h2 class="section-title">Gruppen</h2>
+			<h2 class="section-title">{i.t('swipe.groups')}</h2>
 			<ul class="list">
 				{#each data.groups as g (g.id)}
 					<li>
 						<button class="pick" onclick={() => (target = `group:${g.id}`)}>
 							<GroupIcon icon={g.icon} size={32} />
 							<span class="grow">{g.name}</span>
-							<small class="muted">{g.memberIds.length} Personen</small>
+							<small class="muted">{i.t('swipe.members', { n: g.memberIds.length })}</small>
 						</button>
 					</li>
 				{/each}
 			</ul>
 		{/if}
 		{#if data.contacts.length}
-			<h2 class="section-title">Personen</h2>
+			<h2 class="section-title">{i.t('swipe.people')}</h2>
 			<ul class="list">
 				{#each data.contacts as c (c.id)}
 					<li>
@@ -142,26 +152,27 @@
 			</ul>
 		{:else if !data.groups.length}
 			<p class="card muted">
-				Du hast noch niemanden zum Teilen. <a href="/einstellungen">Lade jemanden ein</a> oder
-				<a href="/gruppen">erstelle eine Gruppe</a>.
+				{i.t('swipe.nobody')} <a href="/settings">{i.t('swipe.inviteSomeone')}</a>
+				<a href="/groups">{i.t('swipe.orCreateGroup')}</a>.
 			</p>
 		{/if}
 		<form method="POST" action="?/dismiss" use:enhance>
-			<button class="btn block">Nicht teilen, alles meins</button>
+			<button class="btn block">{i.t('swipe.notSharing')}</button>
 		</form>
 	</div>
 {:else if current}
-	<div class="progress" aria-label="Fortschritt">
+	<div class="progress" aria-label={i.t('swipe.progress')}>
 		<span style:width="{(history.length / data.items.length) * 100}%"></span>
 	</div>
 	<p class="muted status">
-		{history.length + 1} / {data.items.length} · mit <strong>{targetInfo?.label}</strong>
-		<button class="link" onclick={() => (target = null)}>ändern</button>
+		{history.length + 1} / {data.items.length} · {i.t('swipe.with')}
+		<strong>{targetInfo?.label}</strong>
+		<button class="link" onclick={() => (target = null)}>{i.t('swipe.change')}</button>
 	</p>
 
 	<div class="deck">
-		{#each queue.slice(1, 3).reverse() as next, i (next.id)}
-			<div class="card swipe behind" style:--depth={queue.slice(1, 3).length - i}></div>
+		{#each queue.slice(1, 3).reverse() as next, idx (next.id)}
+			<div class="card swipe behind" style:--depth={queue.slice(1, 3).length - idx}></div>
 		{/each}
 		{#key current.id}
 			<div
@@ -169,7 +180,7 @@
 				class:dragging
 				role="button"
 				tabindex="0"
-				aria-label="{current.name}, wischen zum Zuordnen"
+				aria-label={i.t('swipe.cardLabel', { name: current.name })}
 				style:transform="translate({dx}px, {dy}px) rotate({dx / 18}deg)"
 				onpointerdown={down}
 				onpointermove={move}
@@ -177,7 +188,13 @@
 				onpointercancel={up}
 			>
 				{#if hint}
-					<span class="stamp {hint}">{hint === 'theirs' ? targetInfo?.theirs : labels[hint]}</span>
+					<span class="stamp {hint}"
+						>{hint === 'theirs'
+							? targetInfo?.theirs
+							: hint === 'mine'
+								? i.t('swipe.mine')
+								: i.t('swipe.share')}</span
+					>
 				{/if}
 				<span class="qty muted">{fmtQty(current.quantity, current.unit)}</span>
 				<h2 class="name">{current.name}</h2>
@@ -189,17 +206,22 @@
 	</div>
 
 	<div class="actions">
-		<button class="round mine" onclick={() => decide('mine')} aria-label="Meins (Pfeil links)">
+		<button class="round mine" onclick={() => decide('mine')} aria-label={i.t('swipe.mineAria')}>
 			<Icon name="user" />
-			<small>Meins</small>
+			<small>{i.t('swipe.mine')}</small>
 		</button>
-		<button class="round undo" onclick={undo} disabled={!history.length} aria-label="Rückgängig">
+		<button
+			class="round undo"
+			onclick={undo}
+			disabled={!history.length}
+			aria-label={i.t('swipe.undo')}
+		>
 			<Icon name="undo" size={18} />
 		</button>
 		<button
 			class="round theirs"
 			onclick={() => decide('theirs')}
-			aria-label="Gehört {targetInfo?.theirs} (Pfeil hoch)"
+			aria-label={i.t('swipe.theirsAria', { name: targetInfo?.theirs ?? '' })}
 		>
 			<Icon name="arrowUp" />
 			<small>{targetInfo?.theirs}</small>
@@ -207,16 +229,16 @@
 		<button
 			class="round shared"
 			onclick={() => decide('shared')}
-			aria-label="Teilen (Pfeil rechts)"
+			aria-label={i.t('swipe.shareAria')}
 		>
 			<Icon name="share" />
-			<small>Teilen</small>
+			<small>{i.t('swipe.share')}</small>
 		</button>
 	</div>
-	<p class="muted legend">← meins · ↑ {targetInfo?.theirs} · teilen →</p>
+	<p class="muted legend">{i.t('swipe.legend', { theirs: targetInfo?.theirs ?? '' })}</p>
 {:else}
 	<div class="stack">
-		<h2 class="row done"><Icon name="party" size={28} /> Fertig geswiped</h2>
+		<h2 class="row done"><Icon name="party" size={28} /> {i.t('swipe.finished')}</h2>
 		<ul class="list">
 			{#each preview as p (p.id)}
 				<li class="item">
@@ -225,14 +247,14 @@
 				</li>
 			{/each}
 		</ul>
-		<p class="muted">Du hast bezahlt. Die anderen Anteile werden dir gutgeschrieben.</p>
-		{#if form?.message}<p class="error">{form.message}</p>{/if}
+		<p class="muted">{i.t('swipe.youPaid')}</p>
+		{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
 		<form method="POST" action="?/book" use:enhance>
 			<input type="hidden" name="target" value={target} />
 			<input type="hidden" name="decisions" value={JSON.stringify(decisions)} />
-			<button class="btn primary block"><Icon name="check" /> Buchen</button>
+			<button class="btn primary block"><Icon name="check" /> {i.t('swipe.book')}</button>
 		</form>
-		<button class="btn block" onclick={undo}><Icon name="undo" /> Letzte zurück</button>
+		<button class="btn block" onclick={undo}><Icon name="undo" /> {i.t('swipe.undoLast')}</button>
 	</div>
 {/if}
 

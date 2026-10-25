@@ -13,7 +13,7 @@ export interface Ebon {
 	purchasedAt: Date;
 	totalCents: Cents;
 	items: EbonItem[];
-	/** Summe der Positionen ≠ SUMME – Parser hat vermutlich etwas verpasst */
+	/** Sum of items ≠ SUMME – the parser probably missed something */
 	mismatch: boolean;
 }
 
@@ -23,7 +23,7 @@ const TOTAL = /^SUMME\s+EUR\s+(-?\d+,\d\d)/;
 const DATE = /(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})(?::\d{2})?\s+Bon-Nr\.?:?\s*(\d+)/;
 const PFAND = /^(PFAND|EINWEG|MEHRWEG)/i;
 
-/** Parst den Text eines REWE-eBon-PDFs (eine Zeile pro Bon-Zeile). */
+/** Parses the text of a REWE eBon PDF (one line per receipt line). The receipt itself is German. */
 export function parseEbonText(text: string): Ebon | null {
 	const lines = text
 		.split(/\r?\n/)
@@ -46,7 +46,7 @@ export function parseEbonText(text: string): Ebon | null {
 		const m = line.match(ITEM);
 		if (!m) continue;
 		const cents = parseCents(m[2]!)!;
-		// Pfand gehört zum Getränk davor – beim Swipen soll man es nicht extra entscheiden müssen.
+		// A deposit (Pfand) belongs to the drink above it – nobody should have to swipe it separately.
 		if (PFAND.test(m[1]!) && cents > 0 && prev && prev.totalCents > 0) {
 			prev.totalCents += cents;
 			if (!prev.name.endsWith('(inkl. Pfand)')) prev.name += ' (inkl. Pfand)';
@@ -70,7 +70,7 @@ export function parseEbonText(text: string): Ebon | null {
 	};
 }
 
-/** Lokale Berliner Uhrzeit → Date (berücksichtigt Sommerzeit). */
+/** Local Berlin wall-clock time → Date (handles daylight saving time). */
 export function berlinTime(y: number, mo: number, d: number, h: number, mi: number): Date {
 	const asUtc = Date.UTC(y, mo - 1, d, h, mi);
 	const parts = new Intl.DateTimeFormat('en-US', {

@@ -2,12 +2,14 @@
 	import { enhance } from '$app/forms';
 	import Amount from '#lib/components/Amount.svelte';
 	import Header from '#lib/components/Header.svelte';
+	import { useI18n } from '#lib/i18n/index.ts';
 	import { allocate, parseCents } from '#lib/money.ts';
 
 	let { data, form } = $props();
+	const i = useI18n();
 
 	const me = $derived(data.user!);
-	// Startwerte stammen aus der URL (?person=, ?group=) und werden danach lokal bearbeitet.
+	// Initial values come from the URL (?person=, ?group=) and are edited locally afterwards.
 	// svelte-ignore state_referenced_locally
 	let context = $state(data.preset.group ? `group:${data.preset.group}` : 'direct');
 	let amount = $state('');
@@ -21,13 +23,13 @@
 	const today = new Date().toISOString().slice(0, 10);
 
 	const people = $derived.by(() => {
-		const all = [{ id: me.id, name: `${me.name} (du)` }, ...data.contacts];
+		const all = [{ id: me.id, name: i.t('common.youSuffix', { name: me.name }) }, ...data.contacts];
 		if (context === 'direct') return all;
 		const g = data.groups.find((g) => `group:${g.id}` === context);
 		return all.filter((p) => g?.memberIds.includes(p.id));
 	});
 
-	// Gruppe gewechselt → Auswahl auf alle Mitglieder setzen
+	// Group changed → select all of its members
 	let lastContext = '';
 	$effect(() => {
 		if (context === lastContext) return;
@@ -47,16 +49,16 @@
 	);
 </script>
 
-<Header title="Neue Ausgabe" back="/ausgaben" />
+<Header title={i.t('expenses.new')} back="/expenses" />
 
 <form method="POST" use:enhance class="stack">
 	<label class="field">
-		Wofür?
-		<input name="title" required placeholder="z.B. Pizza, Tanken, Kino" maxlength="120" />
+		{i.t('expenses.what')}
+		<input name="title" required placeholder={i.t('expenses.whatPlaceholder')} maxlength="120" />
 	</label>
 	<div class="row two">
 		<label class="field">
-			Betrag (€)
+			{i.t('expenses.amount')}
 			<input
 				name="amount"
 				required
@@ -67,23 +69,23 @@
 			/>
 		</label>
 		<label class="field">
-			Datum
+			{i.t('expenses.date')}
 			<input name="date" type="date" value={today} required />
 		</label>
 	</div>
 
 	<label class="field">
-		Wo?
+		{i.t('expenses.where')}
 		<select name="context" bind:value={context}>
-			<option value="direct">Direkt zwischen Personen</option>
+			<option value="direct">{i.t('expenses.directBetween')}</option>
 			{#each data.groups as g (g.id)}
-				<option value="group:{g.id}">Gruppe: {g.name}</option>
+				<option value="group:{g.id}">{i.t('expenses.groupOption', { name: g.name })}</option>
 			{/each}
 		</select>
 	</label>
 
 	<label class="field">
-		Bezahlt von
+		{i.t('expenses.paidBy')}
 		<select name="payer" bind:value={payer}>
 			{#each people as p (p.id)}
 				<option value={p.id}>{p.name}</option>
@@ -92,7 +94,7 @@
 	</label>
 
 	<fieldset class="stack">
-		<legend class="muted">Aufteilen auf</legend>
+		<legend class="muted">{i.t('expenses.splitBetween')}</legend>
 		<div class="chips">
 			{#each people as p (p.id)}
 				<label class="chip">
@@ -103,10 +105,12 @@
 		</div>
 		<div class="chips">
 			<label class="chip">
-				<input type="radio" name="mode" value="equal" bind:group={mode} /> Gleich
+				<input type="radio" name="mode" value="equal" bind:group={mode} />
+				{i.t('expenses.equal')}
 			</label>
 			<label class="chip">
-				<input type="radio" name="mode" value="exact" bind:group={mode} /> Genaue Beträge
+				<input type="radio" name="mode" value="exact" bind:group={mode} />
+				{i.t('expenses.exact')}
 			</label>
 		</div>
 
@@ -129,8 +133,8 @@
 		{/if}
 	</fieldset>
 
-	{#if form?.message}<p class="error">{form.message}</p>{/if}
-	<button class="btn primary block">Speichern</button>
+	{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
+	<button class="btn primary block">{i.t('expenses.save')}</button>
 </form>
 
 <style>

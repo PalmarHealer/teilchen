@@ -12,7 +12,7 @@ export function encrypt(plain: string): string {
 
 export function decrypt(payload: string): string {
 	const [iv, tag, data] = payload.split('.').map((p) => Buffer.from(p, 'base64'));
-	if (!iv || !tag || !data) throw new Error('Ungültiges Chiffrat');
+	if (!iv || !tag || !data) throw new Error('Invalid ciphertext');
 	const decipher = createDecipheriv('aes-256-gcm', key(), iv);
 	decipher.setAuthTag(tag);
 	return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');

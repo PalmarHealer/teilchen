@@ -18,12 +18,12 @@ const inGroup = (g: string, payerId: string, shares: [string, number][]): Ledger
 });
 
 describe('money', () => {
-	it('verteilt Rest-Cent ohne Verlust', () => {
+	it('distributes leftover cents without loss', () => {
 		expect(splitEqually(1000, 3)).toEqual([334, 333, 333]);
 		expect(allocate(-1000, [1, 1, 1]).reduce((a, b) => a + b)).toBe(-1000);
 		expect(allocate(199, [2, 1])).toEqual([133, 66]);
 	});
-	it('parst deutsche und englische Schreibweise', () => {
+	it('parses German and English notation', () => {
 		expect(parseCents('12,34')).toBe(1234);
 		expect(parseCents('12.3 €')).toBe(1230);
 		expect(parseCents('-0,05')).toBe(-5);
@@ -32,11 +32,11 @@ describe('money', () => {
 });
 
 describe('personBalances', () => {
-	it('rechnet direkte Auslagen gegen Gruppenausgaben auf', () => {
+	it('nets direct advances against group expenses', () => {
 		const entries = [
-			// Ich lege Ben 20 € aus.
+			// I advance Ben €20.
 			direct('me', [['ben', 2000]]),
-			// Ben zahlt in der WG 45 € für drei – mein Anteil 15 €.
+			// Ben pays €45 for three in the flat – my share is €15.
 			inGroup('wg', 'ben', [
 				['ben', 1500],
 				['me', 1500],
@@ -47,7 +47,7 @@ describe('personBalances', () => {
 		expect(ben.net).toBe(500);
 		expect(ben.byContext.get(null)).toBe(2000);
 		expect(ben.byContext.get('wg')).toBe(-1500);
-		// Cleo hat mit mir nichts zu tun.
+		// Cleo has nothing to do with me.
 		expect(personBalances('me', entries).has('cleo')).toBe(false);
 	});
 });
@@ -62,16 +62,16 @@ describe('planPersonSettlement', () => {
 		])
 	];
 
-	it('ergibt eine Netto-Überweisung und Kontext-Zeilen, die jeden Saldo nullen', () => {
+	it('yields one net transfer and context lines that zero every balance', () => {
 		const plan = planPersonSettlement('me', 'ben', entries);
 		expect(plan.transfer).toEqual({ fromId: 'ben', toId: 'me', cents: 500 });
 		const after = [...entries, ...settlementEntries(plan)];
 		expect(personBalances('me', after).has('ben')).toBe(false);
-		// Cleos Schulden bei Ben in der WG bleiben unberührt.
+		// Cleo's debt to Ben in the flat stays untouched.
 		expect(personBalances('cleo', after).get('ben')?.net).toBe(-1500);
 	});
 
-	it('liefert null-Transfer, wenn sich alles exakt aufhebt', () => {
+	it('returns a null transfer when everything cancels out exactly', () => {
 		const even = [direct('me', [['ben', 1500]]), inGroup('wg', 'ben', [['me', 1500]])];
 		const plan = planPersonSettlement('me', 'ben', even);
 		expect(plan.transfer).toBeNull();

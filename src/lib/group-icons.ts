@@ -1,4 +1,4 @@
-/** Wählbare Gruppen-Symbole (Tabler). In der DB steht nur der Schlüssel. */
+/** Selectable group icons (Tabler). The DB stores only the key. */
 export const GROUP_ICONS = [
 	'home',
 	'users',

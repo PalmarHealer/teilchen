@@ -2,13 +2,14 @@
 	import Amount from '#lib/components/Amount.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data } = $props();
-	const fmt = (d: Date) =>
-		new Date(d).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' });
+	const i = useI18n();
+	const fmt = (d: Date) => i.date(d, { weekday: 'short', day: '2-digit', month: 'short' });
 </script>
 
-<Header title="Einkäufe swipen" />
+<Header title={i.t('swipe.title')} />
 
 {#if data.open.length}
 	<ul class="list">
@@ -18,7 +19,7 @@
 					<span class="ico"><Icon name="receipt" /></span>
 					<span class="grow">
 						<strong>{fmt(r.purchasedAt)}</strong>
-						<small class="muted">{r.market ?? 'REWE'} · {r.items} Positionen</small>
+						<small class="muted">{r.market ?? 'REWE'} · {i.t('swipe.items', { n: r.items })}</small>
 					</span>
 					<strong><Amount cents={r.totalCents} /></strong>
 				</a>
@@ -28,12 +29,9 @@
 {:else}
 	<div class="card empty">
 		<span class="party"><Icon name="party" size={40} /></span>
-		<p><strong>Keine offenen Einkäufe</strong></p>
-		<p class="muted">
-			Verbinde dein REWE-Konto oder leite eBon-Mails weiter, dann landen neue Einkäufe automatisch
-			hier.
-		</p>
-		<a class="btn" href="/einstellungen"><Icon name="mail" /> Import einrichten</a>
+		<p><strong>{i.t('swipe.emptyTitle')}</strong></p>
+		<p class="muted">{i.t('swipe.emptyText')}</p>
+		<a class="btn" href="/settings"><Icon name="mail" /> {i.t('swipe.setupImport')}</a>
 	</div>
 {/if}
 
