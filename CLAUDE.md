@@ -16,5 +16,5 @@ Gate: `pnpm verify` (typecheck + lint + tests). CI also checks that `drizzle/` m
   - Login only works by pasting the `de.rewe.app://redirect?code=` URL by hand, then refresh tokens.
   - Sources: github.com/yannick-cw/korb, github.com/ByteSizedMarius/rewerse-engineering.
 - eBon email is the robust main path. API, mail and upload all deliver the same PDF and go through `ebon/parse.ts`. A deposit (Pfand) line is merged into the item above it.
-- The worker deletes processed eBon mails (outcome in `inbound_mails`) so the shared inbox stays empty. Stalwart delivers `teilchen+<token>@` into the same INBOX and keeps the To header.
+- The worker always empties the shared INBOX: handled mails are deleted (outcome in `inbound_mails`), failures move to `Failed` and expire after 14 days. Why: a persistent error must not fill the mailbox. Stalwart delivers `teilchen+<token>@` into the same INBOX and keeps the To header.
 - Deploy: push to `main` → GHCR image → Portainer stack webhook (stack `teilchen` on Vienna, see README). Secrets live only in the Portainer stack variables.

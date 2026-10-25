@@ -6,7 +6,15 @@ import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseEbonPdf } from '#lib/server/ebon/pdf.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
-/** Reads new mails in the eBon inbox and imports attached REWE eBons. */
+/** Mails that could not be processed; kept briefly for inspection, then purged. */
+const FAILED = 'Failed';
+const FAILED_RETENTION_DAYS = 14;
+
+/**
+ * Imports REWE eBons from the shared inbox. The INBOX is always emptied: handled mails are
+ * deleted (outcome in inbound_mails), failing ones move to FAILED and expire there, so a
+ * persistent error can never fill up the mailbox.
+ */
 export async function pollMailbox() {
 	if (!optionalEnv('IMAP_HOST')) return;
 	const imap = new ImapFlow({
@@ -17,24 +25,43 @@ export async function pollMailbox() {
 		logger: false
 	});
 	await imap.connect();
+	try {
+		if (!(await imap.list()).some((box) => box.path === FAILED)) await imap.mailboxCreate(FAILED);
+		await drainInbox(imap);
+		await purgeFailed(imap);
+	} finally {
+		await imap.logout();
+	}
+}
+
+async function drainInbox(imap: ImapFlow) {
 	const lock = await imap.getMailboxLock('INBOX');
 	try {
-		const uids = (await imap.search({ seen: false }, { uid: true })) || [];
+		// All mails, not just unseen ones: someone may have opened one in a mail client.
+		const uids = (await imap.search({ all: true }, { uid: true })) || [];
 		for (const uid of uids) {
-			const msg = await imap.fetchOne(String(uid), { source: true }, { uid: true });
 			try {
+				const msg = await imap.fetchOne(String(uid), { source: true }, { uid: true });
 				if (msg && msg.source) await handleMail(await simpleParser(msg.source));
-				// The outcome is recorded in inbound_mails, so the inbox doesn't need to keep the mail.
 				await imap.messageDelete(String(uid), { uid: true });
 			} catch (e) {
-				// Keep failed mails (marked as read) for inspection instead of retrying forever.
-				console.error('[mail]', uid, e);
-				await imap.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+				console.error('[mail] moving to', FAILED, uid, e);
+				await imap.messageMove(String(uid), FAILED, { uid: true });
 			}
 		}
 	} finally {
 		lock.release();
-		await imap.logout();
+	}
+}
+
+async function purgeFailed(imap: ImapFlow) {
+	const lock = await imap.getMailboxLock(FAILED);
+	try {
+		const before = new Date(Date.now() - FAILED_RETENTION_DAYS * 864e5);
+		const old = (await imap.search({ before }, { uid: true })) || [];
+		if (old.length) await imap.messageDelete(old.map(String), { uid: true });
+	} finally {
+		lock.release();
 	}
 }
 

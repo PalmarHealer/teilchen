@@ -47,7 +47,7 @@ pnpm worker     # mail & REWE import
 2. Everyone gets their own address `teilchen+<token>@example.com` in the profile.
    - This needs a mail server that delivers plus addresses into the same mailbox.
 3. Without the plus part, the person is recognised by the sender of the forwarded mail.
-4. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Mails that fail stay in the inbox, marked as read.
+4. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Mails that fail move to the `Failed` folder and are purged there after 14 days, so the inbox never fills up.
 
 ### REWE account (optional, unofficial)
 
