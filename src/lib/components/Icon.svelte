@@ -9,6 +9,7 @@
 	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
 	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
 	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
+	import ArrowsSplit from '@tabler/icons-svelte/icons/arrows-split';
 	import Confetti from '@tabler/icons-svelte/icons/confetti';
 	import DoorExit from '@tabler/icons-svelte/icons/door-exit';
 	import FileTypePdf from '@tabler/icons-svelte/icons/file-type-pdf';
@@ -61,7 +62,8 @@
 		search: Search,
 		settings: Settings,
 		sparkles: Sparkles,
-		trash: Trash
+		trash: Trash,
+		split: ArrowsSplit
 	};
 	export type IconName = keyof typeof icons;
 </script>

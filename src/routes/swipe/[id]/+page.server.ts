@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { formatDate, translate } from '#lib/i18n/index.ts';
-import { sharesFromItems } from '#lib/split.ts';
+import { expandUnits, sharesFromItems, unitCount } from '#lib/split.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import {
 	connect,
@@ -60,9 +60,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	};
 };
 
+const Decision = z.enum(['mine', 'shared', 'theirs']);
 const BookInput = z.object({
 	target: z.string().regex(/^(user|group):[0-9a-f-]{36}$/),
-	decisions: z.record(z.string().uuid(), z.enum(['mine', 'shared', 'theirs']))
+	// One decision per line, or one per piece for lines swiped piece by piece
+	decisions: z.record(z.string().uuid(), z.union([Decision, z.array(Decision)]))
 });
 
 export const actions: Actions = {
@@ -95,19 +97,26 @@ export const actions: Actions = {
 			.from(schema.receiptItems)
 			.where(eq(schema.receiptItems.receiptId, receipt.id));
 		// Only products are swiped; discounts are spread over them by sharesFromItems.
-		if (items.some((i) => i.kind === 'product' && !decisions[i.id]))
+		const swiped = (i: (typeof items)[number]) => {
+			const d = decisions[i.id];
+			return Array.isArray(d) ? d.length === unitCount(i.quantity, i.unit) && d.length > 1 : !!d;
+		};
+		if (items.some((i) => i.kind === 'product' && !swiped(i)))
 			return fail(400, { message: 'errors.notAllSwiped' as const });
 		const decided = items.map((i) => ({
 			...i,
 			decision: i.kind === 'product' ? decisions[i.id]! : null
 		}));
-		const shares = sharesFromItems(me, participants, decided);
+		const shares = sharesFromItems(me, participants, expandUnits(decided));
 
 		await db.transaction(async (tx) => {
 			for (const i of decided) {
+				// A line swiped piece by piece keeps a decision only if all pieces agree.
+				const d = i.decision;
+				const decision = Array.isArray(d) ? (d.every((x) => x === d[0]) ? d[0]! : null) : d;
 				await tx
 					.update(schema.receiptItems)
-					.set({ decision: i.decision })
+					.set({ decision })
 					.where(eq(schema.receiptItems.id, i.id));
 			}
 			const othersPay = [...shares].some(([id, c]) => id !== me && c !== 0);

@@ -1,4 +1,4 @@
-import { allocate, type Cents } from './money';
+import { allocate, splitEqually, type Cents } from './money';
 
 /** mine = only me ("das hab ich"); theirs = the others ("das du"); shared = everyone ("das wir"). */
 export type Decision = 'mine' | 'shared' | 'theirs';
@@ -55,6 +55,30 @@ export function sharesFromItems(
 		});
 	}
 	return shares;
+}
+
+/** A product's swipe: one decision for the whole line, or one per unit when swiped piece by piece. */
+export type ItemDecision = Decision | Decision[];
+
+/** How many pieces a line can be swiped as: whole pieces (not weights), capped to stay swipeable. */
+export function unitCount(quantity: string | number, unit: string | null): number {
+	const q = Math.abs(Number(quantity));
+	return unit !== 'kg' && Number.isInteger(q) && q > 1 && q <= 20 ? q : 1;
+}
+
+/** Turns lines swiped piece by piece into one SplitItem per unit, in equal parts of the total. */
+export function expandUnits(
+	items: (Omit<SplitItem, 'decision'> & { decision: ItemDecision | null })[]
+): SplitItem[] {
+	return items.flatMap(({ decision, ...it }): SplitItem[] =>
+		Array.isArray(decision)
+			? splitEqually(it.totalCents, decision.length).map((totalCents, u) => ({
+					...it,
+					totalCents,
+					decision: decision[u]!
+				}))
+			: [{ ...it, decision }]
+	);
 }
 
 /** The three piles of a swiped receipt, plus the discount spread over them. */

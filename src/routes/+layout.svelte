@@ -52,6 +52,8 @@
 	main {
 		padding: max(12px, env(safe-area-inset-top)) 16px calc(var(--nav-h) + 24px);
 		min-height: 100dvh;
+		/* A card swiped sideways ends at the column's edge, not over the navigation */
+		overflow-x: clip;
 	}
 	main.bare {
 		padding-bottom: 24px;

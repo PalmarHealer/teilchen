@@ -6,20 +6,53 @@
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
-	import { sharesFromItems, swipeTotals, type Decision } from '#lib/split.ts';
+	import { splitEqually } from '#lib/money.ts';
+	import {
+		expandUnits,
+		sharesFromItems,
+		swipeTotals,
+		unitCount,
+		type Decision,
+		type ItemDecision
+	} from '#lib/split.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
 
 	let target = $state<string | null>(null);
+	// Keyed by card: the item id, or `<item id>#<piece>` for lines swiped piece by piece
 	let decisions = $state<Record<string, Decision>>({});
+	let split = $state<Record<string, boolean>>({});
+	// Card keys in the order they were decided, or `split:<item id>` for a split
 	let history = $state<string[]>([]);
 
 	// Only products are swiped; discounts/coupons are spread over them when booking.
 	const products = $derived(data.items.filter((it) => it.kind === 'product'));
-	const queue = $derived(products.filter((it) => !decisions[it.id]));
+	const cards = $derived(
+		products.flatMap((it) => {
+			const n = unitCount(it.quantity, it.unit);
+			if (!split[it.id])
+				return [{ key: it.id, item: it, piece: 0, of: 1, cents: it.totalCents, n }];
+			return splitEqually(it.totalCents, n).map((cents, piece) => ({
+				key: `${it.id}#${piece}`,
+				item: it,
+				piece,
+				of: n,
+				cents,
+				n
+			}));
+		})
+	);
+	const queue = $derived(cards.filter((c) => !decisions[c.key]));
 	const current = $derived(queue[0]);
 	const me = $derived(data.user!.id);
+
+	const itemDecision = (id: string): ItemDecision | null => {
+		if (!split[id]) return decisions[id] ?? null;
+		const pieces = cards.filter((c) => c.item.id === id).map((c) => decisions[c.key]);
+		return pieces.every((d) => d) ? (pieces as Decision[]) : null;
+	};
+	const booked = $derived(Object.fromEntries(products.map((it) => [it.id, itemDecision(it.id)])));
 
 	const targetInfo = $derived.by(() => {
 		if (!target) return null;
@@ -43,12 +76,14 @@
 	});
 
 	const splitItems = $derived(
-		data.items.map((it) => ({
-			totalCents: it.totalCents,
-			kind: it.kind,
-			discountable: it.discountable,
-			decision: it.kind === 'product' ? (decisions[it.id] ?? null) : null
-		}))
+		expandUnits(
+			data.items.map((it) => ({
+				totalCents: it.totalCents,
+				kind: it.kind,
+				discountable: it.discountable,
+				decision: it.kind === 'product' ? booked[it.id]! : null
+			}))
+		)
 	);
 	const totals = $derived(swipeTotals(splitItems));
 
@@ -67,15 +102,21 @@
 
 	function decide(d: Decision) {
 		if (!current) return;
-		// Capture the id first: `current` is derived and moves on as soon as the decision is set.
-		const id = current.id;
-		decisions[id] = d;
-		history.push(id);
+		// Capture the key first: `current` is derived and moves on as soon as the decision is set.
+		const key = current.key;
+		decisions[key] = d;
+		history.push(key);
 		dx = dy = 0;
 	}
+	function splitCurrent() {
+		if (!current || current.n < 2) return;
+		split[current.item.id] = true;
+		history.push(`split:${current.item.id}`);
+	}
 	function undo() {
-		const id = history.pop();
-		if (id) delete decisions[id];
+		const key = history.pop();
+		if (key?.startsWith('split:')) delete split[key.slice(6)];
+		else if (key) delete decisions[key];
 	}
 
 	// --- Gestures ---
@@ -171,81 +212,97 @@
 		</form>
 	</div>
 {:else if current}
-	<div class="progress" aria-label={i.t('swipe.progress')}>
-		<span style:width="{(history.length / products.length) * 100}%"></span>
-	</div>
-	<p class="muted status">
-		{history.length + 1} / {products.length} · {i.t('swipe.with')}
-		<strong>{targetInfo?.label}</strong>
-		<button class="link" onclick={() => (target = null)}>{i.t('swipe.change')}</button>
-	</p>
+	{@const done = cards.length - queue.length}
+	<div class="swiping">
+		<div class="progress" aria-label={i.t('swipe.progress')}>
+			<span style:width="{(done / cards.length) * 100}%"></span>
+		</div>
+		<p class="muted status">
+			{done + 1} / {cards.length} · {i.t('swipe.with')}
+			<strong>{targetInfo?.label}</strong>
+			<button class="link" onclick={() => (target = null)}>{i.t('swipe.change')}</button>
+		</p>
 
-	<div class="deck">
-		{#each queue.slice(1, 3).reverse() as next, idx (next.id)}
-			<div class="card swipe behind" style:--depth={queue.slice(1, 3).length - idx}></div>
-		{/each}
-		{#key current.id}
-			<div
-				class="card swipe top"
-				class:dragging
-				role="button"
-				tabindex="0"
-				aria-label={i.t('swipe.cardLabel', { name: current.name })}
-				style:transform="translate({dx}px, {dy}px) rotate({dx / 18}deg)"
-				onpointerdown={down}
-				onpointermove={move}
-				onpointerup={up}
-				onpointercancel={up}
-			>
-				{#if hint}
-					<span class="stamp {hint}"
-						>{hint === 'theirs'
-							? targetInfo?.theirs
-							: hint === 'mine'
-								? i.t('swipe.mine')
-								: i.t('swipe.share')}</span
-					>
-				{/if}
-				<span class="qty muted">{fmtQty(current.quantity, current.unit)}</span>
-				<h2 class="name">{current.name}</h2>
-				<strong class="price" class:minus={current.totalCents < 0}
-					><Amount cents={current.totalCents} /></strong
+		<div class="deck">
+			{#each queue.slice(1, 3).reverse() as next, idx (next.key)}
+				<div class="card swipe behind" style:--depth={queue.slice(1, 3).length - idx}></div>
+			{/each}
+			{#key current.key}
+				<div
+					class="card swipe top"
+					class:dragging
+					role="button"
+					tabindex="0"
+					aria-label={i.t('swipe.cardLabel', { name: current.item.name })}
+					style:transform="translate({dx}px, {dy}px) rotate({dx / 18}deg)"
+					onpointerdown={down}
+					onpointermove={move}
+					onpointerup={up}
+					onpointercancel={up}
 				>
-			</div>
-		{/key}
-	</div>
+					{#if hint}
+						<span class="stamp {hint}"
+							>{hint === 'theirs'
+								? targetInfo?.theirs
+								: hint === 'mine'
+									? i.t('swipe.mine')
+									: i.t('swipe.share')}</span
+						>
+					{/if}
+					<span class="qty muted">
+						{current.of > 1
+							? i.t('swipe.piece', { n: current.piece + 1, of: current.of })
+							: fmtQty(current.item.quantity, current.item.unit)}
+					</span>
+					<h2 class="name">{current.item.name}</h2>
+					<strong class="price" class:minus={current.cents < 0}
+						><Amount cents={current.cents} /></strong
+					>
+					{#if current.of === 1 && current.n > 1}
+						<button
+							class="btn pieces"
+							onpointerdown={(e) => e.stopPropagation()}
+							onclick={splitCurrent}
+						>
+							<Icon name="split" size={18} />
+							{i.t('swipe.splitPieces', { n: current.n })}
+						</button>
+					{/if}
+				</div>
+			{/key}
+		</div>
 
-	<div class="actions">
-		<button class="round mine" onclick={() => decide('mine')} aria-label={i.t('swipe.mineAria')}>
-			<Icon name="user" />
-			<small>{i.t('swipe.mine')}</small>
-		</button>
-		<button
-			class="round undo"
-			onclick={undo}
-			disabled={!history.length}
-			aria-label={i.t('swipe.undo')}
-		>
-			<Icon name="undo" size={18} />
-		</button>
-		<button
-			class="round theirs"
-			onclick={() => decide('theirs')}
-			aria-label={i.t('swipe.theirsAria', { name: targetInfo?.theirs ?? '' })}
-		>
-			<Icon name="arrowUp" />
-			<small>{targetInfo?.theirs}</small>
-		</button>
-		<button
-			class="round shared"
-			onclick={() => decide('shared')}
-			aria-label={i.t('swipe.shareAria')}
-		>
-			<Icon name="share" />
-			<small>{i.t('swipe.share')}</small>
-		</button>
+		<div class="actions">
+			<button class="round mine" onclick={() => decide('mine')} aria-label={i.t('swipe.mineAria')}>
+				<Icon name="user" />
+				<small>{i.t('swipe.mine')}</small>
+			</button>
+			<button
+				class="round undo"
+				onclick={undo}
+				disabled={!history.length}
+				aria-label={i.t('swipe.undo')}
+			>
+				<Icon name="undo" size={18} />
+			</button>
+			<button
+				class="round theirs"
+				onclick={() => decide('theirs')}
+				aria-label={i.t('swipe.theirsAria', { name: targetInfo?.theirs ?? '' })}
+			>
+				<Icon name="arrowUp" />
+				<small>{targetInfo?.theirs}</small>
+			</button>
+			<button
+				class="round shared"
+				onclick={() => decide('shared')}
+				aria-label={i.t('swipe.shareAria')}
+			>
+				<Icon name="share" />
+				<small>{i.t('swipe.share')}</small>
+			</button>
+		</div>
 	</div>
-	<p class="muted legend">{i.t('swipe.legend', { theirs: targetInfo?.theirs ?? '' })}</p>
 {:else}
 	<div class="stack">
 		<h2 class="row done"><Icon name="party" size={28} /> {i.t('swipe.finished')}</h2>
@@ -284,7 +341,7 @@
 		{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
 		<form method="POST" action="?/book" use:enhance>
 			<input type="hidden" name="target" value={target} />
-			<input type="hidden" name="decisions" value={JSON.stringify(decisions)} />
+			<input type="hidden" name="decisions" value={JSON.stringify(booked)} />
 			<button class="btn primary block"><Icon name="check" /> {i.t('swipe.book')}</button>
 		</form>
 		<button class="btn block" onclick={undo}><Icon name="undo" /> {i.t('swipe.undoLast')}</button>
@@ -345,10 +402,25 @@
 		text-decoration: underline;
 	}
 
+	/* Fill the screen between header and tab bar, so the card gets as tall as it can */
+	.swiping {
+		display: flex;
+		flex-direction: column;
+		height: calc(
+			100dvh - max(12px, env(safe-area-inset-top)) - 64px - var(--nav-h) - 24px -
+				env(safe-area-inset-bottom)
+		);
+		min-height: 440px;
+	}
+	@media (min-width: 860px) {
+		.swiping {
+			height: calc(100dvh - 28px - 64px - 40px);
+		}
+	}
 	.deck {
 		position: relative;
-		height: min(52dvh, 420px);
-		margin: 8px 0 20px;
+		flex: 1;
+		margin: 8px 0 24px;
 	}
 	.swipe {
 		position: absolute;
@@ -462,8 +534,9 @@
 	.round:disabled {
 		opacity: 0.4;
 	}
-	.legend {
-		text-align: center;
-		font-size: 0.8rem;
+	.pieces {
+		position: absolute;
+		bottom: 20px;
+		font-size: 0.9rem;
 	}
 </style>

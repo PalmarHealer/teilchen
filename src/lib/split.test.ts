@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sharesFromItems, swipeTotals, type SplitItem } from './split';
+import { expandUnits, sharesFromItems, swipeTotals, unitCount, type SplitItem } from './split';
 
 const product = (
 	totalCents: number,
@@ -73,5 +73,30 @@ describe('swipeTotals', () => {
 				discount(-50)
 			])
 		).toEqual({ mine: 199, theirs: 401, shared: 300, discount: -50 });
+	});
+});
+
+describe('swiping piece by piece', () => {
+	it('only offers whole pieces, not weights or single items', () => {
+		expect(unitCount('2', null)).toBe(2);
+		expect(unitCount('1', null)).toBe(1);
+		expect(unitCount('1.05', 'kg')).toBe(1);
+		expect(unitCount('3', 'kg')).toBe(1);
+		expect(unitCount('2.5', null)).toBe(1);
+	});
+
+	it('splits a line into equal units with their own decision', () => {
+		// Two rolls for 99 cents: I keep one, the other is shared with Ben.
+		const items = expandUnits([
+			{ totalCents: 99, kind: 'product', discountable: true, decision: ['mine', 'shared'] },
+			{ totalCents: 100, kind: 'product', discountable: true, decision: 'theirs' }
+		]);
+		expect(items.map((i) => [i.totalCents, i.decision])).toEqual([
+			[50, 'mine'],
+			[49, 'shared'],
+			[100, 'theirs']
+		]);
+		const s = sharesFromItems('me', ['me', 'ben'], items);
+		expect(Object.fromEntries(s)).toEqual({ me: 75, ben: 124 });
 	});
 });

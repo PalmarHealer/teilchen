@@ -133,6 +133,7 @@ export const receiptItems = pgTable(
 			.default('product'),
 		/** False for lines marked "*" on the receipt: discounts don't apply to them */
 		discountable: boolean('discountable').notNull().default(true),
+		/** Null until swiped, and for lines whose pieces were swiped differently */
 		decision: itemDecision('decision')
 	},
 	(t) => [index('receipt_items_receipt').on(t.receiptId)]
