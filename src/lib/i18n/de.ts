@@ -144,7 +144,7 @@ export const de: Dictionary = {
 		firstSync: 'Der erste Abgleich läuft in Kürze.',
 		disconnect: 'Trennen',
 		reweDesktopOnly:
-			'Das braucht einen Computer mit Chrome oder Firefox, am Handy klappt es nicht.',
+			'Das braucht Chrome oder Edge am Computer. Firefox und Handys blockieren die Weiterleitung und verstecken den Code.',
 		reweStep0:
 			'Im neuen Tab, noch vor dem Login: Öffne die Entwicklertools (F12), wechsle zu „Netzwerk“ und setze den Haken bei „Log beibehalten“. Melde dich dann an.',
 		reweStep1: 'Bei REWE anmelden ↗',
