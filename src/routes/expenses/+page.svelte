@@ -2,6 +2,9 @@
 	import ExpenseRow from '#lib/components/ExpenseRow.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as List from '#lib/components/ui/list/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data } = $props();
@@ -10,18 +13,20 @@
 
 <Header title={i.t('expenses.title')}>
 	{#snippet actions()}
-		<a class="btn primary" href="/expenses/new" aria-label={i.t('expenses.new')}
-			><Icon name="plus" /></a
+		<Button href="/expenses/new" size="sm"
+			><Icon name="plus" size={16} /> {i.t('expenses.new')}</Button
 		>
 	{/snippet}
 </Header>
 
 {#if data.expenses.length}
-	<ul class="list">
+	<List.Root>
 		{#each data.expenses as e (e.id)}
-			<li><ExpenseRow expense={e} me={data.user!.id} /></li>
+			<ExpenseRow expense={e} me={data.user!.id} />
 		{/each}
-	</ul>
+	</List.Root>
 {:else}
-	<p class="card muted">{i.t('expenses.empty')}</p>
+	<Card.Root>
+		<Card.Content class="text-muted-foreground text-sm">{i.t('expenses.empty')}</Card.Content>
+	</Card.Root>
 {/if}

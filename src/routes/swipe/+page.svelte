@@ -1,7 +1,11 @@
 <script lang="ts">
 	import Amount from '#lib/components/Amount.svelte';
+	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as List from '#lib/components/ui/list/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data } = $props();
@@ -12,52 +16,30 @@
 <Header title={i.t('swipe.title')} />
 
 {#if data.open.length}
-	<ul class="list">
+	<List.Root>
 		{#each data.open as r (r.id)}
-			<li>
-				<a href="/swipe/{r.id}">
-					<span class="ico"><Icon name="receipt" /></span>
-					<span class="grow">
-						<strong>{fmt(r.purchasedAt)}</strong>
-						<small class="muted">{r.market ?? 'REWE'} · {i.t('swipe.items', { n: r.items })}</small>
-					</span>
-					<strong><Amount cents={r.totalCents} /></strong>
-				</a>
-			</li>
+			<List.Item href="/swipe/{r.id}">
+				<GroupIcon icon="receipt" size={40} />
+				<span class="flex min-w-0 flex-1 flex-col">
+					<span class="text-sm font-medium">{fmt(r.purchasedAt)}</span>
+					<span class="text-muted-foreground truncate text-xs"
+						>{r.market ?? 'REWE'} · {i.t('swipe.items', { n: r.items })}</span
+					>
+				</span>
+				<Amount cents={r.totalCents} class="text-sm font-semibold" />
+				<span class="text-muted-foreground"><Icon name="chevronRight" size={16} /></span>
+			</List.Item>
 		{/each}
-	</ul>
+	</List.Root>
 {:else}
-	<div class="card empty">
-		<span class="party"><Icon name="party" size={40} /></span>
-		<p><strong>{i.t('swipe.emptyTitle')}</strong></p>
-		<p class="muted">{i.t('swipe.emptyText')}</p>
-		<a class="btn" href="/settings"><Icon name="mail" /> {i.t('swipe.setupImport')}</a>
-	</div>
+	<Card.Root>
+		<Card.Content class="flex flex-col items-center gap-3 py-4 text-center">
+			<GroupIcon icon="party" size={56} />
+			<h2 class="font-semibold">{i.t('swipe.emptyTitle')}</h2>
+			<p class="text-muted-foreground max-w-[32ch] text-sm">{i.t('swipe.emptyText')}</p>
+			<Button href="/settings" variant="outline" class="mt-1"
+				><Icon name="mail" size={16} /> {i.t('swipe.setupImport')}</Button
+			>
+		</Card.Content>
+	</Card.Root>
 {/if}
-
-<style>
-	.ico {
-		width: 40px;
-		height: 40px;
-		display: grid;
-		place-items: center;
-		border-radius: 12px;
-		background: var(--surface-2);
-		color: var(--accent);
-	}
-	.grow {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-	.empty {
-		text-align: center;
-	}
-	.party {
-		color: var(--accent);
-	}
-	.empty p {
-		margin: 0 0 8px;
-	}
-</style>

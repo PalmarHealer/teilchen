@@ -8,6 +8,7 @@ Gate: `pnpm verify` (typecheck + lint + tests). CI also checks that `drizzle/` m
 - Server code also runs in the worker (tsx, no Vite). So use `process.env` instead of `$env/*`, and no `$app/*` imports in `src/lib/server`.
 - Money is always integer cents. Lint blocks `parseFloat`/`toFixed`.
 - User-chosen icons (any Tabler name) are served by `/icons/<name>.svg`, built at runtime from `@tabler/icons` in node_modules. Keep it a runtime dependency, or production loses every group/expense icon.
+- UI is shadcn-svelte style: Tailwind v4 + bits-ui, components copied by hand into `src/lib/components/ui/` (the shadcn CLI expects `$lib`). Theme tokens live in `src/app.css`; shadcn's `primary` is the brand orange, `accent` is the hover surface. The pre-shadcn design is on the `legacy-ui` branch.
 - Code, comments, docs and commits are English. UI text lives only in `src/lib/i18n/{en,de}.ts`. Server code returns message keys (`errors.*`), never prose.
 
 ## Decisions + why

@@ -5,6 +5,10 @@
 	import Header from '#lib/components/Header.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as List from '#lib/components/ui/list/index.ts';
+	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
 	import { splitEqually } from '#lib/money.ts';
 	import { productIcon } from '#lib/product-icon.ts';
@@ -161,6 +165,11 @@
 		else if (e.key === 'Backspace') undo();
 	}
 
+	const pick =
+		'hover:bg-accent/60 focus-visible:bg-accent/60 flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors outline-none';
+	const round =
+		'bg-card hover:bg-accent focus-visible:ring-ring/50 flex size-[68px] flex-col items-center justify-center gap-0.5 rounded-full border shadow-sm transition-colors outline-none focus-visible:ring-[3px] disabled:opacity-40 [&_small]:max-w-[60px] [&_small]:truncate [&_small]:text-[11px] [&_small]:font-medium';
+
 	const fmtQty = (q: string, unit: string | null) =>
 		unit === 'kg' ? `${Number(q).toLocaleString(i.locale)} kg` : Number(q) > 1 ? `${q}×` : '';
 </script>
@@ -168,14 +177,17 @@
 <svelte:window onkeydown={key} />
 
 {#snippet face(card: (typeof cards)[number])}
-	<GroupIcon icon={productIcon(card.item.name)} size={88} />
-	<span class="qty muted">
+	<GroupIcon icon={productIcon(card.item.name)} size={80} />
+	<span class="text-muted-foreground min-h-5 text-sm">
 		{card.of > 1
 			? i.t('swipe.piece', { n: card.piece + 1, of: card.of })
 			: fmtQty(card.item.quantity, card.item.unit)}
 	</span>
-	<h2 class="name">{card.item.name}</h2>
-	<strong class="price" class:minus={card.cents < 0}><Amount cents={card.cents} /></strong>
+	<h2 class="text-2xl font-semibold break-words">{card.item.name}</h2>
+	<Amount
+		cents={card.cents}
+		class="text-5xl font-semibold tracking-tight {card.cents < 0 ? 'text-destructive' : ''}"
+	/>
 {/snippet}
 
 <Header
@@ -184,70 +196,86 @@
 />
 
 {#if !target}
-	<div class="stack">
-		<p class="muted intro">
+	<div class="flex flex-col gap-4">
+		<p class="text-muted-foreground text-sm">
 			{data.receipt.market ?? 'REWE'} · <Amount cents={data.receipt.totalCents} /> ·
 			{i.t('swipe.items', { n: products.length })}. {i.t('swipe.whoWith')}
 		</p>
 		{#if data.groups.length}
-			<h2 class="section-title">{i.t('swipe.groups')}</h2>
-			<ul class="list">
+			<SectionTitle>{i.t('swipe.groups')}</SectionTitle>
+			<List.Root>
 				{#each data.groups as g (g.id)}
 					<li>
-						<button class="pick" onclick={() => (target = `group:${g.id}`)}>
+						<button class={pick} onclick={() => (target = `group:${g.id}`)}>
 							<GroupIcon icon={g.icon} size={32} />
-							<span class="grow">{g.name}</span>
-							<small class="muted">{i.t('swipe.members', { n: g.memberIds.length })}</small>
+							<span class="flex-1 text-sm font-medium">{g.name}</span>
+							<span class="text-muted-foreground text-xs"
+								>{i.t('swipe.members', { n: g.memberIds.length })}</span
+							>
+							<span class="text-muted-foreground"><Icon name="chevronRight" size={16} /></span>
 						</button>
 					</li>
 				{/each}
-			</ul>
+			</List.Root>
 		{/if}
 		{#if data.contacts.length}
-			<h2 class="section-title">{i.t('swipe.people')}</h2>
-			<ul class="list">
+			<SectionTitle>{i.t('swipe.people')}</SectionTitle>
+			<List.Root>
 				{#each data.contacts as c (c.id)}
 					<li>
-						<button class="pick" onclick={() => (target = `user:${c.id}`)}>
+						<button class={pick} onclick={() => (target = `user:${c.id}`)}>
 							<Avatar name={c.name} src={c.avatarUrl} size={32} />
-							<span class="grow">{c.name}</span>
+							<span class="flex-1 text-sm font-medium">{c.name}</span>
+							<span class="text-muted-foreground"><Icon name="chevronRight" size={16} /></span>
 						</button>
 					</li>
 				{/each}
-			</ul>
+			</List.Root>
 		{:else if !data.groups.length}
-			<p class="card muted">
-				{i.t('swipe.nobody')} <a href="/settings">{i.t('swipe.inviteSomeone')}</a>
-				<a href="/groups">{i.t('swipe.orCreateGroup')}</a>.
-			</p>
+			<Card.Root>
+				<Card.Content class="text-muted-foreground text-sm">
+					{i.t('swipe.nobody')}
+					<a href="/settings" class="text-primary underline-offset-4 hover:underline"
+						>{i.t('swipe.inviteSomeone')}</a
+					>
+					<a href="/groups" class="text-primary underline-offset-4 hover:underline"
+						>{i.t('swipe.orCreateGroup')}</a
+					>.
+				</Card.Content>
+			</Card.Root>
 		{/if}
 		<form method="POST" action="?/dismiss" use:enhance>
-			<button class="btn block">{i.t('swipe.notSharing')}</button>
+			<Button type="submit" variant="outline" class="w-full">{i.t('swipe.notSharing')}</Button>
 		</form>
 	</div>
 {:else if current}
 	{@const done = cards.length - queue.length}
 	<div class="swiping">
-		<div class="progress" aria-label={i.t('swipe.progress')}>
-			<span style:width="{(done / cards.length) * 100}%"></span>
+		<div class="bg-muted h-1 overflow-hidden rounded-full" aria-label={i.t('swipe.progress')}>
+			<span
+				class="bg-primary block h-full rounded-full transition-[width] duration-200"
+				style:width="{(done / cards.length) * 100}%"
+			></span>
 		</div>
-		<p class="muted status">
-			{done + 1} / {cards.length} · {i.t('swipe.with')}
-			<strong>{targetInfo?.label}</strong>
-			<button class="link" onclick={() => (target = null)}>{i.t('swipe.change')}</button>
+		<p class="text-muted-foreground mt-3 text-sm">
+			<span class="tabular">{done + 1} / {cards.length}</span> · {i.t('swipe.with')}
+			<strong class="text-foreground font-medium">{targetInfo?.label}</strong>
+			<Button variant="link" class="h-auto p-0" onclick={() => (target = null)}
+				>{i.t('swipe.change')}</Button
+			>
 		</p>
 
 		<div class="deck">
 			{#each queue.slice(1, 3).reverse() as next, idx (next.key)}
 				{@const depth = queue.slice(1, 3).length - idx}
-				<div class="card swipe face behind" style:--depth={depth} aria-hidden="true">
+				<div class="swipe face behind" style:--depth={depth} aria-hidden="true">
 					<!-- The next card is already readable while the top one is dragged away -->
 					{#if depth === 1}{@render face(next)}{/if}
 				</div>
 			{/each}
 			{#key current.key}
 				<div
-					class="card swipe face top"
+					class="swipe face top"
 					class:dragging
 					role="button"
 					tabindex="0"
@@ -269,150 +297,112 @@
 					{/if}
 					{@render face(current)}
 					{#if current.of === 1 && current.n > 1}
-						<button
-							class="btn pieces"
-							onpointerdown={(e) => e.stopPropagation()}
+						<Button
+							variant="outline"
+							size="sm"
+							class="absolute bottom-5"
+							onpointerdown={(e: PointerEvent) => e.stopPropagation()}
 							onclick={splitCurrent}
 						>
-							<Icon name="split" size={18} />
+							<Icon name="split" size={14} />
 							{i.t('swipe.splitPieces', { n: current.n })}
-						</button>
+						</Button>
 					{/if}
 				</div>
 			{/key}
 		</div>
 
-		<div class="actions">
-			<button class="round mine" onclick={() => decide('mine')} aria-label={i.t('swipe.mineAria')}>
-				<Icon name="user" />
+		<div class="flex items-center justify-center gap-4">
+			<button
+				class="{round} text-foreground"
+				onclick={() => decide('mine')}
+				aria-label={i.t('swipe.mineAria')}
+			>
+				<Icon name="user" size={22} />
 				<small>{i.t('swipe.mine')}</small>
 			</button>
 			<button
-				class="round undo"
+				class="{round} text-muted-foreground"
 				onclick={undo}
 				disabled={!history.length}
 				aria-label={i.t('swipe.undo')}
 			>
-				<Icon name="undo" />
+				<Icon name="undo" size={22} />
 				<small>{i.t('swipe.undoShort')}</small>
 			</button>
 			<button
-				class="round theirs"
+				class="{round} text-primary"
 				onclick={() => decide('theirs')}
 				aria-label={i.t('swipe.theirsAria', { name: targetInfo?.theirs ?? '' })}
 			>
-				<Icon name="arrowUp" />
+				<Icon name="arrowUp" size={22} />
 				<small>{targetInfo?.theirs}</small>
 			</button>
 			<button
-				class="round shared"
+				class="{round} text-shared"
 				onclick={() => decide('shared')}
 				aria-label={i.t('swipe.shareAria')}
 			>
-				<Icon name="share" />
+				<Icon name="share" size={22} />
 				<small>{i.t('swipe.share')}</small>
 			</button>
 		</div>
 	</div>
 {:else}
-	<div class="stack">
-		<h2 class="row done"><Icon name="party" size={28} /> {i.t('swipe.finished')}</h2>
-		<ul class="list piles">
-			<li class="item">
-				<Icon name="user" size={20} /><span class="grow">{i.t('swipe.pileMine')}</span>
-				<Amount cents={totals.mine} />
-			</li>
-			<li class="item">
-				<Icon name="arrowUp" size={20} /><span class="grow"
-					>{i.t('swipe.pileTheirs', { name: targetInfo?.theirs ?? '' })}</span
-				>
-				<Amount cents={totals.theirs} />
-			</li>
-			<li class="item">
-				<Icon name="share" size={20} /><span class="grow">{i.t('swipe.pileShared')}</span>
-				<Amount cents={totals.shared} />
-			</li>
+	<div class="flex flex-col gap-4">
+		<h2 class="text-primary flex items-center gap-2 text-xl font-semibold">
+			<Icon name="party" size={24} />
+			{i.t('swipe.finished')}
+		</h2>
+		<List.Root>
+			<List.Item class="text-sm">
+				<span class="text-muted-foreground"><Icon name="user" size={18} /></span>
+				<span class="flex-1">{i.t('swipe.pileMine')}</span>
+				<Amount cents={totals.mine} class="font-medium" />
+			</List.Item>
+			<List.Item class="text-sm">
+				<span class="text-muted-foreground"><Icon name="arrowUp" size={18} /></span>
+				<span class="flex-1">{i.t('swipe.pileTheirs', { name: targetInfo?.theirs ?? '' })}</span>
+				<Amount cents={totals.theirs} class="font-medium" />
+			</List.Item>
+			<List.Item class="text-sm">
+				<span class="text-muted-foreground"><Icon name="share" size={18} /></span>
+				<span class="flex-1">{i.t('swipe.pileShared')}</span>
+				<Amount cents={totals.shared} class="font-medium" />
+			</List.Item>
 			{#if totals.discount}
-				<li class="item discount">
-					<Icon name="sparkles" size={20} /><span class="grow">{i.t('swipe.discountSpread')}</span>
-					<Amount cents={totals.discount} />
-				</li>
+				<List.Item class="text-positive text-sm">
+					<Icon name="sparkles" size={18} />
+					<span class="flex-1">{i.t('swipe.discountSpread')}</span>
+					<Amount cents={totals.discount} class="font-medium" />
+				</List.Item>
 			{/if}
-		</ul>
-		<h2 class="section-title">{i.t('swipe.perPerson')}</h2>
-		<ul class="list">
+		</List.Root>
+		<SectionTitle>{i.t('swipe.perPerson')}</SectionTitle>
+		<List.Root>
 			{#each preview as p (p.id)}
-				<li class="item">
-					<span class="grow">{p.name}</span>
-					<strong><Amount cents={p.cents} /></strong>
-				</li>
+				<List.Item class="text-sm">
+					<span class="flex-1">{p.name}</span>
+					<Amount cents={p.cents} class="font-semibold" />
+				</List.Item>
 			{/each}
-		</ul>
-		<p class="muted">{i.t('swipe.youPaid')}</p>
-		{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
+		</List.Root>
+		<p class="text-muted-foreground px-1 text-xs">{i.t('swipe.youPaid')}</p>
+		{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
 		<form method="POST" action="?/book" use:enhance>
 			<input type="hidden" name="target" value={target} />
 			<input type="hidden" name="decisions" value={JSON.stringify(booked)} />
-			<button class="btn primary block"><Icon name="check" /> {i.t('swipe.book')}</button>
+			<Button type="submit" size="lg" class="w-full"
+				><Icon name="check" size={18} /> {i.t('swipe.book')}</Button
+			>
 		</form>
-		<button class="btn block" onclick={undo}><Icon name="undo" /> {i.t('swipe.undoLast')}</button>
+		<Button variant="outline" onclick={undo}
+			><Icon name="undo" size={16} /> {i.t('swipe.undoLast')}</Button
+		>
 	</div>
 {/if}
 
 <style>
-	.piles :global(svg) {
-		color: var(--muted);
-	}
-	.discount {
-		color: var(--plus);
-	}
-	.intro {
-		margin: 0;
-	}
-	.pick {
-		all: unset;
-		box-sizing: border-box;
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		width: 100%;
-		padding: 12px 16px;
-		min-height: 56px;
-		cursor: pointer;
-	}
-	.pick:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: -2px;
-	}
-	.done {
-		color: var(--accent);
-		gap: 8px;
-	}
-	.grow {
-		flex: 1;
-	}
-	.progress {
-		height: 4px;
-		background: var(--surface-2);
-		border-radius: 2px;
-		overflow: hidden;
-	}
-	.progress span {
-		display: block;
-		height: 100%;
-		background: var(--accent);
-		transition: width 0.2s;
-	}
-	.status {
-		font-size: 0.9rem;
-	}
-	.link {
-		all: unset;
-		color: var(--accent);
-		cursor: pointer;
-		text-decoration: underline;
-	}
-
 	/* Fill the screen between header and tab bar, so the card gets as tall as it can */
 	.swiping {
 		display: flex;
@@ -423,7 +413,7 @@
 		);
 		min-height: 440px;
 	}
-	@media (min-width: 860px) {
+	@media (min-width: 768px) {
 		.swiping {
 			height: calc(100dvh - 28px - 64px - 40px);
 		}
@@ -431,13 +421,17 @@
 	.deck {
 		position: relative;
 		flex: 1;
-		margin: 8px 0 24px;
+		margin: 12px 0 24px;
 	}
 	.swipe {
 		position: absolute;
 		inset: 0;
-		box-shadow: var(--shadow);
-		border-radius: 24px;
+		background: var(--card);
+		border: 1px solid var(--border);
+		border-radius: calc(var(--radius) + 12px);
+		box-shadow:
+			0 1px 2px rgb(0 0 0 / 0.04),
+			0 12px 32px -12px rgb(0 0 0 / 0.18);
 	}
 	.behind {
 		transform: translateY(calc(var(--depth) * 10px)) scale(calc(1 - var(--depth) * 0.04));
@@ -449,7 +443,7 @@
 		justify-content: center;
 		align-items: center;
 		text-align: center;
-		gap: 16px;
+		gap: 14px;
 		padding: 32px 24px;
 	}
 	.top {
@@ -469,85 +463,31 @@
 			opacity: 0.6;
 		}
 	}
-	.name {
-		font-size: 1.6rem;
-		word-break: break-word;
-	}
-	.price {
-		font-size: 2.6rem;
-		letter-spacing: -0.02em;
-	}
 	.stamp {
 		position: absolute;
 		top: 24px;
-		padding: 6px 14px;
-		border: 3px solid;
-		border-radius: 10px;
-		font-weight: 800;
+		padding: 4px 12px;
+		border: 2px solid;
+		border-radius: var(--radius);
+		font-weight: 700;
 		text-transform: uppercase;
-		font-size: 1.2rem;
+		letter-spacing: 0.04em;
+		font-size: 1.1rem;
+		background: var(--card);
 	}
 	.stamp.mine {
 		right: 24px;
-		color: var(--muted);
-		transform: rotate(12deg);
+		color: var(--muted-foreground);
+		transform: rotate(10deg);
 	}
 	.stamp.shared {
 		left: 24px;
 		color: var(--shared);
-		transform: rotate(-12deg);
+		transform: rotate(-10deg);
 	}
 	.stamp.theirs {
 		left: 50%;
 		transform: translateX(-50%);
-		color: var(--accent);
-	}
-
-	.actions {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		gap: 16px;
-	}
-	.round {
-		border: 1px solid var(--line);
-		background: var(--surface);
-		color: var(--ink);
-		width: 68px;
-		height: 68px;
-		border-radius: 50%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 2px;
-		cursor: pointer;
-		box-shadow: var(--shadow);
-		font: inherit;
-	}
-	.round small {
-		font-size: 0.65rem;
-		font-weight: 600;
-		max-width: 60px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.round.undo {
-		color: var(--muted);
-	}
-	.round.shared {
-		color: var(--shared);
-	}
-	.round.theirs {
-		color: var(--accent);
-	}
-	.round:disabled {
-		opacity: 0.4;
-	}
-	.pieces {
-		position: absolute;
-		bottom: 20px;
-		font-size: 0.9rem;
+		color: var(--primary);
 	}
 </style>

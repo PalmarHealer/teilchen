@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
 	import { translate, useI18n, type MessageKey } from '#lib/i18n/index.ts';
 
 	const i = useI18n();
@@ -11,18 +13,10 @@
 	});
 </script>
 
-<div class="card stack err">
-	<h1>{page.status}</h1>
-	<p>{message}</p>
-	<a class="btn" href="/">Teilchen</a>
-</div>
-
-<style>
-	.err {
-		margin-top: 15dvh;
-		text-align: center;
-	}
-	p {
-		margin: 0;
-	}
-</style>
+<Card.Root class="mt-[15dvh]">
+	<Card.Content class="flex flex-col items-center gap-3 text-center">
+		<h1 class="text-4xl font-semibold tabular-nums">{page.status}</h1>
+		<p class="text-muted-foreground text-sm">{message}</p>
+		<Button href="/" variant="outline">Teilchen</Button>
+	</Card.Content>
+</Card.Root>

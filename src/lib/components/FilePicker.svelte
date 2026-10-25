@@ -19,67 +19,25 @@
 	let files = $state<string[]>([]);
 </script>
 
-<label class="picker">
+<label
+	class="hover:border-primary/60 hover:bg-accent/40 has-focus-visible:border-ring has-focus-visible:ring-ring/40 relative flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-4 transition-colors has-focus-visible:ring-[3px]"
+>
 	<input
 		type="file"
 		{name}
 		{accept}
 		{multiple}
 		required
+		class="absolute inset-0 cursor-pointer opacity-0"
 		onchange={(e) => (files = [...(e.currentTarget.files ?? [])].map((f) => f.name))}
 	/>
-	<span class="icon"><Icon name="pdf" size={26} /></span>
-	<span class="text">
-		<strong>{label}</strong>
-		<small class="muted">{files.length ? files.join(', ') : emptyText}</small>
+	<span class="bg-primary/12 text-primary grid size-10 shrink-0 place-items-center rounded-md">
+		<Icon name="pdf" size={20} />
+	</span>
+	<span class="flex min-w-0 flex-col">
+		<span class="text-sm font-medium">{label}</span>
+		<span class="text-muted-foreground truncate text-xs"
+			>{files.length ? files.join(', ') : emptyText}</span
+		>
 	</span>
 </label>
-
-<style>
-	.picker {
-		position: relative;
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 14px;
-		border: 1.5px dashed var(--line);
-		border-radius: 14px;
-		cursor: pointer;
-	}
-	.picker:hover,
-	.picker:has(input:focus-visible) {
-		border-color: var(--accent);
-	}
-	.picker:has(input:focus-visible) {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-	input {
-		position: absolute;
-		inset: 0;
-		opacity: 0;
-		cursor: pointer;
-		width: 100%;
-		min-height: 0;
-	}
-	.icon {
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 44px;
-		border-radius: 12px;
-		background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-		color: var(--accent);
-		flex: none;
-	}
-	.text {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-	.text small {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-</style>

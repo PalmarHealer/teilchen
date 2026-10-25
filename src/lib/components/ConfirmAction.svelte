@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { AlertDialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
+	import { Button, buttonVariants } from './ui/button/index.ts';
 
-	/** A destructive form action that asks inline instead of using the browser's confirm(). */
+	/** A form action behind a confirmation dialog (instead of the browser's confirm()). */
 	let {
 		action,
 		icon,
@@ -27,49 +29,52 @@
 		children?: Snippet;
 	} = $props();
 
-	let asking = $state(false);
+	let open = $state(false);
 </script>
 
-{#if asking}
-	<form method="POST" {action} use:enhance class="ask" class:danger>
-		<p>{question}</p>
-		{@render children?.()}
-		<div class="row">
-			<button type="button" class="btn grow" onclick={() => (asking = false)}>{cancelLabel}</button>
-			<button class="btn grow confirm"><Icon name={icon} size={18} /> {confirmLabel}</button>
-		</div>
-	</form>
-{:else}
-	<button type="button" class="btn block" class:danger {disabled} onclick={() => (asking = true)}>
-		<Icon name={icon} size={18} />
+<AlertDialog.Root bind:open>
+	<AlertDialog.Trigger
+		{disabled}
+		class={buttonVariants({
+			variant: danger ? 'destructive-outline' : 'outline',
+			class: 'w-full'
+		})}
+	>
+		<Icon name={icon} size={16} />
 		{label}
-	</button>
-{/if}
-
-<style>
-	.ask {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		padding: 14px;
-		border: 1px solid var(--line);
-		border-radius: 14px;
-	}
-	.ask p {
-		margin: 0;
-	}
-	.ask.danger {
-		border-color: var(--minus);
-	}
-	.grow {
-		flex: 1;
-	}
-	.danger:not(.ask) {
-		color: var(--minus);
-	}
-	.ask.danger .confirm {
-		background: var(--minus);
-		border-color: var(--minus);
-		color: #fff;
-	}
-</style>
+	</AlertDialog.Trigger>
+	<AlertDialog.Portal>
+		<AlertDialog.Overlay
+			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50"
+		/>
+		<AlertDialog.Content
+			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border p-6 shadow-lg"
+		>
+			<form
+				method="POST"
+				{action}
+				use:enhance={() =>
+					async ({ update }) => {
+						open = false;
+						await update();
+					}}
+				class="grid gap-4"
+			>
+				<AlertDialog.Title class="text-lg font-semibold">{label}</AlertDialog.Title>
+				<AlertDialog.Description class="text-muted-foreground text-sm">
+					{question}
+				</AlertDialog.Description>
+				{@render children?.()}
+				<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+					<AlertDialog.Cancel class={buttonVariants({ variant: 'outline' })}>
+						{cancelLabel}
+					</AlertDialog.Cancel>
+					<Button type="submit" variant={danger ? 'destructive' : 'default'}>
+						<Icon name={icon} size={16} />
+						{confirmLabel}
+					</Button>
+				</div>
+			</form>
+		</AlertDialog.Content>
+	</AlertDialog.Portal>
+</AlertDialog.Root>

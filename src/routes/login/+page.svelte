@@ -1,33 +1,16 @@
 <script lang="ts">
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data } = $props();
 	const i = useI18n();
 </script>
 
-<div class="hero">
-	<img src="/icon.svg" alt="" width="96" height="96" />
-	<h1>Teilchen</h1>
-	<p class="muted">{i.t('app.tagline')}</p>
-	<a class="btn primary block" href="/auth/login?next={encodeURIComponent(data.next)}"
-		>{i.t('login.button')}</a
-	>
+<div class="flex min-h-[85dvh] flex-col items-center justify-center gap-3 text-center">
+	<img src="/icon.svg" alt="" width="72" height="72" />
+	<h1 class="text-3xl font-semibold">Teilchen</h1>
+	<p class="text-muted-foreground mb-6 text-sm">{i.t('app.tagline')}</p>
+	<Button href="/auth/login?next={encodeURIComponent(data.next)}" size="lg" class="w-full">
+		{i.t('login.button')}
+	</Button>
 </div>
-
-<style>
-	.hero {
-		min-height: 80dvh;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		gap: 12px;
-	}
-	h1 {
-		font-size: 2.2rem;
-	}
-	p {
-		margin: 0 0 24px;
-	}
-</style>

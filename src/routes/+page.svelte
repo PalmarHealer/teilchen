@@ -3,6 +3,10 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ExpenseRow from '#lib/components/ExpenseRow.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as List from '#lib/components/ui/list/index.ts';
+	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data } = $props();
@@ -10,106 +14,89 @@
 	const total = $derived(data.owedToMe - data.iOwe);
 </script>
 
-<div class="stack">
-	<p class="muted hello">{i.t('overview.hello', { name: data.user?.name.split(' ')[0] ?? '' })}</p>
+<div class="flex flex-col gap-4">
+	<p class="text-muted-foreground pt-1 text-sm">
+		{i.t('overview.hello', { name: data.user?.name.split(' ')[0] ?? '' })}
+	</p>
 
-	<section class="card total">
-		<span class="muted">{i.t('overview.total')}</span>
-		<strong class="big"><Amount cents={total} signed /></strong>
-		<div class="row split">
-			<span>{i.t('overview.youGet')} <Amount cents={data.owedToMe} /></span>
-			<span>{i.t('overview.youOwe')} <Amount cents={data.iOwe} /></span>
-		</div>
-	</section>
+	<Card.Root class="gap-0">
+		<Card.Content class="flex flex-col gap-1">
+			<span class="text-muted-foreground text-sm">{i.t('overview.total')}</span>
+			<Amount cents={total} signed class="text-4xl font-semibold tracking-tight" />
+			<div class="text-muted-foreground mt-3 grid grid-cols-2 border-t pt-3 text-sm">
+				<span>
+					{i.t('overview.youGet')}
+					<Amount cents={data.owedToMe} class="text-foreground font-medium" />
+				</span>
+				<span class="text-right">
+					{i.t('overview.youOwe')}
+					<Amount cents={data.iOwe} class="text-foreground font-medium" />
+				</span>
+			</div>
+		</Card.Content>
+	</Card.Root>
 
 	{#if data.openReceipts > 0}
-		<a class="card cta" href="/swipe">
-			<Icon name="swipe" size={28} />
-			<span>
-				<strong>{i.t('overview.openReceipts', { n: data.openReceipts })}</strong>
-				<span class="muted">{i.t('overview.openReceiptsHint')}</span>
+		<a
+			href="/swipe"
+			class="border-primary/30 bg-primary/8 hover:bg-primary/12 flex items-center gap-3 rounded-xl border p-4 transition-colors"
+		>
+			<span class="bg-primary text-primary-foreground grid size-10 place-items-center rounded-md">
+				<Icon name="swipe" size={20} />
 			</span>
+			<span class="flex min-w-0 flex-1 flex-col">
+				<span class="text-sm font-semibold"
+					>{i.t('overview.openReceipts', { n: data.openReceipts })}</span
+				>
+				<span class="text-muted-foreground text-xs">{i.t('overview.openReceiptsHint')}</span>
+			</span>
+			<span class="text-muted-foreground"><Icon name="chevronRight" size={18} /></span>
 		</a>
 	{/if}
 
-	<h2 class="section-title">{i.t('overview.people')}</h2>
+	<SectionTitle>{i.t('overview.people')}</SectionTitle>
 	{#if data.people.length}
-		<ul class="list">
+		<List.Root>
 			{#each data.people as p (p.user.id)}
-				<li>
-					<a href="/people/{p.user.id}">
-						<Avatar name={p.user.name} src={p.user.avatarUrl} />
-						<span class="grow">
-							{p.user.name}
-							{#if p.contexts > 1}
-								<small class="muted">· {i.t('overview.contextsNetted', { n: p.contexts })}</small>
-							{/if}
-						</span>
-						<span class="right">
-							<small class="muted"
-								>{p.net > 0 ? i.t('overview.owesYou') : i.t('overview.youOweShort')}</small
+				<List.Item href="/people/{p.user.id}">
+					<Avatar name={p.user.name} src={p.user.avatarUrl} size={36} />
+					<span class="flex min-w-0 flex-1 flex-col">
+						<span class="truncate text-sm font-medium">{p.user.name}</span>
+						{#if p.contexts > 1}
+							<span class="text-muted-foreground text-xs"
+								>{i.t('overview.contextsNetted', { n: p.contexts })}</span
 							>
-							<Amount cents={Math.abs(p.net)} />
-						</span>
-					</a>
-				</li>
+						{/if}
+					</span>
+					<span class="flex flex-col items-end">
+						<span class="text-muted-foreground text-xs"
+							>{p.net > 0 ? i.t('overview.owesYou') : i.t('overview.youOweShort')}</span
+						>
+						<Amount
+							cents={Math.abs(p.net)}
+							class={p.net > 0 ? 'text-positive font-semibold' : 'text-destructive font-semibold'}
+						/>
+					</span>
+				</List.Item>
 			{/each}
-		</ul>
+		</List.Root>
 	{:else}
-		<p class="card muted">{i.t('overview.allSettled')}</p>
+		<Card.Root>
+			<Card.Content class="text-muted-foreground text-sm">{i.t('overview.allSettled')}</Card.Content
+			>
+		</Card.Root>
 	{/if}
 
-	<a class="btn primary" href="/expenses/new"><Icon name="plus" /> {i.t('overview.addExpense')}</a>
+	<Button href="/expenses/new" size="lg"
+		><Icon name="plus" size={18} /> {i.t('overview.addExpense')}</Button
+	>
 
 	{#if data.recent.length}
-		<h2 class="section-title">{i.t('overview.recent')}</h2>
-		<ul class="list">
+		<SectionTitle>{i.t('overview.recent')}</SectionTitle>
+		<List.Root>
 			{#each data.recent as e (e.id)}
-				<li><ExpenseRow expense={e} me={data.user!.id} /></li>
+				<ExpenseRow expense={e} me={data.user!.id} />
 			{/each}
-		</ul>
+		</List.Root>
 	{/if}
 </div>
-
-<style>
-	.hello {
-		margin: 0;
-	}
-	.total {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-	.big {
-		font-size: 2.4rem;
-		letter-spacing: -0.02em;
-	}
-	.split {
-		justify-content: space-between;
-		font-size: 0.85rem;
-		color: var(--muted);
-	}
-	.cta {
-		display: flex;
-		gap: 14px;
-		align-items: center;
-		text-decoration: none;
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-	.cta span {
-		display: flex;
-		flex-direction: column;
-		color: var(--ink);
-	}
-	.grow {
-		flex: 1;
-		min-width: 0;
-	}
-	.right {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		font-weight: 600;
-	}
-</style>

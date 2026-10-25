@@ -16,24 +16,14 @@
 </script>
 
 {#if src}
-	<img {src} alt="" width={size} height={size} style:border-radius="50%" />
+	<img {src} alt="" width={size} height={size} class="shrink-0 rounded-full object-cover" />
 {:else}
 	<span
-		class="avatar"
+		class="inline-grid shrink-0 place-items-center rounded-full font-semibold"
 		style:width="{size}px"
 		style:height="{size}px"
-		style:font-size="{size * 0.4}px"
-		style:background="hsl({hue} 55% 88%)"
-		style:color="hsl({hue} 45% 28%)">{initials}</span
+		style:font-size="{Math.round(size * 0.38)}px"
+		style:background="light-dark(hsl({hue} 45% 90%), hsl({hue} 25% 22%))"
+		style:color="light-dark(hsl({hue} 40% 30%), hsl({hue} 45% 78%))">{initials}</span
 	>
 {/if}
-
-<style>
-	.avatar {
-		display: inline-grid;
-		place-items: center;
-		border-radius: 50%;
-		font-weight: 700;
-		flex: none;
-	}
-</style>

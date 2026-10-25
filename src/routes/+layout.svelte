@@ -20,150 +20,53 @@
 		{ href: '/groups', label: 'nav.groups', icon: 'users' },
 		{ href: '/settings', label: 'nav.profile', icon: 'user' }
 	];
+	const badge =
+		'bg-primary text-primary-foreground grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums';
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 </script>
 
 {#if data.user}
-	<div class="shell">
-		<nav aria-label={i.t('nav.main')}>
-			<a class="brand" href="/">
-				<img src="/icon.svg" alt="" width="32" height="32" /><span>Teilchen</span>
+	<div class="min-h-dvh md:grid md:grid-cols-[220px_480px] md:justify-center md:gap-8 md:bg-outer">
+		<!-- Mobile: tab bar at the bottom. Desktop: sidebar left of the portrait content column. -->
+		<nav
+			aria-label={i.t('nav.main')}
+			class="bg-background/90 fixed inset-x-0 bottom-0 z-10 flex h-[calc(var(--nav-h)+env(safe-area-inset-bottom))] border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:sticky md:top-0 md:h-dvh md:flex-col md:gap-1 md:border-0 md:bg-transparent md:px-0 md:py-7 md:backdrop-blur-none"
+		>
+			<a
+				href="/"
+				class="mb-5 hidden items-center gap-2.5 px-3 text-lg font-semibold tracking-tight md:flex"
+			>
+				<img src="/icon.svg" alt="" width="28" height="28" />Teilchen
 			</a>
 			{#each nav as item (item.href)}
-				<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
-					<span class="icon">
-						<Icon name={item.icon} />
+				<a
+					href={item.href}
+					aria-current={active(item.href) ? 'page' : undefined}
+					class="text-muted-foreground aria-[current=page]:text-primary md:hover:bg-accent md:aria-[current=page]:bg-card md:aria-[current=page]:text-foreground flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors md:flex-none md:flex-row md:justify-start md:gap-3 md:rounded-md md:px-3 md:py-2 md:text-sm md:aria-[current=page]:shadow-xs"
+				>
+					<span class="relative grid">
+						<Icon name={item.icon} size={22} />
 						{#if item.href === '/swipe' && data.openReceipts > 0}
-							<span class="badge">{data.openReceipts}</span>
+							<span class="{badge} absolute -top-1.5 -right-2.5 md:hidden">{data.openReceipts}</span
+							>
 						{/if}
 					</span>
-					<span class="label">{i.t(item.label)}</span>
+					<span>{i.t(item.label)}</span>
+					{#if item.href === '/swipe' && data.openReceipts > 0}
+						<span class="{badge} ml-auto hidden md:grid">{data.openReceipts}</span>
+					{/if}
 				</a>
 			{/each}
 		</nav>
-		<main>{@render children()}</main>
+		<main
+			class="bg-background min-h-dvh overflow-x-clip px-4 pt-[max(12px,env(safe-area-inset-top))] pb-[calc(var(--nav-h)+24px)] md:border-x md:px-6 md:pt-7 md:pb-10 md:shadow-sm"
+		>
+			{@render children()}
+		</main>
 	</div>
 {:else}
-	<main class="bare">{@render children()}</main>
+	<main class="mx-auto min-h-dvh max-w-[480px] px-4 pt-[max(12px,env(safe-area-inset-top))] pb-6">
+		{@render children()}
+	</main>
 {/if}
-
-<style>
-	main {
-		padding: max(12px, env(safe-area-inset-top)) 16px calc(var(--nav-h) + 24px);
-		min-height: 100dvh;
-		/* A card swiped sideways ends at the column's edge, not over the navigation */
-		overflow-x: clip;
-	}
-	main.bare {
-		padding-bottom: 24px;
-	}
-
-	/* Mobile: tab bar at the bottom */
-	nav {
-		position: fixed;
-		z-index: 10;
-		inset: auto 0 0 0;
-		height: calc(var(--nav-h) + env(safe-area-inset-bottom));
-		padding-bottom: env(safe-area-inset-bottom);
-		display: flex;
-		background: color-mix(in srgb, var(--surface) 92%, transparent);
-		backdrop-filter: blur(12px);
-		border-top: 1px solid var(--line);
-	}
-	nav a {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 2px;
-		text-decoration: none;
-		color: var(--muted);
-		font-size: 0.7rem;
-		font-weight: 600;
-	}
-	nav a[aria-current='page'] {
-		color: var(--accent);
-	}
-	.brand {
-		display: none;
-	}
-	.icon {
-		position: relative;
-		display: grid;
-	}
-	.badge {
-		position: absolute;
-		top: -6px;
-		right: -10px;
-		min-width: 18px;
-		height: 18px;
-		padding: 0 5px;
-		border-radius: 9px;
-		background: var(--accent);
-		color: var(--accent-ink);
-		font-size: 0.68rem;
-		display: grid;
-		place-items: center;
-	}
-
-	/* Desktop: content stays portrait, navigation moves to the left of it */
-	@media (min-width: 860px) {
-		:global(body) {
-			background: var(--outer);
-		}
-		.shell {
-			display: grid;
-			grid-template-columns: 220px 460px;
-			justify-content: center;
-			gap: 32px;
-			min-height: 100dvh;
-		}
-		nav {
-			position: sticky;
-			top: 0;
-			inset: auto;
-			height: 100dvh;
-			flex-direction: column;
-			gap: 4px;
-			padding: 28px 0;
-			background: none;
-			backdrop-filter: none;
-			border: 0;
-		}
-		nav a {
-			flex: none;
-			flex-direction: row;
-			justify-content: flex-start;
-			gap: 12px;
-			padding: 10px 14px;
-			border-radius: 12px;
-			font-size: 0.95rem;
-		}
-		nav a:hover {
-			background: var(--surface-2);
-		}
-		nav a[aria-current='page'] {
-			background: var(--surface);
-		}
-		.brand {
-			display: flex;
-			color: var(--ink);
-			font-size: 1.15rem;
-			font-weight: 800;
-			margin-bottom: 16px;
-		}
-		main {
-			background: var(--bg);
-			padding: 28px 24px 40px;
-			box-shadow: var(--shadow);
-			border-left: 1px solid var(--line);
-			border-right: 1px solid var(--line);
-		}
-		main.bare {
-			max-width: 460px;
-			margin: 0 auto;
-		}
-	}
-</style>

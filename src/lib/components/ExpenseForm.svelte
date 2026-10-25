@@ -20,7 +20,12 @@
 	import Amount from './Amount.svelte';
 	import DatePicker from './DatePicker.svelte';
 	import IconPicker from './IconPicker.svelte';
+	import Icon from './Icon.svelte';
 	import Select from './Select.svelte';
+	import { Button } from './ui/button/index.ts';
+	import { Input } from './ui/input/index.ts';
+	import { Label } from './ui/label/index.ts';
+	import * as List from './ui/list/index.ts';
 
 	/** Shared by "new expense" and "edit expense"; the server validates via parseExpenseForm. */
 	let {
@@ -69,6 +74,9 @@
 		if (!people.some((p) => p.id === v.payer)) v.payer = me.id;
 	});
 
+	const chip =
+		'has-checked:border-primary has-checked:bg-primary/10 has-checked:text-primary hover:bg-accent has-focus-visible:ring-ring/50 inline-flex cursor-pointer items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm font-medium shadow-xs transition-colors has-focus-visible:ring-[3px]';
+
 	const cents = $derived(parseCents(v.amount) ?? 0);
 	const equalShares = $derived(
 		v.participants.length
@@ -80,29 +88,29 @@
 	);
 </script>
 
-<form method="POST" {action} use:enhance class="stack">
-	<label class="field">
+<form method="POST" {action} use:enhance class="flex flex-col gap-5">
+	<Label>
 		{i.t('expenses.what')}
-		<input
+		<Input
 			name="title"
 			required
 			placeholder={i.t('expenses.whatPlaceholder')}
-			maxlength="120"
+			maxlength={120}
 			bind:value={v.title}
 		/>
-	</label>
-	<div class="two">
-		<label class="field">
+	</Label>
+	<div class="grid grid-cols-[1fr_1.4fr] items-end gap-3">
+		<Label>
 			{i.t('expenses.amount')}
-			<input
+			<Input
 				name="amount"
 				required
 				inputmode="decimal"
 				placeholder="0,00"
 				bind:value={v.amount}
-				class="num big"
+				class="tabular text-lg font-semibold md:text-lg"
 			/>
-		</label>
+		</Label>
 		<DatePicker name="date" bind:value={v.date} label={i.t('expenses.date')} />
 	</div>
 
@@ -114,48 +122,55 @@
 	/>
 	<Select name="payer" bind:value={v.payer} options={payerOptions} label={i.t('expenses.paidBy')} />
 
-	<fieldset class="stack">
-		<legend class="muted">{i.t('expenses.splitBetween')}</legend>
-		<div class="chips">
+	<fieldset class="flex flex-col gap-3">
+		<legend class="mb-2 text-sm leading-none font-medium">{i.t('expenses.splitBetween')}</legend>
+		<div class="flex flex-wrap gap-2">
 			{#each people as p (p.id)}
-				<label class="chip">
-					<input type="checkbox" name="participants" value={p.id} bind:group={v.participants} />
+				<label class={chip}>
+					<input
+						type="checkbox"
+						name="participants"
+						value={p.id}
+						bind:group={v.participants}
+						class="sr-only"
+					/>
+					<span class="check"><Icon name="check" size={14} /></span>
 					{p.name}
 				</label>
 			{/each}
 		</div>
-		<div class="chips">
-			<label class="chip">
-				<input type="radio" name="mode" value="equal" bind:group={v.mode} />
-				{i.t('expenses.equal')}
-			</label>
-			<label class="chip">
-				<input type="radio" name="mode" value="exact" bind:group={v.mode} />
-				{i.t('expenses.exact')}
-			</label>
+		<div class="bg-muted inline-flex w-fit rounded-lg p-1">
+			{#each [['equal', i.t('expenses.equal')], ['exact', i.t('expenses.exact')]] as [mode, text] (mode)}
+				<label
+					class="has-checked:bg-card has-checked:text-foreground text-muted-foreground has-focus-visible:ring-ring/50 cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors has-checked:shadow-sm has-focus-visible:ring-[3px]"
+				>
+					<input type="radio" name="mode" value={mode} bind:group={v.mode} class="sr-only" />
+					{text}
+				</label>
+			{/each}
 		</div>
 
 		{#if v.mode === 'equal'}
-			<ul class="list">
+			<List.Root>
 				{#each v.participants as id, idx (id)}
-					<li class="item">
-						<span class="grow">{people.find((p) => p.id === id)?.name}</span>
+					<List.Item class="min-h-11 py-2 text-sm">
+						<span class="flex-1">{people.find((p) => p.id === id)?.name}</span>
 						<Amount cents={equalShares[idx] ?? 0} />
-					</li>
+					</List.Item>
 				{/each}
-			</ul>
+			</List.Root>
 		{:else}
 			{#each v.participants as id (id)}
-				<label class="field">
+				<Label class="font-normal">
 					{people.find((p) => p.id === id)?.name}
-					<input
+					<Input
 						name="exact_{id}"
 						inputmode="decimal"
 						placeholder="0,00"
-						class="num"
+						class="tabular"
 						value={v.exact[id] ?? ''}
 					/>
-				</label>
+				</Label>
 			{/each}
 		{/if}
 	</fieldset>
@@ -166,31 +181,13 @@
 		legend={i.t('expenses.icon')}
 	/>
 
-	{#if error}<p class="error">{i.t(error)}</p>{/if}
-	<button class="btn primary block">{submitLabel}</button>
+	{#if error}<p class="text-destructive text-sm">{i.t(error)}</p>{/if}
+	<Button type="submit" size="lg" class="w-full">{submitLabel}</Button>
 </form>
 
 <style>
-	.two {
-		display: grid;
-		grid-template-columns: 1fr 1.4fr;
-		gap: 12px;
-		align-items: end;
-	}
-	.big {
-		font-size: 1.3rem;
-		font-weight: 700;
-	}
-	fieldset {
-		border: 0;
-		padding: 0;
-		margin: 0;
-	}
-	legend {
-		font-size: 0.9rem;
-		margin-bottom: 6px;
-	}
-	.grow {
-		flex: 1;
+	/* The tick only shows on selected people */
+	label:not(:has(:checked)) .check {
+		display: none;
 	}
 </style>

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { useI18n } from '../i18n/index.ts';
 	import Amount from './Amount.svelte';
-	import Icon from './Icon.svelte';
+	import GroupIcon from './GroupIcon.svelte';
+	import * as List from './ui/list/index.ts';
 
 	interface Row {
 		id: string;
@@ -25,49 +26,19 @@
 	);
 </script>
 
-<a href="/expenses/{e.id}">
-	<span class="ico" class:settle={e.kind === 'settlement'}>
-		<Icon name={icon} size={18} />
-	</span>
-	<span class="grow">
-		<span class="title">{e.title}</span>
-		<small class="muted"
+<List.Item href="/expenses/{e.id}">
+	<GroupIcon {icon} size={36} tone={e.kind === 'settlement' ? 'positive' : 'primary'} />
+	<span class="flex min-w-0 flex-1 flex-col">
+		<span class="truncate text-sm font-medium">{e.title}</span>
+		<span class="text-muted-foreground truncate text-xs"
 			>{date} · {e.payerId === me ? i.t('common.you') : e.payerName} · <Amount
 				cents={e.amountCents}
-			/></small
+			/></span
 		>
 	</span>
 	{#if effect !== 0}
-		<strong><Amount cents={effect} signed /></strong>
+		<Amount cents={effect} signed class="text-sm font-semibold" />
 	{:else}
-		<small class="muted">{i.t('common.notInvolved')}</small>
+		<span class="text-muted-foreground text-xs">{i.t('common.notInvolved')}</span>
 	{/if}
-</a>
-
-<style>
-	.ico {
-		width: 36px;
-		height: 36px;
-		border-radius: 10px;
-		display: grid;
-		place-items: center;
-		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-		color: var(--accent);
-		flex: none;
-	}
-	.ico.settle {
-		color: var(--plus);
-		background: color-mix(in srgb, var(--plus) 12%, var(--surface));
-	}
-	.grow {
-		flex: 1;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-	}
-	.title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-</style>
+</List.Item>

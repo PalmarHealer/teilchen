@@ -11,6 +11,7 @@
 	import { useI18n } from '../i18n/index.ts';
 	import { searchIcons } from '../icon-search.ts';
 	import Icon from './Icon.svelte';
+	import { Input } from './ui/input/index.ts';
 
 	/** Suggestions plus search over all Tabler icons; submits the chosen name as `name`. */
 	let {
@@ -43,99 +44,39 @@
 	);
 </script>
 
-<fieldset class="picker">
-	<legend class="muted">{legend}</legend>
-	<label class="search">
-		<Icon name="search" size={18} />
-		<input
+<fieldset class="flex flex-col gap-2">
+	<legend class="mb-2 text-sm leading-none font-medium">{legend}</legend>
+	<div class="relative">
+		<span
+			class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+		>
+			<Icon name="search" size={16} />
+		</span>
+		<Input
 			type="search"
 			bind:value={query}
 			placeholder={i.t('common.iconSearch')}
 			aria-label={i.t('common.iconSearch')}
 			autocomplete="off"
+			class="pl-9"
 		/>
-	</label>
+	</div>
 	{#if shown.length}
-		<div class="grid">
+		<div class="-m-1 grid max-h-56 grid-cols-6 gap-2 overflow-y-auto p-1 [scrollbar-width:thin]">
 			{#each shown as key (key)}
-				<label class="pick" title={key}>
-					<input type="radio" {name} value={key} bind:group={value} />
-					<Icon name={key} />
+				<label
+					class="text-muted-foreground hover:bg-accent has-checked:border-primary has-checked:bg-primary/10 has-checked:text-primary has-focus-visible:ring-ring/50 relative grid aspect-square cursor-pointer place-items-center rounded-md border transition-colors has-focus-visible:ring-[3px]"
+					title={key}
+				>
+					<input type="radio" {name} value={key} bind:group={value} class="sr-only" />
+					<Icon name={key} size={20} />
 				</label>
 			{/each}
 		</div>
 	{:else}
-		<p class="muted none">{i.t('common.iconNoResults')}</p>
+		<p class="text-muted-foreground text-sm">{i.t('common.iconNoResults')}</p>
 	{/if}
 	{#if value && results && !results.includes(value)}
 		<input type="hidden" {name} {value} />
 	{/if}
 </fieldset>
-
-<style>
-	.picker {
-		border: 0;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-	legend {
-		font-size: 0.9rem;
-		margin-bottom: 6px;
-	}
-	.search {
-		position: relative;
-		display: flex;
-		align-items: center;
-		color: var(--muted);
-	}
-	.search :global(svg) {
-		position: absolute;
-		left: 14px;
-		pointer-events: none;
-	}
-	.search input {
-		padding-left: 42px;
-	}
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(6, 1fr);
-		gap: 8px;
-		max-height: 224px;
-		overflow-y: auto;
-		scrollbar-width: thin;
-		/* room for the focus outline, which overflow would otherwise clip */
-		padding: 3px;
-		margin: -3px;
-	}
-	.pick {
-		position: relative;
-		aspect-ratio: 1;
-		display: grid;
-		place-items: center;
-		border: 1px solid var(--line);
-		border-radius: 12px;
-		color: var(--muted);
-		cursor: pointer;
-	}
-	.pick:has(input:checked) {
-		border-color: var(--accent);
-		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-	}
-	.pick:has(input:focus-visible) {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-	.pick input {
-		position: absolute;
-		opacity: 0;
-		pointer-events: none;
-	}
-	.none {
-		margin: 0;
-		font-size: 0.9rem;
-	}
-</style>

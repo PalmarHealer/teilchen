@@ -3,7 +3,10 @@
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import ExpenseForm from '#lib/components/ExpenseForm.svelte';
 	import Header from '#lib/components/Header.svelte';
-	import Icon from '#lib/components/Icon.svelte';
+	import GroupIcon from '#lib/components/GroupIcon.svelte';
+	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as List from '#lib/components/ui/list/index.ts';
+	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data, form } = $props();
@@ -17,7 +20,7 @@
 
 <Header title={data.edit ? i.t('expenses.edit') : i.t('expenses.detail')} {back} />
 
-<div class="stack">
+<div class="flex flex-col gap-4">
 	{#if data.edit}
 		<ExpenseForm
 			me={data.user!}
@@ -29,39 +32,41 @@
 			error={form?.message}
 		/>
 	{:else}
-		<section class="card summary">
-			<span class="ico" class:settle={e.kind === 'settlement'}><Icon name={icon} size={28} /></span>
-			<h2>{e.title}</h2>
-			<strong class="big"><Amount cents={e.amountCents} /></strong>
-			<p class="muted">
-				{i.date(e.spentAt, { day: 'numeric', month: 'long', year: 'numeric' })} ·
-				{i.t('expenses.paidByName', { name: e.payerName })}
-			</p>
-		</section>
+		<Card.Root>
+			<Card.Content class="flex flex-col items-center gap-2 text-center">
+				<GroupIcon {icon} size={56} tone={e.kind === 'settlement' ? 'positive' : 'primary'} />
+				<h2 class="mt-1 text-lg font-semibold">{e.title}</h2>
+				<Amount cents={e.amountCents} class="text-3xl font-semibold tracking-tight" />
+				<p class="text-muted-foreground text-sm">
+					{i.date(e.spentAt, { day: 'numeric', month: 'long', year: 'numeric' })} ·
+					{i.t('expenses.paidByName', { name: e.payerName })}
+				</p>
+			</Card.Content>
+		</Card.Root>
 
-		<h2 class="section-title">{i.t('expenses.shares')}</h2>
-		<ul class="list">
+		<SectionTitle>{i.t('expenses.shares')}</SectionTitle>
+		<List.Root>
 			{#each e.shares as s (s.userId)}
-				<li class="item">
-					<span class="grow">{s.name}</span>
-					<Amount cents={s.cents} />
-				</li>
+				<List.Item class="text-sm">
+					<span class="flex-1">{s.name}</span>
+					<Amount cents={s.cents} class="font-medium" />
+				</List.Item>
 			{/each}
-		</ul>
+		</List.Root>
 
 		{#if e.kind === 'settlement'}
-			<p class="muted hint">{i.t('expenses.settlementInfo')}</p>
+			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.settlementInfo')}</p>
 		{:else if e.fromReceipt}
-			<p class="muted hint">{i.t('expenses.fromReceipt')}</p>
+			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.fromReceipt')}</p>
 		{/if}
 		{#if !data.canManage}
-			<p class="muted hint">{i.t('expenses.readOnly')}</p>
+			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.readOnly')}</p>
 		{/if}
-		{#if form?.message}<p class="error">{i.t(form.message)}</p>{/if}
+		{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
 	{/if}
 
 	{#if data.canManage}
-		<div class="stack actions">
+		<div class="mt-2 flex flex-col gap-2">
 			{#if e.fromReceipt}
 				<ConfirmAction
 					action="?/resplit"
@@ -86,42 +91,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.summary {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
-		gap: 6px;
-	}
-	.summary p {
-		margin: 0;
-	}
-	.ico {
-		display: grid;
-		place-items: center;
-		width: 56px;
-		height: 56px;
-		border-radius: 18px;
-		background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-		color: var(--accent);
-	}
-	.ico.settle {
-		color: var(--plus);
-		background: color-mix(in srgb, var(--plus) 14%, var(--surface));
-	}
-	.big {
-		font-size: 2rem;
-	}
-	.grow {
-		flex: 1;
-	}
-	.hint {
-		font-size: 0.85rem;
-		margin: 0 4px;
-	}
-	.actions {
-		margin-top: 8px;
-	}
-</style>

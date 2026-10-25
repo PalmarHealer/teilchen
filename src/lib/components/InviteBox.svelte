@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { useI18n } from '../i18n/index.ts';
 	import Icon from './Icon.svelte';
+	import { Button } from './ui/button/index.ts';
+	import * as Card from './ui/card/index.ts';
+	import { Input } from './ui/input/index.ts';
 
 	let { url, text }: { url: string; text: string } = $props();
 	let copied = $state(false);
@@ -16,11 +19,15 @@
 	}
 </script>
 
-<div class="card stack">
-	<input readonly value={url} onfocus={(e) => e.currentTarget.select()} />
-	<button type="button" class="btn primary" onclick={share}>
-		<Icon name="share" />
-		{copied ? i.t('common.copied') : i.t('invite.share')}
-	</button>
-	<small class="muted">{i.t('invite.validFor')}</small>
-</div>
+<Card.Root>
+	<Card.Content class="flex flex-col gap-3">
+		<div class="flex gap-2">
+			<Input readonly value={url} onfocus={(e) => e.currentTarget.select()} class="tabular" />
+			<Button onclick={share}>
+				<Icon name="share" size={16} />
+				{copied ? i.t('common.copied') : i.t('invite.share')}
+			</Button>
+		</div>
+		<p class="text-muted-foreground text-xs">{i.t('invite.validFor')}</p>
+	</Card.Content>
+</Card.Root>

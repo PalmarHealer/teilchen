@@ -1,10 +1,20 @@
 <script lang="ts">
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { cn } from '#lib/utils.ts';
 
-	let { cents, signed = false }: { cents: number; signed?: boolean } = $props();
+	let {
+		cents,
+		signed = false,
+		class: className
+	}: { cents: number; signed?: boolean; class?: string } = $props();
 	const i = useI18n();
 </script>
 
-<span class="num" class:plus={signed && cents > 0} class:minus={signed && cents < 0}
-	>{signed && cents > 0 ? '+' : ''}{i.money(cents)}</span
+<span
+	class={cn(
+		'tabular',
+		signed && cents > 0 && 'text-positive',
+		signed && cents < 0 && 'text-destructive',
+		className
+	)}>{signed && cents > 0 ? '+' : ''}{i.money(cents)}</span
 >
