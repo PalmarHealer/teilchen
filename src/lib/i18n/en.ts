@@ -173,6 +173,7 @@ export const en = {
 		nameMissing: 'Name missing',
 		nothingToSettle: 'Nothing to settle',
 		loginExpired: 'Login expired, please try again',
+		loginRejected: 'The sign-in was rejected by the identity provider',
 		noIdToken: 'No ID token received',
 		personNotFound: 'Person not found',
 		groupNotFound: 'Group not found',

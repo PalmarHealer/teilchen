@@ -171,6 +171,7 @@ export const de: Dictionary = {
 		nameMissing: 'Name fehlt',
 		nothingToSettle: 'Nichts zu verrechnen',
 		loginExpired: 'Login abgelaufen, bitte erneut versuchen',
+		loginRejected: 'Die Anmeldung wurde vom Identity Provider abgelehnt',
 		noIdToken: 'Kein ID-Token erhalten',
 		personNotFound: 'Person nicht gefunden',
 		groupNotFound: 'Gruppe nicht gefunden',
