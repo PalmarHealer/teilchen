@@ -145,7 +145,8 @@ export const en = {
 		lastSync: 'Last synced {date}.',
 		firstSync: 'The first sync runs shortly.',
 		disconnect: 'Disconnect',
-		reweDesktopOnly: 'This needs a computer with Chrome or Firefox – it does not work on a phone.',
+		reweDesktopOnly:
+			'This needs Chrome or Edge on a computer. Firefox and phones block the redirect and hide the code.',
 		reweStep0:
 			'In that new tab, before signing in: open the developer tools (F12), switch to “Network” and tick “Preserve log”. Then sign in.',
 		reweStep1: 'Sign in at REWE ↗',
