@@ -61,8 +61,7 @@ export const en = {
 		title: 'Swipe receipts',
 		items: ((p) => (p.n === 1 ? '1 item' : `${p.n} items`)) as Plural,
 		emptyTitle: 'No open receipts',
-		emptyText:
-			'Connect your REWE account or forward eBon emails and new purchases land here automatically.',
+		emptyText: 'Forward your REWE eBon emails and new purchases land here automatically.',
 		setupImport: 'Set up import',
 		whoWith: 'Who are you sharing this purchase with?',
 		groups: 'Groups',
@@ -140,24 +139,6 @@ export const en = {
 			'Forward your REWE eBon emails to this address, ideally with an automatic forwarding rule for',
 		ebonFromHint: 'Forwards from {email} are recognised even without the + part.',
 		noInbox: 'No eBon inbox configured (INBOX_ADDRESS).',
-		reweHeading: 'REWE account',
-		connected: 'Connected.',
-		lastSync: 'Last synced {date}.',
-		firstSync: 'The first sync runs shortly.',
-		disconnect: 'Disconnect',
-		reweDesktopOnly:
-			'This needs Chrome or Edge on a computer. Firefox and phones block the redirect and hide the code.',
-		reweStep0:
-			'In that new tab, before signing in: open the developer tools (F12), switch to “Network” and tick “Preserve log”. Then sign in.',
-		reweStep1: 'Sign in at REWE ↗',
-		reweStep1Hint: '(opens a new tab – keep this page open).',
-		reweStep2:
-			'If REWE shows another step after the password (e.g. a passkey prompt or a code), finish or skip it. Once the page seems to hang, REWE is trying to open its app. In “Network”, click the last request named “authenticate” (status 302), open “Response headers” and copy the value of “location”. It starts with {prefix}.',
-		reweStep3: 'Paste it here right away – the code expires after about a minute:',
-		connect: 'Connect',
-		reweIntro:
-			"Loads your purchases automatically. This uses the REWE app's unofficial interface and can break at any time. The eBon email is the robust way.",
-		reweConnect: 'Connect REWE account',
 		uploadHeading: 'Upload eBon PDF',
 		import: 'Import',
 		imported: ((p) => (p.n === 1 ? '1 purchase imported' : `${p.n} purchases imported`)) as Plural,
@@ -183,11 +164,6 @@ export const en = {
 		groupNotFound: 'Group not found',
 		receiptNotFound: 'Receipt not found or already booked',
 		inviteInvalid: 'Invite invalid or expired',
-		reweLoginExpired: 'Sign-in expired, please start again',
-		reweFailed: 'Connection failed',
-		reweWrongUrl:
-			'That is a REWE login page address, not the app redirect – probably from an earlier step. Take the “location” header of the last “authenticate” request, the one that starts with de.rewe.app://redirect?code=. Start again with the link above if the code has expired.',
-		reweNoCode: 'The pasted text contains no ?code=…',
 		noNewEbon: 'No new REWE eBon detected',
 		generic: 'Something went wrong'
 	}

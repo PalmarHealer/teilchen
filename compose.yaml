@@ -17,10 +17,6 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://teilchen:${POSTGRES_PASSWORD:-teilchen}@db:5432/teilchen
-      REWE_CERT_PATH: /certs/rewe.pem
-      REWE_KEY_PATH: /certs/rewe.key
-    volumes:
-      - ./certs:/certs:ro
     depends_on:
       app:
         condition: service_started

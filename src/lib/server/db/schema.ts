@@ -89,18 +89,7 @@ export const invites = pgTable('invites', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
 });
 
-export const reweAccounts = pgTable('rewe_accounts', {
-	userId: uuid('user_id')
-		.primaryKey()
-		.references(() => users.id, { onDelete: 'cascade' }),
-	/** AES-GCM encrypted with APP_SECRET, see #lib/server/crypto */
-	tokensEnc: text('tokens_enc').notNull(),
-	lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
-	lastError: text('last_error'),
-	enabled: boolean('enabled').notNull().default(true)
-});
-
-export const receiptSource = pgEnum('receipt_source', ['rewe_api', 'ebon_mail', 'manual']);
+export const receiptSource = pgEnum('receipt_source', ['ebon_mail', 'manual']);
 
 export const receipts = pgTable(
 	'receipts',
@@ -110,7 +99,7 @@ export const receipts = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		source: receiptSource('source').notNull(),
-		/** REWE receipt ID or mail Message-ID – prevents duplicate imports */
+		/** Receipt number or mail Message-ID – prevents duplicate imports */
 		externalId: text('external_id').notNull(),
 		market: text('market'),
 		purchasedAt: timestamp('purchased_at', { withTimezone: true }).notNull(),

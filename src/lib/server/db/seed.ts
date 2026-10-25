@@ -75,7 +75,7 @@ PFAND 0,25 EURO 0,25 A *
 --------------------------------------
 SUMME EUR 12,16
 24.10.2026 18:42 Bon-Nr.:4711`)!;
-await importEbon(me.id, 'ebon_mail', `seed:${Date.now()}`, bon);
+await importEbon(me.id, `seed:${Date.now()}`, bon);
 
 const token = randomToken();
 await db

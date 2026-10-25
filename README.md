@@ -11,7 +11,6 @@ Swipe groceries, split costs, settle up fairly. Teilchen is a PWA. On desktop th
 - **Import:**
   - forward eBon emails (IMAP inbox)
   - upload a PDF
-  - connect a REWE account (unofficial API)
 
 ## Setup
 
@@ -28,7 +27,7 @@ docker compose up -d db
 pnpm db:migrate
 pnpm db:seed    # demo data; prints a session token (cookie `teilchen_session`)
 pnpm dev
-pnpm worker     # mail & REWE import
+pnpm worker     # eBon mail import
 ```
 
 ### Authentik
@@ -47,18 +46,8 @@ pnpm worker     # mail & REWE import
 2. Everyone gets their own address `teilchen+<token>@example.com` in the profile.
    - This needs a mail server that delivers plus addresses into the same mailbox.
 3. Without the plus part, the person is recognised by the sender of the forwarded mail.
-4. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Broken mails move to the `Failed` folder right away; transient errors (DB, network) are retried on later polls for up to 3 days before the mail moves there too. `Failed` is purged after 14 days, so the inbox never fills up.
-
-### REWE account (optional, unofficial)
-
-The worker needs the REWE app's mTLS client certificate as `certs/rewe.pem` and `certs/rewe.key`.
-
-To get it:
-
-1. Extract `res/raw/mtls_prod.pfx` from the Android APK (see [rewerse-engineering](https://github.com/ByteSizedMarius/rewerse-engineering/blob/main/docs/readme.md)).
-2. Convert it to PEM and key with `openssl pkcs12 -legacy`.
-
-This use is not authorised by REWE. The API can break or be blocked by Cloudflare at any time.
+4. Mails that are not REWE eBons (e.g. forwarded login codes) are deleted silently.
+5. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Broken mails move to the `Failed` folder right away; transient errors (DB, network) are retried on later polls for up to 3 days before the mail moves there too. `Failed` is purged after 14 days, so the inbox never fills up.
 
 ## Deployment
 

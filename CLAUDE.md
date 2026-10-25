@@ -12,9 +12,7 @@ Gate: `pnpm verify` (typecheck + lint + tests). CI also checks that `drizzle/` m
 ## Decisions + why
 
 - Settling is **per person**. `settleWith` books one settlement line **per context** (group/direct), and their sum is the net payment. Why: every group balance stays correct for its other members. No single net entry.
-- REWE: unofficial mobile API (`mobile-clients-api.rewe.de`, Keycloak `client_id=reweios`, mTLS certificate from the APK, not in the repo).
-  - Login only works by pasting the `de.rewe.app://redirect?code=` URL by hand, then refresh tokens.
-  - Sources: github.com/yannick-cw/korb, github.com/ByteSizedMarius/rewerse-engineering.
-- eBon email is the robust main path. API, mail and upload all deliver the same PDF and go through `ebon/parse.ts`. A deposit (Pfand) line is merged into the item above it.
-- The worker always empties the shared INBOX: handled mails are deleted (outcome in `inbound_mails`), broken mails move to `Failed` at once, transient errors are retried for 3 days first, `Failed` expires after 14 days. Why: a persistent error must not fill the mailbox, and a DB hiccup must not lose eBons. Stalwart delivers `teilchen+<token>@` into the same INBOX and keeps the To header.
+- No REWE account login: REWE's login (Keycloak, client `reweios`) is behind Cloudflare Turnstile, and the code only shows up in Chrome DevTools. Too complicated for users, so it was removed. Don't re-add it or try to get around the captcha.
+- eBon email is the main path. Mail and upload deliver the same PDF and go through `ebon/parse.ts`. A deposit (Pfand) line is merged into the item above it.
+- The worker always empties the shared INBOX: non-eBon mails (forwarding rules also catch login codes) are deleted silently and logged without content, handled mails are deleted (outcome in `inbound_mails`), broken mails move to `Failed` at once, transient errors are retried for 3 days first, `Failed` expires after 14 days. Why: a persistent error must not fill the mailbox, and a DB hiccup must not lose eBons. Stalwart delivers `teilchen+<token>@` into the same INBOX and keeps the To header.
 - Deploy: push to `main` → GHCR image → Portainer stack webhook (stack `teilchen` on Vienna, see README). Secrets live only in the Portainer stack variables.

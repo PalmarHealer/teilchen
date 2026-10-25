@@ -4,6 +4,7 @@ import { simpleParser, type Attachment, type ParsedMail } from 'mailparser';
 import { db, schema } from '#lib/server/db/index.ts';
 import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseEbonPdf } from '#lib/server/ebon/pdf.ts';
+import { looksLikeEbon } from '#lib/server/ebon/classify.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
 /** Mails that could not be processed; kept for inspection, then purged. */
@@ -18,6 +19,7 @@ class BrokenMail extends Error {}
 
 /**
  * Imports REWE eBons from the shared inbox without letting it fill up:
+ * - mails that are not eBons (e.g. forwarded login codes) are deleted silently
  * - handled mails are deleted (outcome in inbound_mails)
  * - broken mails move to FAILED right away
  * - transient errors leave the mail in INBOX for the next poll, until GIVE_UP_AFTER_DAYS
@@ -99,10 +101,12 @@ async function handleMail(mail: ParsedMail) {
 			.values({ messageId, userId: user?.id, status, detail })
 			.onConflictDoNothing();
 
+	// Forwarding rules also catch login codes and the like: drop those silently and log nothing
+	// about their content.
+	const { pdfs, texts } = await collect(mail);
+	if (!looksLikeEbon({ texts, pdfNames: pdfs.map((p) => p.filename ?? 'attachment.pdf') }))
+		return log('ignored');
 	if (!user) return log('unknown_user', addresses(mail).join(', '));
-
-	const pdfs = await collectPdfs(mail.attachments);
-	if (!pdfs.length) return log('no_pdf', mail.subject);
 
 	let imported = 0;
 	for (const [i, pdf] of pdfs.entries()) {
@@ -111,25 +115,33 @@ async function handleMail(mail: ParsedMail) {
 		});
 		if (!bon) continue;
 		const externalId = `mail:${bon.bonNr ?? messageId}:${bon.purchasedAt.toISOString()}:${i}`;
-		if (await importEbon(user.id, 'ebon_mail', externalId, bon)) imported++;
+		if (await importEbon(user.id, externalId, bon)) imported++;
 	}
 	return log(imported ? 'imported' : 'no_ebon', `${imported}/${pdfs.length}`);
 }
 
-/** Forwarded mails may carry the original as a message/rfc822 attachment. */
-async function collectPdfs(attachments: Attachment[], depth = 0): Promise<Attachment[]> {
-	const out: Attachment[] = [];
-	for (const a of attachments) {
+/**
+ * PDFs plus the texts that tell whether this is an eBon. Forwarded mails may carry the original
+ * as a message/rfc822 attachment; an unparseable one is skipped (it can't be classified anyway).
+ */
+async function collect(
+	mail: ParsedMail,
+	depth = 0
+): Promise<{ pdfs: Attachment[]; texts: (string | undefined)[] }> {
+	const pdfs: Attachment[] = [];
+	const texts = [mail.subject, mail.from?.text, mail.text];
+	for (const a of mail.attachments) {
 		if (a.contentType === 'application/pdf' || a.filename?.toLowerCase().endsWith('.pdf'))
-			out.push(a);
+			pdfs.push(a);
 		else if (a.contentType === 'message/rfc822' && depth < 3) {
-			const inner = await simpleParser(a.content).catch((e: unknown) => {
-				throw new BrokenMail(`unparseable attached mail: ${String(e)}`);
-			});
-			out.push(...(await collectPdfs(inner.attachments, depth + 1)));
+			const inner = await simpleParser(a.content).catch(() => null);
+			if (!inner) continue;
+			const nested = await collect(inner, depth + 1);
+			pdfs.push(...nested.pdfs);
+			texts.push(...nested.texts);
 		}
 	}
-	return out;
+	return { pdfs, texts };
 }
 
 function addresses(mail: ParsedMail): string[] {

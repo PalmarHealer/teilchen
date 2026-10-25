@@ -59,8 +59,7 @@ export const de: Dictionary = {
 		title: 'Einkäufe swipen',
 		items: (p) => (p.n === 1 ? '1 Position' : `${p.n} Positionen`),
 		emptyTitle: 'Keine offenen Einkäufe',
-		emptyText:
-			'Verbinde dein REWE-Konto oder leite eBon-Mails weiter, dann landen neue Einkäufe automatisch hier.',
+		emptyText: 'Leite deine REWE-eBon-Mails weiter, dann landen neue Einkäufe automatisch hier.',
 		setupImport: 'Import einrichten',
 		whoWith: 'Mit wem teilst du diesen Einkauf?',
 		groups: 'Gruppen',
@@ -138,24 +137,6 @@ export const de: Dictionary = {
 			'Leite deine REWE-eBon-Mails an diese Adresse weiter, am besten mit einer automatischen Weiterleitung für',
 		ebonFromHint: 'Weiterleitungen von {email} werden auch ohne den +-Teil erkannt.',
 		noInbox: 'Kein eBon-Postfach konfiguriert (INBOX_ADDRESS).',
-		reweHeading: 'REWE-Konto',
-		connected: 'Verbunden.',
-		lastSync: 'Zuletzt synchronisiert {date}.',
-		firstSync: 'Der erste Abgleich läuft in Kürze.',
-		disconnect: 'Trennen',
-		reweDesktopOnly:
-			'Das braucht Chrome oder Edge am Computer. Firefox und Handys blockieren die Weiterleitung und verstecken den Code.',
-		reweStep0:
-			'Im neuen Tab, noch vor dem Login: Öffne die Entwicklertools (F12), wechsle zu „Netzwerk“ und setze den Haken bei „Log beibehalten“. Melde dich dann an.',
-		reweStep1: 'Bei REWE anmelden ↗',
-		reweStep1Hint: '(öffnet einen neuen Tab, diese Seite offen lassen).',
-		reweStep2:
-			'Zeigt REWE nach dem Passwort noch einen Schritt (z. B. Passkey-Abfrage oder Code), schließe ihn ab oder überspring ihn. Sobald die Seite zu hängen scheint, versucht REWE seine App zu öffnen. Klicke unter „Netzwerk“ auf die letzte Anfrage „authenticate“ (Status 302), öffne die „Antwortheader“ und kopiere den Wert von „location“. Er beginnt mit {prefix}.',
-		reweStep3: 'Füge ihn gleich hier ein, der Code läuft nach etwa einer Minute ab:',
-		connect: 'Verbinden',
-		reweIntro:
-			'Lädt deine Einkäufe automatisch. Das läuft über die inoffizielle Schnittstelle der REWE-App und kann daher jederzeit ausfallen. Die eBon-Mail ist der robuste Weg.',
-		reweConnect: 'REWE-Konto verbinden',
 		uploadHeading: 'eBon-PDF hochladen',
 		import: 'Importieren',
 		imported: (p) => (p.n === 1 ? '1 Einkauf importiert' : `${p.n} Einkäufe importiert`),
@@ -181,11 +162,6 @@ export const de: Dictionary = {
 		groupNotFound: 'Gruppe nicht gefunden',
 		receiptNotFound: 'Einkauf nicht gefunden oder schon gebucht',
 		inviteInvalid: 'Einladung ungültig oder abgelaufen',
-		reweLoginExpired: 'Anmeldung abgelaufen, bitte neu starten',
-		reweFailed: 'Verbindung fehlgeschlagen',
-		reweWrongUrl:
-			'Das ist eine Adresse der REWE-Login-Seite, nicht die Weiterleitung zur App, vermutlich aus einem früheren Schritt. Nimm den „location“-Header der letzten „authenticate“-Anfrage, der mit de.rewe.app://redirect?code= beginnt. Ist der Code abgelaufen, starte über den Link oben neu.',
-		reweNoCode: 'Im eingefügten Text steckt kein ?code=…',
 		noNewEbon: 'Kein neuer REWE-eBon erkannt',
 		generic: 'Etwas ist schiefgelaufen'
 	}

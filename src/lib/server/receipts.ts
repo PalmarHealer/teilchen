@@ -2,21 +2,15 @@ import { db, schema } from './db';
 import type { Ebon } from './ebon/parse';
 
 /** Stores a parsed receipt with its items. Returns false if it already exists. */
-export async function importEbon(
-	ownerId: string,
-	source: 'rewe_api' | 'ebon_mail',
-	externalId: string,
-	bon: Ebon,
-	market?: string | null
-): Promise<boolean> {
+export async function importEbon(ownerId: string, externalId: string, bon: Ebon): Promise<boolean> {
 	return db.transaction(async (tx) => {
 		const [receipt] = await tx
 			.insert(schema.receipts)
 			.values({
 				ownerId,
-				source,
+				source: 'ebon_mail',
 				externalId,
-				market: market ?? bon.market,
+				market: bon.market,
 				purchasedAt: bon.purchasedAt,
 				totalCents: bon.totalCents,
 				raw: { bonNr: bon.bonNr, mismatch: bon.mismatch }
