@@ -9,6 +9,15 @@
 	import Car from '@tabler/icons-svelte/icons/car';
 	import Cards from '@tabler/icons-svelte/icons/cards';
 	import Check from '@tabler/icons-svelte/icons/check';
+	import Calendar from '@tabler/icons-svelte/icons/calendar';
+	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
+	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
+	import DoorExit from '@tabler/icons-svelte/icons/door-exit';
+	import FileTypePdf from '@tabler/icons-svelte/icons/file-type-pdf';
+	import Pencil from '@tabler/icons-svelte/icons/pencil';
+	import Settings from '@tabler/icons-svelte/icons/settings';
+	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
+	import Trash from '@tabler/icons-svelte/icons/trash';
 	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
 	import CircleCheck from '@tabler/icons-svelte/icons/circle-check';
 	import Confetti from '@tabler/icons-svelte/icons/confetti';
@@ -64,7 +73,16 @@
 		receipt: Receipt,
 		upload: Upload,
 		logout: Logout,
-		party: Confetti
+		party: Confetti,
+		calendar: Calendar,
+		chevronDown: ChevronDown,
+		chevronRight: ChevronRight,
+		leave: DoorExit,
+		pdf: FileTypePdf,
+		edit: Pencil,
+		settings: Settings,
+		sparkles: Sparkles,
+		trash: Trash
 	};
 	export type IconName = keyof typeof icons;
 </script>
@@ -75,7 +93,11 @@
 		size = 22,
 		stroke = 1.8
 	}: { name: IconName | string; size?: number; stroke?: number } = $props();
-	const Component = $derived(icons[name as IconName] ?? Users);
+	const Component = $derived.by(() => {
+		const found = icons[name as IconName];
+		if (!found && import.meta.env.DEV) console.error(`Icon "${name}" is not registered`);
+		return found ?? Users;
+	});
 </script>
 
 <Component {size} {stroke} aria-hidden="true" />

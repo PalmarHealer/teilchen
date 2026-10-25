@@ -23,7 +23,9 @@ export const en = {
 		notInvolved: 'not involved',
 		copied: 'Copied',
 		save: 'Save',
-		create: 'Create'
+		create: 'Create',
+		prevMonth: 'Previous month',
+		nextMonth: 'Next month'
 	},
 	login: {
 		button: 'Sign in'
@@ -98,7 +100,6 @@ export const en = {
 		date: 'Date',
 		where: 'Where?',
 		directBetween: 'Directly between people',
-		groupOption: 'Group: {name}',
 		paidBy: 'Paid by',
 		splitBetween: 'Split between',
 		equal: 'Equally',
@@ -118,7 +119,23 @@ export const en = {
 		expense: 'Expense',
 		invite: 'Invite',
 		history: 'History',
-		inviteText: 'Join the group {name} on Teilchen'
+		inviteText: 'Join the group {name} on Teilchen',
+		emptyTitle: 'Split costs together',
+		emptyText: 'Flat share, holiday or couple: create a group and everyone sees who paid what.',
+		memberCount: ((p) => (p.n === 1 ? 'only you so far' : `${p.n} people`)) as Plural,
+		settledUp: 'settled',
+		yourBalance: 'your balance',
+		manage: 'Manage group',
+		name: 'Name',
+		save: 'Save changes',
+		saved: 'Saved',
+		leave: 'Leave group',
+		leaveConfirm: 'Really leave? Your open amounts stay on the person pages.',
+		delete: 'Delete group',
+		deleteConfirm: 'Delete the group including its history for everyone?',
+		deleteNeedsSettled: 'Can be deleted once everyone is settled up.',
+		confirm: 'Yes, do it',
+		cancel: 'Cancel'
 	},
 	invite: {
 		group: '{inviter} invites you to “{group}”',
@@ -136,11 +153,13 @@ export const en = {
 		createInvite: 'Create invite link',
 		ebonHeading: 'eBons by email',
 		ebonText:
-			'Forward your REWE eBon emails to this address, ideally with an automatic forwarding rule for',
+			'Forward your REWE eBon emails to this address, ideally with an automatic forwarding rule for the sender:',
 		ebonFromHint: 'Forwards from {email} are recognised even without the + part.',
 		noInbox: 'No eBon inbox configured (INBOX_ADDRESS).',
 		uploadHeading: 'Upload eBon PDF',
 		import: 'Import',
+		choosePdf: 'Choose eBon PDFs',
+		noFileChosen: 'or drop them here',
 		imported: ((p) => (p.n === 1 ? '1 purchase imported' : `${p.n} purchases imported`)) as Plural,
 		logout: 'Sign out'
 	},
@@ -156,6 +175,8 @@ export const en = {
 		invalidShare: 'Invalid individual amount',
 		sharesMismatch: "Individual amounts don't add up to the total",
 		nameMissing: 'Name missing',
+		onlyCreatorDeletes: 'Only the person who created the group can delete it',
+		groupNotSettled: 'Settle up first, then the group can be deleted',
 		nothingToSettle: 'Nothing to settle',
 		loginExpired: 'Login expired, please try again',
 		loginRejected: 'The sign-in was rejected by the identity provider',

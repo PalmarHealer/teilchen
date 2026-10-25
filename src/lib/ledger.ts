@@ -89,3 +89,18 @@ export function settlementEntries(plan: SettlementPlan): LedgerEntry[] {
 		shares: [{ userId: l.toId, cents: l.cents }]
 	}));
 }
+
+/** Each member's balance within one group: paid − consumed. All zero = the group is settled. */
+export function groupBalances(memberIds: string[], entries: LedgerEntry[]): Map<string, Cents> {
+	const totals = new Map<string, Cents>(memberIds.map((id) => [id, 0]));
+	for (const e of entries) {
+		for (const s of e.shares) {
+			totals.set(e.payerId, (totals.get(e.payerId) ?? 0) + s.cents);
+			totals.set(s.userId, (totals.get(s.userId) ?? 0) - s.cents);
+		}
+	}
+	return totals;
+}
+
+export const isSettled = (balances: Map<string, Cents>) =>
+	[...balances.values()].every((c) => c === 0);

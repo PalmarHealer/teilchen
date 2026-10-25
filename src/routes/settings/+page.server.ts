@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { isLocale, LANG_COOKIE } from '#lib/i18n/index.ts';
+import { isLocale, LANG_COOKIE, type Locale } from '#lib/i18n/index.ts';
 import { randomToken, sha256 } from '#lib/server/crypto.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { optionalEnv } from '#lib/server/db/env.ts';
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	return {
 		email: user.email,
 		inboxAddress: local && domain ? `${local}+${user.inboxToken}@${domain}` : null,
-		langPref: isLocale(pref) ? pref : 'auto'
+		langPref: (isLocale(pref) ? pref : 'auto') as Locale | 'auto'
 	};
 };
 

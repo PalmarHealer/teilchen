@@ -22,7 +22,9 @@ export const de: Dictionary = {
 		notInvolved: 'nicht beteiligt',
 		copied: 'Kopiert',
 		save: 'Speichern',
-		create: 'Erstellen'
+		create: 'Erstellen',
+		prevMonth: 'Vorheriger Monat',
+		nextMonth: 'Nächster Monat'
 	},
 	login: {
 		button: 'Anmelden'
@@ -96,7 +98,6 @@ export const de: Dictionary = {
 		date: 'Datum',
 		where: 'Wo?',
 		directBetween: 'Direkt zwischen Personen',
-		groupOption: 'Gruppe: {name}',
 		paidBy: 'Bezahlt von',
 		splitBetween: 'Aufteilen auf',
 		equal: 'Gleich',
@@ -116,7 +117,23 @@ export const de: Dictionary = {
 		expense: 'Ausgabe',
 		invite: 'Einladen',
 		history: 'Verlauf',
-		inviteText: 'Komm in die Gruppe {name} auf Teilchen'
+		inviteText: 'Komm in die Gruppe {name} auf Teilchen',
+		emptyTitle: 'Gemeinsam Kosten teilen',
+		emptyText: 'WG, Urlaub oder Pärchen: Leg eine Gruppe an und alle sehen, wer was bezahlt hat.',
+		memberCount: (p) => (p.n === 1 ? 'bisher nur du' : `${p.n} Personen`),
+		settledUp: 'ausgeglichen',
+		yourBalance: 'dein Saldo',
+		manage: 'Gruppe verwalten',
+		name: 'Name',
+		save: 'Änderungen speichern',
+		saved: 'Gespeichert',
+		leave: 'Gruppe verlassen',
+		leaveConfirm: 'Wirklich verlassen? Offene Beträge bleiben auf den Personenseiten erhalten.',
+		delete: 'Gruppe löschen',
+		deleteConfirm: 'Gruppe samt Verlauf für alle löschen?',
+		deleteNeedsSettled: 'Löschbar, sobald alle ausgeglichen sind.',
+		confirm: 'Ja, ausführen',
+		cancel: 'Abbrechen'
 	},
 	invite: {
 		group: '{inviter} lädt dich in „{group}“ ein',
@@ -134,11 +151,13 @@ export const de: Dictionary = {
 		createInvite: 'Einladungslink erstellen',
 		ebonHeading: 'eBons per Mail',
 		ebonText:
-			'Leite deine REWE-eBon-Mails an diese Adresse weiter, am besten mit einer automatischen Weiterleitung für',
+			'Leite deine REWE-eBon-Mails an diese Adresse weiter, am besten mit einer automatischen Weiterleitung für den Absender:',
 		ebonFromHint: 'Weiterleitungen von {email} werden auch ohne den +-Teil erkannt.',
 		noInbox: 'Kein eBon-Postfach konfiguriert (INBOX_ADDRESS).',
 		uploadHeading: 'eBon-PDF hochladen',
 		import: 'Importieren',
+		choosePdf: 'eBon-PDFs auswählen',
+		noFileChosen: 'oder hierher ziehen',
 		imported: (p) => (p.n === 1 ? '1 Einkauf importiert' : `${p.n} Einkäufe importiert`),
 		logout: 'Abmelden'
 	},
@@ -154,6 +173,8 @@ export const de: Dictionary = {
 		invalidShare: 'Einzelbetrag ungültig',
 		sharesMismatch: 'Einzelbeträge ergeben nicht die Summe',
 		nameMissing: 'Name fehlt',
+		onlyCreatorDeletes: 'Nur wer die Gruppe erstellt hat, kann sie löschen',
+		groupNotSettled: 'Erst ausgleichen, dann kann die Gruppe gelöscht werden',
 		nothingToSettle: 'Nichts zu verrechnen',
 		loginExpired: 'Login abgelaufen, bitte erneut versuchen',
 		loginRejected: 'Die Anmeldung wurde vom Identity Provider abgelehnt',

@@ -1,30 +1,36 @@
-import { error } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { personBalances } from '#lib/ledger.ts';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { and, eq } from 'drizzle-orm';
+import { isGroupIcon } from '#lib/group-icons.ts';
+import { groupBalances, isSettled, personBalances } from '#lib/ledger.ts';
 import { randomToken } from '#lib/server/crypto.ts';
 import { db, schema } from '#lib/server/db/index.ts';
-import { entriesForGroup, groupMemberIds, recentExpenses, usersByIds } from '#lib/server/domain.ts';
+import {
+	connect,
+	entriesForGroup,
+	groupMemberIds,
+	recentExpenses,
+	usersByIds
+} from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
+
+async function membership(groupId: string, userId: string) {
+	const memberIds = await groupMemberIds(groupId);
+	if (!memberIds.includes(userId)) error(404, 'errors.groupNotFound');
+	const [group] = await db.select().from(schema.groups).where(eq(schema.groups.id, groupId));
+	return { group: group!, memberIds };
+}
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const me = locals.user!.id;
-	const memberIds = await groupMemberIds(params.id);
-	if (!memberIds.includes(me)) error(404, 'errors.groupNotFound');
-	const [group] = await db.select().from(schema.groups).where(eq(schema.groups.id, params.id));
+	const { group, memberIds } = await membership(params.id, me);
 	const members = await usersByIds(memberIds);
 	const entries = await entriesForGroup(params.id);
-
-	// Each member's group balance = paid − consumed
-	const totals = new Map(memberIds.map((id) => [id, 0]));
-	for (const e of entries) {
-		for (const s of e.shares) {
-			totals.set(e.payerId, (totals.get(e.payerId) ?? 0) + s.cents);
-			totals.set(s.userId, (totals.get(s.userId) ?? 0) - s.cents);
-		}
-	}
+	const totals = groupBalances(memberIds, entries);
 	const mine = personBalances(me, entries);
 	return {
-		group: group!,
+		group,
+		isCreator: group.createdBy === me,
+		settled: isSettled(totals),
 		members: memberIds.map((id) => ({
 			...members.get(id)!,
 			balance: totals.get(id) ?? 0,
@@ -36,7 +42,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	invite: async ({ locals, params, url }) => {
-		if (!(await groupMemberIds(params.id)).includes(locals.user!.id)) error(404);
+		await membership(params.id, locals.user!.id);
 		const token = randomToken(12);
 		await db.insert(schema.invites).values({
 			token,
@@ -45,5 +51,47 @@ export const actions: Actions = {
 			expiresAt: new Date(Date.now() + 7 * 864e5)
 		});
 		return { inviteUrl: new URL(`/invite/${token}`, url.origin).toString() };
+	},
+
+	/** Any member may rename the group or change its icon. */
+	update: async ({ locals, params, request }) => {
+		await membership(params.id, locals.user!.id);
+		const fd = await request.formData();
+		const name = String(fd.get('name') ?? '').trim();
+		const icon = fd.get('icon');
+		if (!name) return fail(400, { manageError: 'errors.nameMissing' as const });
+		await db
+			.update(schema.groups)
+			.set({ name: name.slice(0, 60), ...(isGroupIcon(icon) ? { icon } : {}) })
+			.where(eq(schema.groups.id, params.id));
+		return { updated: true };
+	},
+
+	/**
+	 * Leaving keeps all bookings: balances with the other members stay visible on their person
+	 * pages, which is why everyone in the group becomes a direct contact first.
+	 */
+	leave: async ({ locals, params }) => {
+		const me = locals.user!.id;
+		const { memberIds } = await membership(params.id, me);
+		for (const other of memberIds) await connect(me, other);
+		await db
+			.delete(schema.groupMembers)
+			.where(and(eq(schema.groupMembers.groupId, params.id), eq(schema.groupMembers.userId, me)));
+		if (memberIds.length === 1)
+			await db.delete(schema.groups).where(eq(schema.groups.id, params.id));
+		redirect(303, '/groups');
+	},
+
+	/** Deleting removes the group's bookings, so only the creator may, and only once all is settled. */
+	delete: async ({ locals, params }) => {
+		const me = locals.user!.id;
+		const { group, memberIds } = await membership(params.id, me);
+		if (group.createdBy !== me)
+			return fail(403, { manageError: 'errors.onlyCreatorDeletes' as const });
+		if (!isSettled(groupBalances(memberIds, await entriesForGroup(params.id))))
+			return fail(400, { manageError: 'errors.groupNotSettled' as const });
+		await db.delete(schema.groups).where(eq(schema.groups.id, params.id));
+		redirect(303, '/groups');
 	}
 };

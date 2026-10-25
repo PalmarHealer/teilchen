@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+	groupBalances,
+	isSettled,
 	personBalances,
 	planPersonSettlement,
 	settlementEntries,
@@ -76,5 +78,27 @@ describe('planPersonSettlement', () => {
 		const plan = planPersonSettlement('me', 'ben', even);
 		expect(plan.transfer).toBeNull();
 		expect(plan.lines).toHaveLength(2);
+	});
+});
+
+describe('groupBalances', () => {
+	it('sums paid minus consumed per member and detects a settled group', () => {
+		const entries = [
+			inGroup('wg', 'ben', [
+				['ben', 1500],
+				['me', 1500],
+				['cleo', 1500]
+			])
+		];
+		const open = groupBalances(['me', 'ben', 'cleo'], entries);
+		expect(Object.fromEntries(open)).toEqual({ me: -1500, ben: 3000, cleo: -1500 });
+		expect(isSettled(open)).toBe(false);
+
+		const paidBack = [
+			...entries,
+			inGroup('wg', 'me', [['ben', 1500]]),
+			inGroup('wg', 'cleo', [['ben', 1500]])
+		];
+		expect(isSettled(groupBalances(['me', 'ben', 'cleo'], paidBack))).toBe(true);
 	});
 });

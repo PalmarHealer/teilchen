@@ -1,16 +1,26 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { tick } from 'svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import FilePicker from '#lib/components/FilePicker.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import InviteBox from '#lib/components/InviteBox.svelte';
+	import Select from '#lib/components/Select.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
 	let copied = $state(false);
 	let langForm: HTMLFormElement;
+	// svelte-ignore state_referenced_locally
+	let lang = $state<'auto' | 'en' | 'de'>(data.langPref);
+
+	async function submitLanguage() {
+		await tick(); // let the hidden input pick up the new value first
+		langForm.requestSubmit();
+	}
 
 	async function copyInbox() {
 		if (!data.inboxAddress) return;
@@ -40,14 +50,17 @@
 				await invalidateAll();
 			}}
 	>
-		<label class="field">
-			{i.t('settings.language')}
-			<select name="lang" value={data.langPref} onchange={() => langForm.requestSubmit()}>
-				<option value="auto">{i.t('settings.languageAuto')}</option>
-				<option value="en">English</option>
-				<option value="de">Deutsch</option>
-			</select>
-		</label>
+		<Select
+			name="lang"
+			bind:value={lang}
+			label={i.t('settings.language')}
+			onchange={submitLanguage}
+			options={[
+				{ value: 'auto', label: i.t('settings.languageAuto'), icon: 'sparkles' },
+				{ value: 'en', label: 'English' },
+				{ value: 'de', label: 'Deutsch' }
+			]}
+		/>
 	</form>
 
 	<h2 class="section-title">{i.t('settings.inviteHeading')}</h2>
@@ -61,7 +74,8 @@
 	<h2 class="section-title">{i.t('settings.ebonHeading')}</h2>
 	<section class="card stack">
 		{#if data.inboxAddress}
-			<p>{i.t('settings.ebonText')} <code>ebon@mailing.rewe.de</code>.</p>
+			<p>{i.t('settings.ebonText')}</p>
+			<code class="sender">ebon@mailing.rewe.de</code>
 			<button class="btn" onclick={copyInbox}>
 				<Icon name="mail" /> <span class="addr">{data.inboxAddress}</span>
 			</button>
@@ -80,7 +94,13 @@
 		use:enhance
 		class="card stack"
 	>
-		<input type="file" name="pdf" accept="application/pdf" multiple required />
+		<FilePicker
+			name="pdf"
+			accept="application/pdf"
+			multiple
+			label={i.t('settings.choosePdf')}
+			emptyText={i.t('settings.noFileChosen')}
+		/>
 		<button class="btn"><Icon name="upload" /> {i.t('settings.import')}</button>
 		{#if form?.imported}<small class="plus">{i.t('settings.imported', { n: form.imported })}</small
 			>{/if}
@@ -101,9 +121,12 @@
 	p {
 		margin: 0;
 	}
-	code {
+	.sender {
+		align-self: flex-start;
+		padding: 4px 10px;
+		border-radius: 8px;
+		background: var(--surface-2);
 		font-size: 0.85em;
-		word-break: break-all;
 	}
 	.addr {
 		overflow: hidden;

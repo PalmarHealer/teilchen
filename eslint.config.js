@@ -17,6 +17,24 @@ export default ts.config(
 		languageOptions: { parserOptions: { parser: ts.parser } }
 	},
 	{
+		// UI rule: only text and number inputs stay native; everything else uses #lib/components.
+		files: ['**/*.svelte'],
+		rules: {
+			'svelte/no-restricted-html-elements': [
+				'error',
+				{ elements: ['select', 'datalist'], message: 'Use #lib/components/Select.svelte.' }
+			],
+			'no-restricted-syntax': [
+				'error',
+				{
+					selector:
+						"SvelteAttribute[key.name='type'] > SvelteLiteral[value=/^(date|time|datetime-local|month|week|color|range)$/]",
+					message: 'Use a custom component (e.g. #lib/components/DatePicker.svelte).'
+				}
+			]
+		}
+	},
+	{
 		rules: {
 			'no-undef': 'off',
 			// No base path in use; resolve() on every link would just be noise.

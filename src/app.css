@@ -14,6 +14,7 @@
 	--radius: 18px;
 	--shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 8px 24px rgb(0 0 0 / 0.06);
 	--nav-h: 64px;
+	--control-h: 48px;
 	color-scheme: light;
 }
 
@@ -176,19 +177,22 @@ label.field {
 }
 
 input,
-select,
 textarea {
 	font: inherit;
 	color: var(--ink);
 	background: var(--surface);
 	border: 1px solid var(--line);
 	border-radius: 12px;
-	padding: 12px 14px;
-	min-height: 44px;
+	padding: 0 14px;
 	width: 100%;
 }
+input {
+	height: var(--control-h);
+}
+textarea {
+	padding: 12px 14px;
+}
 input:focus-visible,
-select:focus-visible,
 textarea:focus-visible,
 .btn:focus-visible {
 	outline: 2px solid var(--accent);

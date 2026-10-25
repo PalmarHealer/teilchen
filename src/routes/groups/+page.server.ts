@@ -1,12 +1,27 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { db, schema } from '#lib/server/db/index.ts';
-import { groupsOf } from '#lib/server/domain.ts';
 import { isGroupIcon } from '#lib/group-icons.ts';
+import { groupBalances } from '#lib/ledger.ts';
+import { db, schema } from '#lib/server/db/index.ts';
+import { entriesForGroup, groupMemberIds, groupsOf, usersByIds } from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => ({
-	groups: await groupsOf(locals.user!.id)
-});
+export const load: PageServerLoad = async ({ locals }) => {
+	const me = locals.user!.id;
+	const groups = await Promise.all(
+		(await groupsOf(me)).map(async (g) => {
+			const memberIds = await groupMemberIds(g.id);
+			const balances = groupBalances(memberIds, await entriesForGroup(g.id));
+			const members = await usersByIds(memberIds.filter((id) => id !== me).slice(0, 3));
+			return {
+				...g,
+				memberCount: memberIds.length,
+				preview: [...members.values()],
+				myBalance: balances.get(me) ?? 0
+			};
+		})
+	);
+	return { groups };
+};
 
 export const actions: Actions = {
 	create: async ({ locals, request }) => {

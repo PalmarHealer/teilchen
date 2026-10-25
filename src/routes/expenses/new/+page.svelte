@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Amount from '#lib/components/Amount.svelte';
+	import DatePicker from '#lib/components/DatePicker.svelte';
 	import Header from '#lib/components/Header.svelte';
+	import Select from '#lib/components/Select.svelte';
 	import { useI18n } from '#lib/i18n/index.ts';
 	import { allocate, parseCents } from '#lib/money.ts';
 
@@ -20,7 +22,10 @@
 	);
 	// svelte-ignore state_referenced_locally
 	let payer = $state(data.user!.id);
-	const today = new Date().toISOString().slice(0, 10);
+	const now = new Date();
+	let date = $state(
+		`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+	);
 
 	const people = $derived.by(() => {
 		const all = [{ id: me.id, name: i.t('common.youSuffix', { name: me.name }) }, ...data.contacts];
@@ -28,6 +33,12 @@
 		const g = data.groups.find((g) => `group:${g.id}` === context);
 		return all.filter((p) => g?.memberIds.includes(p.id));
 	});
+
+	const contextOptions = $derived([
+		{ value: 'direct', label: i.t('expenses.directBetween'), icon: 'direct' },
+		...data.groups.map((g) => ({ value: `group:${g.id}`, label: g.name, icon: g.icon }))
+	]);
+	const payerOptions = $derived(people.map((p) => ({ value: p.id, label: p.name, icon: 'user' })));
 
 	// Group changed → select all of its members
 	let lastContext = '';
@@ -56,7 +67,7 @@
 		{i.t('expenses.what')}
 		<input name="title" required placeholder={i.t('expenses.whatPlaceholder')} maxlength="120" />
 	</label>
-	<div class="row two">
+	<div class="two">
 		<label class="field">
 			{i.t('expenses.amount')}
 			<input
@@ -68,30 +79,16 @@
 				class="num big"
 			/>
 		</label>
-		<label class="field">
-			{i.t('expenses.date')}
-			<input name="date" type="date" value={today} required />
-		</label>
+		<DatePicker name="date" bind:value={date} label={i.t('expenses.date')} />
 	</div>
 
-	<label class="field">
-		{i.t('expenses.where')}
-		<select name="context" bind:value={context}>
-			<option value="direct">{i.t('expenses.directBetween')}</option>
-			{#each data.groups as g (g.id)}
-				<option value="group:{g.id}">{i.t('expenses.groupOption', { name: g.name })}</option>
-			{/each}
-		</select>
-	</label>
-
-	<label class="field">
-		{i.t('expenses.paidBy')}
-		<select name="payer" bind:value={payer}>
-			{#each people as p (p.id)}
-				<option value={p.id}>{p.name}</option>
-			{/each}
-		</select>
-	</label>
+	<Select
+		name="context"
+		bind:value={context}
+		options={contextOptions}
+		label={i.t('expenses.where')}
+	/>
+	<Select name="payer" bind:value={payer} options={payerOptions} label={i.t('expenses.paidBy')} />
 
 	<fieldset class="stack">
 		<legend class="muted">{i.t('expenses.splitBetween')}</legend>
@@ -116,10 +113,10 @@
 
 		{#if mode === 'equal'}
 			<ul class="list">
-				{#each participants as id, i (id)}
+				{#each participants as id, idx (id)}
 					<li class="item">
 						<span class="grow">{people.find((p) => p.id === id)?.name}</span>
-						<Amount cents={equalShares[i] ?? 0} />
+						<Amount cents={equalShares[idx] ?? 0} />
 					</li>
 				{/each}
 			</ul>
@@ -138,8 +135,11 @@
 </form>
 
 <style>
-	.two > * {
-		flex: 1;
+	.two {
+		display: grid;
+		grid-template-columns: 1fr 1.4fr;
+		gap: 12px;
+		align-items: end;
 	}
 	.big {
 		font-size: 1.3rem;
