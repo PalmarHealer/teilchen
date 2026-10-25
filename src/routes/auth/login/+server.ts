@@ -1,0 +1,22 @@
+import { redirect } from '@sveltejs/kit';
+import * as client from 'openid-client';
+import { oidc, redirectUri } from '#lib/server/auth/oidc.ts';
+import type { RequestHandler } from './$types';
+
+export const GET: RequestHandler = async ({ cookies, url }) => {
+	const config = await oidc();
+	const verifier = client.randomPKCECodeVerifier();
+	const state = client.randomState();
+	const opts = { path: '/auth', httpOnly: true, sameSite: 'lax', maxAge: 600 } as const;
+	cookies.set('oidc_verifier', verifier, opts);
+	cookies.set('oidc_state', state, opts);
+	cookies.set('oidc_next', url.searchParams.get('next') ?? '/', opts);
+	const target = client.buildAuthorizationUrl(config, {
+		redirect_uri: redirectUri(),
+		scope: 'openid profile email',
+		code_challenge: await client.calculatePKCECodeChallenge(verifier),
+		code_challenge_method: 'S256',
+		state
+	});
+	redirect(302, target.toString());
+};

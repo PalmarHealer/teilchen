@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://teilchen:${POSTGRES_PASSWORD:-teilchen}@db:5432/teilchen
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ['node_modules/.bin/tsx', 'src/worker/index.ts']
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://teilchen:${POSTGRES_PASSWORD:-teilchen}@db:5432/teilchen
+      REWE_CERT_PATH: /certs/rewe.pem
+      REWE_KEY_PATH: /certs/rewe.key
+    volumes:
+      - ./certs:/certs:ro
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: teilchen
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teilchen}
+      POSTGRES_DB: teilchen
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U teilchen']
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
