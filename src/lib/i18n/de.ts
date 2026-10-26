@@ -65,9 +65,27 @@ export const de: Dictionary = {
 		keptGroups: 'In Gruppen offen',
 		keptHint:
 			'Diese Gruppen lassen ihre Schulden in der Gruppe. Ausgeglichen wird dort, nicht hier.',
-		expenseWith: 'Ausgabe mit {name}'
+		expenseWith: 'Ausgabe mit {name}',
+		requestContact: 'Als Kontakt anfragen',
+		requested: 'Kontaktanfrage gesendet',
+		incoming: '{name} möchte dein Kontakt sein',
+		accept: 'Annehmen',
+		requestSent: 'Kontaktanfrage gesendet.',
+		connected: 'Ihr seid jetzt Kontakte.'
 	},
 	swipe: {
+		help: 'So funktioniert Swipen',
+		helpIntro:
+			'Jede Position des Bons ist eine Karte. Wisch sie in eine Richtung oder tipp auf den passenden Knopf:',
+		helpMine: 'Meins: das zahlst nur du.',
+		helpTheirs: '{name}: gehört nur den anderen, sie zahlen es ganz.',
+		helpShared: 'Unseres: wird gleichmäßig auf alle aufgeteilt.',
+		helpUndo: 'Zurück nimmt die letzte Karte wieder auf.',
+		helpPieces:
+			'Bei mehreren Stück kannst du sie einzeln swipen, z. B. ein Brötchen teilen und eins behalten.',
+		helpKeys: 'Am Rechner gehen auch die Pfeiltasten (links, hoch, rechts) und die Rücktaste.',
+		helpDiscount: 'Rabatte und Gutscheine verteilt Teilchen am Ende anteilig.',
+		helpClose: 'Verstanden',
 		title: 'Einkäufe swipen',
 		items: (p) => (p.n === 1 ? '1 Position' : `${p.n} Positionen`),
 		emptyTitle: 'Keine offenen Einkäufe',
@@ -162,6 +180,8 @@ export const de: Dictionary = {
 		name: 'Name',
 		save: 'Änderungen speichern',
 		saved: 'Gespeichert',
+		requestContact: 'Als Kontakt anfragen',
+		requested: 'Angefragt',
 		keepDebts: 'Schulden in der Gruppe lassen',
 		keepDebtsHint:
 			'Offene Beträge dieser Gruppe werden nicht mit anderen Gruppen oder direkten Ausgaben verrechnet. Ihr gleicht sie hier in der Gruppe aus.',
@@ -192,6 +212,13 @@ export const de: Dictionary = {
 		language: 'Sprache',
 		languageAuto: 'Browsersprache',
 		inviteHeading: 'Kontakt hinzufügen',
+		requests: 'Kontaktanfragen',
+		accept: 'Annehmen',
+		decline: 'Ablehnen',
+		accepted: 'Kontakt hinzugefügt.',
+		declined: 'Anfrage abgelehnt.',
+		requestsHint:
+			'Leute aus deinen Gruppen kannst du auch direkt anfragen: in der Gruppe beim Mitglied.',
 		createInvite: 'Kontakt-Link erstellen',
 		inviteHint:
 			'Erstellt einen Link, der 7 Tage gilt. Schick ihn jemandem, der schon ein Teilchen-Konto hat. Wer ihn annimmt, wird dein Kontakt. Dann könnt ihr Ausgaben und Bons direkt teilen, ganz ohne Gruppe.',
@@ -226,6 +253,7 @@ export const de: Dictionary = {
 		chooseNewCreator: 'Wähle, wer die Gruppe übernimmt',
 		expenseNotFound: 'Ausgabe nicht gefunden',
 		nothingToSettle: 'Nichts zu verrechnen',
+		requestGone: 'Diese Anfrage gibt es nicht mehr',
 		loginExpired: 'Login abgelaufen, bitte erneut versuchen',
 		loginRejected: 'Die Anmeldung wurde vom Identity Provider abgelehnt',
 		noIdToken: 'Kein ID-Token erhalten',

@@ -1,10 +1,13 @@
 <script lang="ts" module>
 	import ArrowBackUp from '@tabler/icons-svelte/icons/arrow-back-up';
+	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
+	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
 	import ArrowUp from '@tabler/icons-svelte/icons/arrow-up';
 	import ArrowsLeftRight from '@tabler/icons-svelte/icons/arrows-left-right';
 	import Calendar from '@tabler/icons-svelte/icons/calendar';
 	import Cards from '@tabler/icons-svelte/icons/cards';
 	import Check from '@tabler/icons-svelte/icons/check';
+	import Clock from '@tabler/icons-svelte/icons/clock';
 	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
 	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
 	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
@@ -13,6 +16,8 @@
 	import Confetti from '@tabler/icons-svelte/icons/confetti';
 	import DoorExit from '@tabler/icons-svelte/icons/door-exit';
 	import FileTypePdf from '@tabler/icons-svelte/icons/file-type-pdf';
+	import HelpCircle from '@tabler/icons-svelte/icons/help-circle';
+	import Keyboard from '@tabler/icons-svelte/icons/keyboard';
 	import Home from '@tabler/icons-svelte/icons/home';
 	import List from '@tabler/icons-svelte/icons/list';
 	import Logout from '@tabler/icons-svelte/icons/logout';
@@ -30,6 +35,7 @@
 	import User from '@tabler/icons-svelte/icons/user';
 	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import Users from '@tabler/icons-svelte/icons/users';
+	import X from '@tabler/icons-svelte/icons/x';
 
 	/** Icons of the app's own UI, bundled. */
 	const icons = {
@@ -42,10 +48,16 @@
 		plus: Plus,
 		back: ChevronLeft,
 		check: Check,
+		clock: Clock,
+		x: X,
 		done: CircleCheck,
 		undo: ArrowBackUp,
 		share: Share2,
 		arrowUp: ArrowUp,
+		arrowLeft: ArrowLeft,
+		arrowRight: ArrowRight,
+		help: HelpCircle,
+		keyboard: Keyboard,
 		direct: ArrowsLeftRight,
 		mail: Mail,
 		receipt: Receipt,

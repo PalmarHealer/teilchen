@@ -66,9 +66,27 @@ export const en = {
 		theyPaidShort: '{name} paid',
 		keptGroups: 'Open in groups',
 		keptHint: 'These groups keep their debts. They are settled there, not here.',
-		expenseWith: 'Expense with {name}'
+		expenseWith: 'Expense with {name}',
+		requestContact: 'Ask to be contacts',
+		requested: 'Contact request sent',
+		incoming: '{name} wants to be your contact',
+		accept: 'Accept',
+		requestSent: 'Contact request sent.',
+		connected: 'You are contacts now.'
 	},
 	swipe: {
+		help: 'How swiping works',
+		helpIntro:
+			'Every line of the receipt is a card. Swipe it in a direction or tap the matching button:',
+		helpMine: 'Mine: only you pay for it.',
+		helpTheirs: '{name}: belongs to the others only, they pay all of it.',
+		helpShared: 'Ours: split evenly between everyone.',
+		helpUndo: 'Undo takes the last card back.',
+		helpPieces:
+			'Lines with several pieces can be swiped piece by piece, e.g. share one roll and keep the other.',
+		helpKeys: 'On a computer, the arrow keys (left, up, right) and Backspace work too.',
+		helpDiscount: 'Discounts and coupons are spread proportionally at the end.',
+		helpClose: 'Got it',
 		title: 'Swipe receipts',
 		items: ((p) => (p.n === 1 ? '1 item' : `${p.n} items`)) as Plural,
 		emptyTitle: 'No open receipts',
@@ -162,6 +180,8 @@ export const en = {
 		name: 'Name',
 		save: 'Save changes',
 		saved: 'Saved',
+		requestContact: 'Ask to be contacts',
+		requested: 'Requested',
 		keepDebts: 'Keep debts in the group',
 		keepDebtsHint:
 			'Open amounts of this group are not netted with other groups or direct expenses. You settle them here in the group.',
@@ -191,6 +211,13 @@ export const en = {
 		language: 'Language',
 		languageAuto: 'Browser language',
 		inviteHeading: 'Add a contact',
+		requests: 'Contact requests',
+		accept: 'Accept',
+		decline: 'Decline',
+		accepted: 'Contact added.',
+		declined: 'Request declined.',
+		requestsHint:
+			'People from your groups can also be asked directly: in the group, next to the member.',
 		createInvite: 'Create contact link',
 		inviteHint:
 			'Creates a link valid for 7 days. Send it to someone who already has a Teilchen account. Whoever accepts it becomes your contact, so you can split expenses and receipts directly – without a group.',
@@ -225,6 +252,7 @@ export const en = {
 		chooseNewCreator: 'Choose who takes over the group',
 		expenseNotFound: 'Expense not found',
 		nothingToSettle: 'Nothing to settle',
+		requestGone: 'This request no longer exists',
 		loginExpired: 'Login expired, please try again',
 		loginRejected: 'The sign-in was rejected by the identity provider',
 		noIdToken: 'No ID token received',

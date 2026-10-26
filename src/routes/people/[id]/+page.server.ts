@@ -2,16 +2,30 @@ import { error, fail } from '@sveltejs/kit';
 import { translate } from '#lib/i18n/index.ts';
 import { parseCents } from '#lib/money.ts';
 import { personBalances, planPersonSettlement, withoutKept } from '#lib/ledger.ts';
-import { contactsOf, entriesFor, groupsOf, settleWith } from '#lib/server/domain.ts';
+import {
+	answerContactRequest,
+	contactStatuses,
+	entriesFor,
+	groupMatesOf,
+	groupsOf,
+	requestContact,
+	settleWith,
+	usersByIds
+} from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const me = locals.user!.id;
-	const person = (await contactsOf(me)).find((c) => c.id === params.id);
-	if (!person) error(404, 'errors.personNotFound');
+	const all = await entriesFor(me);
+	// Visible for contacts, group mates and anyone I still share bookings with.
+	const status = (await contactStatuses(me, [params.id])).get(params.id)!;
+	const mates = await groupMatesOf(me);
+	const sharesBookings = personBalances(me, all).has(params.id);
+	const person = (await usersByIds([params.id])).get(params.id);
+	if (!person || (status !== 'contact' && !mates.has(params.id) && !sharesBookings))
+		error(404, 'errors.personNotFound');
 	const groups = new Map((await groupsOf(me)).map((g) => [g.id, g]));
 	const kept = new Set([...groups.values()].filter((g) => g.keepDebts).map((g) => g.id));
-	const all = await entriesFor(me);
 	const entries = withoutKept(all, kept);
 	const balance = personBalances(me, entries).get(person.id);
 	const keptBalance = personBalances(
@@ -20,6 +34,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	).get(person.id);
 	return {
 		person,
+		// A contact request is possible only with people I share a group with.
+		contact: status === 'none' && !mates.has(params.id) ? ('unavailable' as const) : status,
 		net: balance?.net ?? 0,
 		// label null = direct; the page translates it
 		contexts: [...(balance?.byContext ?? [])].map(([id, cents]) => ({
@@ -40,6 +56,18 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+	requestContact: async ({ locals, params }) => {
+		const me = locals.user!.id;
+		if (!(await groupMatesOf(me)).has(params.id))
+			return fail(403, { message: 'errors.unknownPerson' as const });
+		return { contact: await requestContact(me, params.id) };
+	},
+
+	acceptContact: async ({ locals, params }) => {
+		if (!(await answerContactRequest(locals.user!.id, params.id, true)))
+			return fail(400, { message: 'errors.requestGone' as const });
+		return { contact: 'connected' as const };
+	},
 	settle: async ({ locals, params, request }) => {
 		// Empty = everything; a smaller amount is a partial payment.
 		const raw = String((await request.formData()).get('amount') ?? '').trim();

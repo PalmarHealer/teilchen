@@ -43,6 +43,13 @@
       "when": 1792969479803,
       "tag": "0005_group_keep_debts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793007275546,
+      "tag": "0006_contact_requests",
+      "breakpoints": true
     }
   ]
 }

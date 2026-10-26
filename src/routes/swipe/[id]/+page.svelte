@@ -3,6 +3,7 @@
 	import Amount from '#lib/components/Amount.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Header from '#lib/components/Header.svelte';
+	import SwipeHelp from '#lib/components/SwipeHelp.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
@@ -96,7 +97,10 @@
 	const preview = $derived.by(() => {
 		if (!targetInfo || queue.length) return [];
 		const shares = sharesFromItems(me, targetInfo.participants, splitItems);
-		const names = new Map(data.contacts.map((c) => [c.id, c.name]));
+		const names = new Map([
+			...Object.entries(data.names),
+			...data.contacts.map((c) => [c.id, c.name] as const)
+		]);
 		return [...shares]
 			.filter(([, c]) => c !== 0)
 			.map(([id, cents]) => ({
@@ -160,6 +164,9 @@
 	}
 	function key(e: KeyboardEvent) {
 		if (!target || !current) return;
+		// Not while the help dialog is open or a field has the keyboard
+		if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+		if ((e.target as Element | null)?.closest?.('input, textarea')) return;
 		if (e.key === 'ArrowLeft') decide('mine');
 		else if (e.key === 'ArrowRight') decide('shared');
 		else if (e.key === 'ArrowUp') decide('theirs');
@@ -194,7 +201,11 @@
 <Header
 	title={i.date(data.receipt.purchasedAt, { weekday: 'long', day: '2-digit', month: 'long' })}
 	back="/swipe"
-/>
+>
+	{#snippet actions()}
+		<SwipeHelp theirs={targetInfo?.theirs ?? i.t('swipe.theirsGroup')} />
+	{/snippet}
+</Header>
 
 {#if !target}
 	<div class="flex flex-col gap-4">
@@ -420,6 +431,9 @@
 	}
 	.deck {
 		position: relative;
+		/* The dragged card stays above all action buttons (the disabled one is translucent,
+		   which would otherwise paint it on top) */
+		z-index: 1;
 		flex: 1;
 		margin: 12px 0 24px;
 	}

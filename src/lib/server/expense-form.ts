@@ -1,15 +1,25 @@
 import { z } from 'zod';
 import type { MessageKey } from '../i18n/index.ts';
 import { allocate, parseCents, type Cents } from '../money.ts';
-import { contactsOf, groupMemberIds, groupsOf } from './domain.ts';
+import { contactsOf, groupMemberIds, groupsOf, usersByIds } from './domain.ts';
 import { isIcon } from './tabler.ts';
 
-/** What the expense form needs to offer: contacts and groups (with members) of `me`. */
+/**
+ * What the expense form needs to offer: contacts (for direct expenses) and groups with their
+ * members' names (members need not be contacts).
+ */
 export async function expenseFormOptions(me: string) {
 	const groups = await Promise.all(
 		(await groupsOf(me)).map(async (g) => ({ ...g, memberIds: await groupMemberIds(g.id) }))
 	);
-	return { contacts: await contactsOf(me), groups };
+	const names = await usersByIds([...new Set(groups.flatMap((g) => g.memberIds))]);
+	return {
+		contacts: await contactsOf(me),
+		groups: groups.map((g) => ({
+			...g,
+			members: g.memberIds.map((id) => ({ id, name: names.get(id)?.name ?? '?' }))
+		}))
+	};
 }
 
 const Input = z.object({

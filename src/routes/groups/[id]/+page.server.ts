@@ -7,10 +7,11 @@ import { randomToken } from '#lib/server/crypto.ts';
 import { isIcon } from '#lib/server/tabler.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import {
-	connect,
+	contactStatuses,
 	entriesForGroup,
 	groupMemberIds,
 	recentExpenses,
+	requestContact,
 	settleWith,
 	usersByIds
 } from '#lib/server/domain.ts';
@@ -30,6 +31,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const entries = await entriesForGroup(params.id);
 	const totals = groupBalances(memberIds, entries);
 	const mine = personBalances(me, entries);
+	const contacts = await contactStatuses(me, memberIds);
 	return {
 		group,
 		isCreator: group.createdBy === me,
@@ -41,7 +43,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		members: memberIds.map((id) => ({
 			...members.get(id)!,
 			balance: totals.get(id) ?? 0,
-			withMe: id === me ? null : (mine.get(id)?.net ?? 0)
+			withMe: id === me ? null : (mine.get(id)?.net ?? 0),
+			contact: id === me ? null : contacts.get(id)!
 		})),
 		expenses: await recentExpenses(me, params.id, 100)
 	};
@@ -78,6 +81,16 @@ export const actions: Actions = {
 		return { updated: true };
 	},
 
+	/** Members can ask each other to become contacts (to share things outside the group). */
+	requestContact: async ({ locals, params, request }) => {
+		const me = locals.user!.id;
+		const { memberIds } = await membership(params.id, me);
+		const other = (await request.formData()).get('member');
+		if (typeof other !== 'string' || other === me || !memberIds.includes(other))
+			return fail(400, { message: 'errors.unknownPerson' as const });
+		return { contact: await requestContact(me, other) };
+	},
+
 	/** In a group that keeps its debts, two members settle what is open between them right here. */
 	settle: async ({ locals, params, request }) => {
 		const me = locals.user!.id;
@@ -99,7 +112,7 @@ export const actions: Actions = {
 
 	/**
 	 * Leaving keeps all bookings: balances with the other members stay visible on their person
-	 * pages, which is why everyone in the group becomes a direct contact first.
+	 * pages (those are open to anyone you share bookings with), without making them contacts.
 	 */
 	leave: async ({ locals, params, request }) => {
 		const me = locals.user!.id;
@@ -116,7 +129,6 @@ export const actions: Actions = {
 				.set({ createdBy: next })
 				.where(eq(schema.groups.id, params.id));
 		}
-		for (const other of memberIds) await connect(me, other);
 		await db
 			.delete(schema.groupMembers)
 			.where(and(eq(schema.groupMembers.groupId, params.id), eq(schema.groupMembers.userId, me)));

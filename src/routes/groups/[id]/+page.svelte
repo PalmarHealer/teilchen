@@ -55,20 +55,53 @@
 	<SectionTitle>{i.t('groups.members')}</SectionTitle>
 	<List.Root>
 		{#each data.members as m (m.id)}
-			<List.Item href={m.withMe === null ? '/settings' : `/people/${m.id}`}>
-				<Avatar name={m.name} src={m.avatarUrl} size={36} />
-				<span class="flex min-w-0 flex-1 flex-col">
-					<span class="truncate text-sm font-medium"
-						>{m.withMe === null ? i.t('common.youSuffix', { name: m.name }) : m.name}</span
-					>
-					{#if m.withMe}
-						<span class="text-muted-foreground text-xs"
-							>{m.withMe > 0 ? i.t('overview.owesYou') : i.t('overview.youOweShort')}
-							<Amount cents={Math.abs(m.withMe)} /></span
+			<List.Item class="gap-2 py-0 pr-2">
+				<a
+					href={m.withMe === null ? '/settings' : `/people/${m.id}`}
+					class="flex min-w-0 flex-1 items-center gap-3 self-stretch py-3"
+				>
+					<Avatar name={m.name} src={m.avatarUrl} size={36} />
+					<span class="flex min-w-0 flex-1 flex-col">
+						<span class="truncate text-sm font-medium"
+							>{m.withMe === null ? i.t('common.youSuffix', { name: m.name }) : m.name}</span
 						>
-					{/if}
-				</span>
-				<Amount cents={m.balance} signed class="text-sm font-semibold" />
+						{#if m.withMe}
+							<span class="text-muted-foreground text-xs"
+								>{m.withMe > 0 ? i.t('overview.owesYou') : i.t('overview.youOweShort')}
+								<Amount cents={Math.abs(m.withMe)} /></span
+							>
+						{/if}
+					</span>
+					<Amount cents={m.balance} signed class="text-sm font-semibold" />
+				</a>
+				{#if m.contact === 'requested'}
+					<span
+						class="text-muted-foreground grid size-9 place-items-center"
+						title={i.t('groups.requested')}
+						aria-label={i.t('groups.requested')}><Icon name="clock" size={18} /></span
+					>
+				{:else if m.contact === 'none' || m.contact === 'incoming'}
+					<form
+						method="POST"
+						action="?/requestContact"
+						use:enhance={withToast(i.t, {
+							success: (d) =>
+								d?.contact === 'connected' ? i.t('person.connected') : i.t('person.requestSent')
+						})}
+					>
+						<input type="hidden" name="member" value={m.id} />
+						<Button
+							type="submit"
+							variant="ghost"
+							size="icon"
+							class="size-9 {m.contact === 'incoming' ? 'text-primary' : 'text-muted-foreground'}"
+							title={i.t('groups.requestContact')}
+							aria-label={i.t('groups.requestContact')}><Icon name="userPlus" size={18} /></Button
+						>
+					</form>
+				{:else}
+					<span class="size-9"></span>
+				{/if}
 			</List.Item>
 		{/each}
 	</List.Root>

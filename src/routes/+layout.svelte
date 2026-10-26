@@ -23,6 +23,11 @@
 	];
 	const badge =
 		'bg-primary text-primary-foreground grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums';
+	// Badges: open receipts on Swipe, contact requests waiting on Profile
+	const counts: Record<string, number> = $derived({
+		'/swipe': data.openReceipts,
+		'/settings': data.contactRequests
+	});
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 </script>
@@ -50,14 +55,14 @@
 				>
 					<span class="relative grid">
 						<Icon name={item.icon} size={22} />
-						{#if item.href === '/swipe' && data.openReceipts > 0}
-							<span class="{badge} absolute -top-1.5 -right-2.5 md:hidden">{data.openReceipts}</span
+						{#if counts[item.href]}
+							<span class="{badge} absolute -top-1.5 -right-2.5 md:hidden">{counts[item.href]}</span
 							>
 						{/if}
 					</span>
 					<span>{i.t(item.label)}</span>
-					{#if item.href === '/swipe' && data.openReceipts > 0}
-						<span class="{badge} ml-auto hidden md:grid">{data.openReceipts}</span>
+					{#if counts[item.href]}
+						<span class="{badge} ml-auto hidden md:grid">{counts[item.href]}</span>
 					{/if}
 				</a>
 			{/each}

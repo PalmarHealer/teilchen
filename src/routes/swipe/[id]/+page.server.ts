@@ -9,7 +9,8 @@ import {
 	contactsOf,
 	createExpense,
 	groupMemberIds,
-	groupsOf
+	groupsOf,
+	usersByIds
 } from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -56,7 +57,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		},
 		items,
 		contacts: await contactsOf(me),
-		groups
+		groups,
+		// Names for the per-person preview; group members need not be contacts
+		names: Object.fromEntries(
+			[...(await usersByIds([...new Set(groups.flatMap((g) => g.memberIds))]))].map(([id, u]) => [
+				id,
+				u.name
+			])
+		) as Record<string, string>
 	};
 };
 

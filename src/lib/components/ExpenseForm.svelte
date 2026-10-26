@@ -39,7 +39,13 @@
 	}: {
 		me: { id: string; name: string };
 		contacts: { id: string; name: string }[];
-		groups: { id: string; name: string; icon: string; memberIds: string[] }[];
+		groups: {
+			id: string;
+			name: string;
+			icon: string;
+			memberIds: string[];
+			members: { id: string; name: string }[];
+		}[];
 		initial: ExpenseFormValues;
 		action?: string;
 		submitLabel: string;
@@ -52,10 +58,11 @@
 	let v = $state(structuredClone(initial));
 
 	const people = $derived.by(() => {
-		const all = [{ id: me.id, name: i.t('common.youSuffix', { name: me.name }) }, ...contacts];
-		if (v.context === 'direct') return all;
+		const you = { id: me.id, name: i.t('common.youSuffix', { name: me.name }) };
+		if (v.context === 'direct') return [you, ...contacts];
+		// In a group: its members, contacts or not
 		const g = groups.find((g) => `group:${g.id}` === v.context);
-		return all.filter((p) => g?.memberIds.includes(p.id));
+		return (g?.members ?? []).map((p) => (p.id === me.id ? you : p));
 	});
 
 	const contextOptions = $derived([

@@ -5,12 +5,16 @@ import { partialSettlement, planPersonSettlement, withoutKept } from '#lib/ledge
 import type { Cents } from '#lib/money.ts';
 import { db, schema } from './db';
 
-const { users, groups, groupMembers, connections, expenses, expenseShares } = schema;
+const { users, groups, groupMembers, connections, contactRequests, expenses, expenseShares } =
+	schema;
 
 export type PublicUser = Pick<typeof users.$inferSelect, 'id' | 'name' | 'avatarUrl'>;
 const publicUser = { id: users.id, name: users.name, avatarUrl: users.avatarUrl };
 
-/** Everyone I am directly connected to or share a group with. */
+/**
+ * My contacts: people I am connected to through an invite link, an accepted contact request or a
+ * direct expense. Sharing a group alone doesn't make someone a contact.
+ */
 export async function contactsOf(me: string): Promise<PublicUser[]> {
 	const direct = db
 		.select({
@@ -18,19 +22,96 @@ export async function contactsOf(me: string): Promise<PublicUser[]> {
 		})
 		.from(connections)
 		.where(or(eq(connections.userA, me), eq(connections.userB, me)));
+	return db
+		.select(publicUser)
+		.from(users)
+		.where(and(ne(users.id, me), inArray(users.id, direct)))
+		.orderBy(users.name);
+}
+
+/** Everyone I share at least one group with. */
+export async function groupMatesOf(me: string): Promise<Set<string>> {
 	const myGroups = db
 		.select({ id: groupMembers.groupId })
 		.from(groupMembers)
 		.where(eq(groupMembers.userId, me));
-	const viaGroups = db
-		.select({ id: groupMembers.userId })
+	const rows = await db
+		.selectDistinct({ id: groupMembers.userId })
 		.from(groupMembers)
-		.where(inArray(groupMembers.groupId, myGroups));
+		.where(and(inArray(groupMembers.groupId, myGroups), ne(groupMembers.userId, me)));
+	return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * Asks `other` to become a contact; only between people who share a group. If they already
+ * asked me, this answers their request instead.
+ */
+export async function requestContact(me: string, other: string): Promise<'sent' | 'connected'> {
+	const theirs = await db
+		.delete(contactRequests)
+		.where(and(eq(contactRequests.fromId, other), eq(contactRequests.toId, me)))
+		.returning();
+	if (theirs.length) {
+		await connect(me, other);
+		return 'connected';
+	}
+	await db.insert(contactRequests).values({ fromId: me, toId: other }).onConflictDoNothing();
+	return 'sent';
+}
+
+/** Requests waiting for my answer, oldest first. */
+export async function incomingContactRequests(me: string): Promise<PublicUser[]> {
 	return db
 		.select(publicUser)
-		.from(users)
-		.where(and(ne(users.id, me), or(inArray(users.id, direct), inArray(users.id, viaGroups))))
-		.orderBy(users.name);
+		.from(contactRequests)
+		.innerJoin(users, eq(users.id, contactRequests.fromId))
+		.where(eq(contactRequests.toId, me))
+		.orderBy(contactRequests.createdAt);
+}
+
+/** People I asked who haven't answered yet. */
+export async function outgoingContactRequests(me: string): Promise<Set<string>> {
+	const rows = await db
+		.select({ id: contactRequests.toId })
+		.from(contactRequests)
+		.where(eq(contactRequests.fromId, me));
+	return new Set(rows.map((r) => r.id));
+}
+
+export type ContactStatus = 'contact' | 'requested' | 'incoming' | 'none';
+
+/** For each of `ids`: already a contact, asked by me, asking me, or neither. */
+export async function contactStatuses(me: string, ids: string[]) {
+	const [contacts, outgoing, incoming] = await Promise.all([
+		contactsOf(me),
+		outgoingContactRequests(me),
+		incomingContactRequests(me)
+	]);
+	const isContact = new Set(contacts.map((c) => c.id));
+	const asking = new Set(incoming.map((u) => u.id));
+	return new Map<string, ContactStatus>(
+		ids.map((id) => [
+			id,
+			isContact.has(id)
+				? 'contact'
+				: outgoing.has(id)
+					? 'requested'
+					: asking.has(id)
+						? 'incoming'
+						: 'none'
+		])
+	);
+}
+
+/** Accepts or declines `from`'s request. Returns false if there was none. */
+export async function answerContactRequest(me: string, from: string, accept: boolean) {
+	const deleted = await db
+		.delete(contactRequests)
+		.where(and(eq(contactRequests.fromId, from), eq(contactRequests.toId, me)))
+		.returning();
+	if (!deleted.length) return false;
+	if (accept) await connect(me, from);
+	return true;
 }
 
 export async function groupsOf(me: string) {

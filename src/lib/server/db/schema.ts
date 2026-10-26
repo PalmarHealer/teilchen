@@ -55,6 +55,21 @@ export const connections = pgTable(
 	(t) => [primaryKey({ columns: [t.userA, t.userB] })]
 );
 
+/** "Let's be contacts", sent to someone you share a group with. Accepting adds a connection. */
+export const contactRequests = pgTable(
+	'contact_requests',
+	{
+		fromId: uuid('from_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		toId: uuid('to_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: createdAt()
+	},
+	(t) => [primaryKey({ columns: [t.fromId, t.toId] }), index('contact_requests_to').on(t.toId)]
+);
+
 export const groups = pgTable('groups', {
 	id: id(),
 	name: text('name').notNull(),

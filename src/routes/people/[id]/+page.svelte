@@ -51,6 +51,37 @@
 		</Card.Content>
 	</Card.Root>
 
+	{#if data.contact === 'incoming'}
+		<form
+			method="POST"
+			action="?/acceptContact"
+			use:enhance={withToast(i.t, { success: () => i.t('person.connected') })}
+			class="border-primary/30 bg-primary/8 flex items-center gap-3 rounded-xl border p-3"
+		>
+			<span class="flex-1 text-sm">{i.t('person.incoming', { name: first })}</span>
+			<Button type="submit" size="sm"><Icon name="check" size={14} /> {i.t('person.accept')}</Button
+			>
+		</form>
+	{:else if data.contact === 'none'}
+		<form
+			method="POST"
+			action="?/requestContact"
+			use:enhance={withToast(i.t, {
+				success: (d) =>
+					d?.contact === 'connected' ? i.t('person.connected') : i.t('person.requestSent')
+			})}
+		>
+			<Button type="submit" variant="outline" class="w-full"
+				><Icon name="userPlus" size={16} /> {i.t('person.requestContact')}</Button
+			>
+		</form>
+	{:else if data.contact === 'requested'}
+		<p class="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+			<Icon name="clock" size={16} />
+			{i.t('person.requested')}
+		</p>
+	{/if}
+
 	{#if data.contexts.length > 1}
 		<SectionTitle>{i.t('person.nettedFrom')}</SectionTitle>
 		<List.Root>
@@ -123,7 +154,10 @@
 		</form>
 	{/if}
 
-	<Button href="/expenses/new?person={data.person.id}" variant="outline"
-		><Icon name="plus" size={16} /> {i.t('person.expenseWith', { name: first })}</Button
-	>
+	<!-- Direct expenses only work between contacts -->
+	{#if data.contact === 'contact'}
+		<Button href="/expenses/new?person={data.person.id}" variant="outline"
+			><Icon name="plus" size={16} /> {i.t('person.expenseWith', { name: first })}</Button
+		>
+	{/if}
 </div>
