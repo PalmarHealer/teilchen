@@ -14,9 +14,11 @@
 
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { untrack } from 'svelte';
 	import { useI18n, type MessageKey } from '../i18n/index.ts';
 	import { EXPENSE_ICON_SUGGESTIONS } from '../icon-suggestions.ts';
-	import { allocate, parseCents } from '../money.ts';
+	import { allocate, centsToInput, parseCents } from '../money.ts';
+	import { centsForPercents, parsePercent, percentOf } from '../percent.ts';
 	import Amount from './Amount.svelte';
 	import DatePicker from './DatePicker.svelte';
 	import IconPicker from './IconPicker.svelte';
@@ -85,6 +87,52 @@
 		'has-checked:border-primary has-checked:bg-primary/10 has-checked:text-primary hover:bg-accent has-focus-visible:ring-ring/50 inline-flex cursor-pointer items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm font-medium shadow-xs transition-colors has-focus-visible:ring-[3px]';
 
 	const cents = $derived(parseCents(v.amount) ?? 0);
+
+	// Exact mode: each amount can also be entered as a percentage of the total. Rows typed as a
+	// percentage keep it (and follow the total); the others show the percentage of their amount.
+	let percents = $state<Record<string, string>>({});
+	const decimal = $derived(i.locale === 'de' ? ',' : '.');
+	const percentFormat = $derived(
+		new Intl.NumberFormat(i.locale, { maximumFractionDigits: 1, useGrouping: false })
+	);
+
+	function percentText(id: string): string {
+		if (id in percents) return percents[id]!;
+		const p = percentOf(parseCents(v.exact[id] ?? '') ?? 0, cents);
+		return p === null || !v.exact[id] ? '' : percentFormat.format(p);
+	}
+
+	/** Amounts of the rows typed as percentages, from the current total. */
+	function applyPercents() {
+		const rows = v.participants.filter((id) => id in percents);
+		const parts = centsForPercents(
+			cents,
+			rows.map((id) => parsePercent(percents[id]!) ?? 0)
+		);
+		rows.forEach((id, idx) => {
+			v.exact[id] = percents[id]!.trim() ? centsToInput(parts[idx]!, decimal) : '';
+		});
+	}
+
+	function typedAmount(id: string, value: string) {
+		v.exact[id] = value;
+		delete percents[id];
+	}
+
+	function typedPercent(id: string, value: string) {
+		percents[id] = value;
+		applyPercents();
+	}
+
+	$effect(() => {
+		void cents;
+		untrack(applyPercents);
+	});
+
+	const assigned = $derived(
+		v.participants.reduce((sum, id) => sum + (parseCents(v.exact[id] ?? '') ?? 0), 0)
+	);
+
 	const equalShares = $derived(
 		v.participants.length
 			? allocate(
@@ -168,17 +216,56 @@
 			</List.Root>
 		{:else}
 			{#each v.participants as id (id)}
-				<Label class="font-normal">
-					{people.find((p) => p.id === id)?.name}
-					<Input
-						name="exact_{id}"
-						inputmode="decimal"
-						placeholder="0,00"
-						class="tabular"
-						value={v.exact[id] ?? ''}
-					/>
-				</Label>
+				{@const name = people.find((p) => p.id === id)?.name}
+				<div class="flex flex-col gap-2">
+					<span class="text-sm leading-none">{name}</span>
+					<div class="grid grid-cols-[1fr_6.5rem] gap-2">
+						<div class="relative">
+							<Input
+								name="exact_{id}"
+								inputmode="decimal"
+								placeholder="0,00"
+								aria-label={i.t('expenses.shareAmount', { name: name ?? '' })}
+								class="tabular pr-7"
+								value={v.exact[id] ?? ''}
+								oninput={(e) => typedAmount(id, e.currentTarget.value)}
+							/>
+							<span
+								class="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-sm"
+								>€</span
+							>
+						</div>
+						<div class="relative">
+							<Input
+								inputmode="decimal"
+								placeholder="0"
+								aria-label={i.t('expenses.sharePercent', { name: name ?? '' })}
+								class="tabular pr-7"
+								value={percentText(id)}
+								oninput={(e) => typedPercent(id, e.currentTarget.value)}
+							/>
+							<span
+								class="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-sm"
+								>%</span
+							>
+						</div>
+					</div>
+				</div>
 			{/each}
+			{#if cents > 0 && v.participants.length}
+				<p
+					class="text-sm {assigned === cents ? 'text-positive' : 'text-muted-foreground'}"
+					aria-live="polite"
+				>
+					{#if assigned === cents}
+						{i.t('expenses.splitComplete')}
+					{:else if assigned < cents}
+						{i.t('expenses.splitRest', { amount: i.money(cents - assigned) })}
+					{:else}
+						{i.t('expenses.splitOver', { amount: i.money(assigned - cents) })}
+					{/if}
+				</p>
+			{/if}
 		{/if}
 	</fieldset>
 
