@@ -7,48 +7,37 @@ on:
 
 permissions:
   contents: read
-  packages: write
-
-env:
-  IMAGE: ghcr.io/palmarhealer/teilchen
+  id-token: write # OIDC token for the sites deploy API
 
 jobs:
   verify:
     uses: ./.github/workflows/ci.yml
 
-  image:
+  deploy:
     needs: verify
     runs-on: ubuntu-latest
+    # Same base as the site's runtime (Node 24 on Alpine), so native modules match
+    container: node:24-alpine
     steps:
+      - run: apk add --no-cache curl jq tar git
       - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.sha }}
-          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  redeploy:
-    needs: image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Redeploy Portainer stack
-        env:
-          WEBHOOK: ${{ secrets.PORTAINER_STACK_WEBHOOK }}
+      - name: Build
         run: |
-          if [ -z "$WEBHOOK" ]; then
-            echo "::warning::PORTAINER_STACK_WEBHOOK missing, no redeploy"
-            exit 0
-          fi
-          curl -sfS -X POST "$WEBHOOK" > /dev/null
-          echo "Redeploy triggered"
+          corepack enable
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm exec svelte-kit sync && pnpm build
+      - name: Assemble the release
+        run: |
+          # Flat production node_modules: the upload keeps no symlinks
+          rm -rf node_modules
+          pnpm install --prod --frozen-lockfile --ignore-scripts --config.node-linker=hoisted
+          mkdir out
+          cp -r package.json node_modules build src drizzle out/
+          # sites starts the app with `npm start`: migrations first, as the image did
+          node -e 'const f="out/package.json",p=require("./"+f);p.scripts={start:"node node_modules/tsx/dist/cli.mjs src/lib/server/db/migrate.ts && node build"};require("fs").writeFileSync(f,JSON.stringify(p,null,2))'
+          tar -czf release.tar.gz --exclude='node_modules/.bin' -C out .
+          ls -lh release.tar.gz
+      - name: Deploy to sites
+        run: |
+          TOKEN=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://sites.nauren.de" | jq -r .value)
+          curl -sSf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/gzip"             --data-binary @release.tar.gz             "https://sites.nauren.de/api/v1/deploy?site=6d291c05-ff6d-4d61-8dc7-e24193b39fdd"
