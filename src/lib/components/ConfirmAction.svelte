@@ -17,6 +17,8 @@
 		cancelLabel,
 		danger = false,
 		disabled = false,
+		iconOnly = false,
+		success,
 		children
 	}: {
 		action: string;
@@ -27,26 +29,45 @@
 		cancelLabel: string;
 		danger?: boolean;
 		disabled?: boolean;
+		/** A small icon button as trigger, e.g. in a list row; `label` becomes its tooltip */
+		iconOnly?: boolean;
+		/** Toast shown once the action succeeded */
+		success?: string;
 		/** Extra fields submitted with the confirmation */
 		children?: Snippet;
 	} = $props();
 
 	let open = $state(false);
 	const i = useI18n();
-	const report = withToast(i.t, { done: () => (open = false) });
+	const report = withToast(i.t, { done: () => (open = false), success: () => success });
 </script>
 
 <AlertDialog.Root bind:open>
-	<AlertDialog.Trigger
-		{disabled}
-		class={buttonVariants({
-			variant: danger ? 'destructive-outline' : 'outline',
-			class: 'w-full'
-		})}
-	>
-		<Icon name={icon} size={16} />
-		{label}
-	</AlertDialog.Trigger>
+	{#if iconOnly}
+		<AlertDialog.Trigger
+			{disabled}
+			title={label}
+			aria-label={label}
+			class={buttonVariants({
+				variant: 'ghost',
+				size: 'icon',
+				class: 'text-muted-foreground size-9'
+			})}
+		>
+			<Icon name={icon} size={18} />
+		</AlertDialog.Trigger>
+	{:else}
+		<AlertDialog.Trigger
+			{disabled}
+			class={buttonVariants({
+				variant: danger ? 'destructive-outline' : 'outline',
+				class: 'w-full'
+			})}
+		>
+			<Icon name={icon} size={16} />
+			{label}
+		</AlertDialog.Trigger>
+	{/if}
 	<AlertDialog.Portal>
 		<AlertDialog.Overlay
 			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50"

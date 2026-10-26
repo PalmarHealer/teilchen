@@ -142,6 +142,19 @@ export async function connect(a: string, b: string) {
 	await db.insert(connections).values({ userA, userB }).onConflictDoNothing();
 }
 
+/**
+ * Ends the contact between `me` and `other`. Shared groups and bookings stay; the person page
+ * stays reachable while there are any. Returns false if they weren't contacts.
+ */
+export async function disconnect(me: string, other: string) {
+	const [userA, userB] = me < other ? [me, other] : [other, me];
+	const deleted = await db
+		.delete(connections)
+		.where(and(eq(connections.userA, userA), eq(connections.userB, userB)))
+		.returning();
+	return deleted.length > 0;
+}
+
 /** All bookings `me` is part of (as payer or with a share). */
 export async function entriesFor(me: string): Promise<LedgerEntry[]> {
 	const involved = db

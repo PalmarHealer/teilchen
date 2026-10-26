@@ -3,6 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { tick } from 'svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import FilePicker from '#lib/components/FilePicker.svelte';
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -72,7 +73,6 @@
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>{i.t('settings.inviteHeading')}</Card.Title>
-			<Card.Description>{i.t('settings.inviteHint')}</Card.Description>
 		</Card.Header>
 		<Card.Content class="flex flex-col gap-4">
 			{#if data.requests.length}
@@ -113,6 +113,43 @@
 					</List.Root>
 				</div>
 			{/if}
+			<div class="flex flex-col gap-2">
+				<span class="text-sm font-medium">{i.t('settings.contacts')}</span>
+				{#if data.contacts.length}
+					<List.Root>
+						{#each data.contacts as c (c.id)}
+							<List.Item class="gap-2 py-0 pr-2">
+								<a
+									href="/people/{c.id}"
+									class="flex min-w-0 flex-1 items-center gap-3 self-stretch py-2"
+								>
+									<Avatar name={c.name} src={c.avatarUrl} size={32} />
+									<span class="min-w-0 flex-1 truncate text-sm font-medium">{c.name}</span>
+								</a>
+								<ConfirmAction
+									action="?/removeContact"
+									icon="userMinus"
+									iconOnly
+									danger
+									label={i.t('settings.removeContact')}
+									question={i.t('settings.removeContactConfirm', { name: c.name })}
+									confirmLabel={i.t('settings.remove')}
+									cancelLabel={i.t('settings.cancel')}
+									success={i.t('settings.contactRemoved')}
+								>
+									<input type="hidden" name="contact" value={c.id} />
+								</ConfirmAction>
+							</List.Item>
+						{/each}
+					</List.Root>
+				{:else}
+					<p class="text-muted-foreground text-sm">{i.t('settings.noContacts')}</p>
+				{/if}
+			</div>
+			<div class="flex flex-col gap-1">
+				<span class="text-sm font-medium">{i.t('settings.addContact')}</span>
+				<p class="text-muted-foreground text-sm">{i.t('settings.inviteHint')}</p>
+			</div>
 			<form method="POST" action="?/invite" use:enhance>
 				<Button type="submit" variant="outline" class="w-full"
 					><Icon name="userPlus" size={16} /> {i.t('settings.createInvite')}</Button

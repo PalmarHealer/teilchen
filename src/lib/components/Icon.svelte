@@ -33,6 +33,7 @@
 	import Trash from '@tabler/icons-svelte/icons/trash';
 	import Upload from '@tabler/icons-svelte/icons/upload';
 	import User from '@tabler/icons-svelte/icons/user';
+	import UserMinus from '@tabler/icons-svelte/icons/user-minus';
 	import UserPlus from '@tabler/icons-svelte/icons/user-plus';
 	import Users from '@tabler/icons-svelte/icons/users';
 	import X from '@tabler/icons-svelte/icons/x';
@@ -45,6 +46,7 @@
 		list: List,
 		user: User,
 		userPlus: UserPlus,
+		userMinus: UserMinus,
 		plus: Plus,
 		back: ChevronLeft,
 		check: Check,
