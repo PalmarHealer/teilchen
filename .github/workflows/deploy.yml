@@ -39,5 +39,5 @@ jobs:
           ls -lh release.tar.gz
       - name: Deploy to sites
         run: |
-          TOKEN=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://sites.nauren.de" | jq -r .value)
+          TOKEN=$(curl -sSf --retry 5 --retry-all-errors -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://sites.nauren.de" | jq -r .value)
           curl -sSf -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/gzip"             --data-binary @release.tar.gz             "https://sites.nauren.de/api/v1/deploy?site=6d291c05-ff6d-4d61-8dc7-e24193b39fdd"
