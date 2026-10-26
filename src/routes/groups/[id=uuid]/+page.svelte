@@ -195,6 +195,21 @@
 						<Button type="submit"><Icon name="edit" size={16} /> {i.t('groups.save')}</Button>
 					</div>
 				</form>
+				{#if data.openInvites}
+					<form
+						method="POST"
+						action="?/revokeInvites"
+						use:enhance={withToast(i.t, { success: () => i.t('groups.invitesRevoked') })}
+						class="flex flex-col gap-2 border-t pt-5"
+					>
+						<Button type="submit" variant="outline"
+							><Icon name="trash" size={16} /> {i.t('groups.revokeInvites')}</Button
+						>
+						<p class="text-muted-foreground text-xs">
+							{i.t(data.isCreator ? 'groups.revokeInvitesHintAll' : 'groups.revokeInvitesHintOwn')}
+						</p>
+					</form>
+				{/if}
 				<div class="flex flex-col gap-2 border-t pt-5">
 					{#if data.isCreator && data.others.length === 0}
 						<p class="text-muted-foreground flex items-center gap-2 text-sm">

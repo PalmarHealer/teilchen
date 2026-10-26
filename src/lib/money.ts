@@ -1,7 +1,13 @@
 /** All amounts are integer cents. Formatting lives in #lib/i18n (locale-dependent). */
 export type Cents = number;
 
-/** Parses "12,34", "12.34", "-1,5", "3" into cents. Returns null for invalid input. */
+/** Largest amount we accept: stays well inside the database's 32-bit integer columns. */
+export const MAX_CENTS: Cents = 100_000_000_00;
+
+/**
+ * Parses "12,34", "12.34", "-1,5", "3" into cents. Returns null for invalid input, including
+ * amounts beyond ±MAX_CENTS.
+ */
 export function parseCents(input: string): Cents | null {
 	const m = input
 		.trim()
@@ -10,6 +16,7 @@ export function parseCents(input: string): Cents | null {
 	if (!m) return null;
 	const [, sign, euros, frac = ''] = m;
 	const cents = Number(euros) * 100 + Number(frac.padEnd(2, '0'));
+	if (cents > MAX_CENTS) return null;
 	return sign ? -cents : cents;
 }
 

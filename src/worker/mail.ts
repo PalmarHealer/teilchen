@@ -5,6 +5,7 @@ import { db, schema } from '#lib/server/db/index.ts';
 import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseReceiptPdf } from '#lib/server/ebon/pdf.ts';
 import { looksLikeEbon } from '#lib/server/ebon/classify.ts';
+import { dmarcVerifiedDomain } from '#lib/server/ebon/sender.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
 /** Mails that could not be processed; kept for inspection, then purged. */
@@ -156,7 +157,11 @@ function addresses(mail: ParsedMail): string[] {
 	return list.filter(Boolean);
 }
 
-/** Matching: first via teilchen+<token>@…, otherwise via the sender address (= whoever forwarded it). */
+/**
+ * Matching: first via teilchen+<token>@…, otherwise via the sender address (= whoever forwarded
+ * it). The sender counts only if our mail server verified it with DMARC, and only if exactly one
+ * user has that address (emails come from the identity provider and need not be unique).
+ */
 async function findUser(mail: ParsedMail) {
 	for (const addr of addresses(mail)) {
 		const token = addr.match(/\+([a-z0-9]+)@/)?.[1];
@@ -165,10 +170,13 @@ async function findUser(mail: ParsedMail) {
 		if (u) return u;
 	}
 	const from = mail.from?.value[0]?.address?.toLowerCase();
-	if (!from) return null;
-	const [u] = await db
+	const authservId = optionalEnv('MAIL_AUTHSERV_ID') ?? env('IMAP_HOST');
+	if (!from || from.split('@')[1] !== dmarcVerifiedDomain(mail.headerLines, authservId))
+		return null;
+	const users = await db
 		.select()
 		.from(schema.users)
-		.where(eq(sql`lower(${schema.users.email})`, from));
-	return u ?? null;
+		.where(eq(sql`lower(${schema.users.email})`, from))
+		.limit(2);
+	return users.length === 1 ? users[0]! : null;
 }

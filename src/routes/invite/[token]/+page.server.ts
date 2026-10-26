@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { and, eq, gt } from 'drizzle-orm';
 import { db, schema } from '#lib/server/db/index.ts';
-import { connect } from '#lib/server/domain.ts';
+import { connect, isMember } from '#lib/server/domain.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 async function validInvite(token: string) {
@@ -17,6 +17,9 @@ async function validInvite(token: string) {
 		.leftJoin(schema.groups, eq(schema.groups.id, schema.invites.groupId))
 		.where(and(eq(schema.invites.token, token), gt(schema.invites.expiresAt, new Date())));
 	if (!row) error(404, 'errors.inviteInvalid');
+	// A group invite is only as good as its inviter's membership.
+	if (row.invite.groupId && !(await isMember(row.invite.groupId, row.invite.inviterId)))
+		error(404, 'errors.inviteInvalid');
 	return row;
 }
 

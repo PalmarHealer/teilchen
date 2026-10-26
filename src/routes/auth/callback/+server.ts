@@ -41,6 +41,6 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 		.values({ oidcSub: claims.sub, ...profile })
 		.onConflictDoUpdate({ target: schema.users.oidcSub, set: profile })
 		.returning();
-	await createSession(cookies, user!.id);
+	await createSession(cookies, user!.id, tokens.refresh_token);
 	redirect(302, next.startsWith('/') && !next.startsWith('//') ? next : '/');
 };

@@ -118,6 +118,17 @@
 					><Icon name="userPlus" size={16} /> {i.t('settings.createInvite')}</Button
 				>
 			</form>
+			{#if data.openInvites}
+				<form
+					method="POST"
+					action="?/revokeInvites"
+					use:enhance={withToast(i.t, { success: () => i.t('settings.invitesRevoked') })}
+				>
+					<Button type="submit" variant="ghost" size="sm" class="w-full"
+						><Icon name="trash" size={14} /> {i.t('settings.revokeInvites')}</Button
+					>
+				</form>
+			{/if}
 			<p class="text-muted-foreground text-xs">{i.t('settings.requestsHint')}</p>
 		</Card.Content>
 	</Card.Root>

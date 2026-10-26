@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { clearPageCaches } from '#lib/page-cache.ts';
 
 	let { data } = $props();
 	const i = useI18n();
+	// Logged out (or the session ended): the previous user's pages must not stay readable offline.
+	$effect(() => {
+		void clearPageCaches();
+	});
 </script>
 
 <div class="flex min-h-[85dvh] flex-col items-center justify-center gap-3 text-center">

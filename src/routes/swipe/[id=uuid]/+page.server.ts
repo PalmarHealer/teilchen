@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { formatDate, translate } from '#lib/i18n/index.ts';
 import { expandUnits, sharesFromItems, unitCount } from '#lib/split.ts';
 import { db, schema } from '#lib/server/db/index.ts';
+import { UUID_SOURCE } from '#lib/uuid.ts';
 import {
 	connect,
 	contactsOf,
@@ -70,7 +71,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 const Decision = z.enum(['mine', 'shared', 'theirs']);
 const BookInput = z.object({
-	target: z.string().regex(/^(user|group):[0-9a-f-]{36}$/),
+	target: z.string().regex(new RegExp(`^(user|group):${UUID_SOURCE}$`)),
 	// One decision per line, or one per piece for lines swiped piece by piece
 	decisions: z.record(z.string().uuid(), z.union([Decision, z.array(Decision)]))
 });
@@ -80,10 +81,13 @@ export const actions: Actions = {
 		const me = locals.user!.id;
 		const receipt = await ownReceipt(params.id, me);
 		const form = await request.formData();
-		const parsed = BookInput.safeParse({
-			target: form.get('target'),
-			decisions: JSON.parse(String(form.get('decisions') ?? '{}'))
-		});
+		let raw: unknown;
+		try {
+			raw = JSON.parse(String(form.get('decisions') ?? '{}'));
+		} catch {
+			return fail(400, { message: 'errors.invalidInput' as const });
+		}
+		const parsed = BookInput.safeParse({ target: form.get('target'), decisions: raw });
 		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
 		const { target, decisions } = parsed.data;
 

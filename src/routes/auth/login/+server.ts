@@ -13,7 +13,8 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	cookies.set('oidc_next', url.searchParams.get('next') ?? '/', opts);
 	const target = client.buildAuthorizationUrl(config, {
 		redirect_uri: redirectUri(),
-		scope: 'openid profile email',
+		// offline_access: a refresh token, so sessions can re-check the account (auth/session.ts)
+		scope: 'openid profile email offline_access',
 		code_challenge: await client.calculatePKCECodeChallenge(verifier),
 		code_challenge_method: 'S256',
 		state

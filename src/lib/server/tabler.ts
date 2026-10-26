@@ -18,13 +18,14 @@ function allNodes() {
 }
 
 export const isIcon = (name: unknown): name is string =>
-	typeof name === 'string' && /^[a-z0-9-]{1,60}$/.test(name) && name in allNodes();
+	typeof name === 'string' && /^[a-z0-9-]{1,60}$/.test(name) && Object.hasOwn(allNodes(), name);
 
 const escape = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
 export function iconSvg(name: string): string | null {
-	const icon = allNodes()[name];
-	if (!icon) return null;
+	// hasOwn: names like "constructor" must not reach Object.prototype
+	if (!isIcon(name)) return null;
+	const icon = allNodes()[name]!;
 	const body = icon
 		.map(
 			([tag, attrs]) =>

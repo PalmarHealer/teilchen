@@ -27,7 +27,8 @@ export const users = pgTable('users', {
 	inboxToken: text('inbox_token')
 		.notNull()
 		.unique()
-		.default(sql`substr(md5(random()::text), 1, 10)`),
+		// gen_random_uuid() is cryptographically random, random() is not.
+		.default(sql`substr(md5(gen_random_uuid()::text), 1, 20)`),
 	createdAt: createdAt()
 });
 
@@ -37,7 +38,11 @@ export const sessions = pgTable('sessions', {
 	userId: uuid('user_id')
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
-	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull()
+	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+	/** OIDC refresh token: lets the session be checked against the identity provider */
+	refreshToken: text('refresh_token'),
+	/** Last time the identity provider confirmed the account (see auth/session.ts) */
+	checkedAt: timestamp('checked_at', { withTimezone: true }).notNull().defaultNow()
 });
 
 /** Acquaintance between two people (userA < userB), created via invite links or groups. */

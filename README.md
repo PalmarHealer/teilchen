@@ -35,7 +35,8 @@ pnpm worker     # eBon mail import
 1. Create a provider of type **OAuth2/OpenID**:
    - type: confidential
    - redirect URI: `$ORIGIN/auth/callback`
-   - scopes: `openid profile email`
+   - scopes: `openid profile email offline_access`
+   - `offline_access` gives a refresh token. With it, a session checks once an hour that the account is still active and allowed in, so disabling someone in Authentik logs them out. Without it, sessions can't be checked and end after 7 days instead of 60.
 2. Create an application for it.
 3. Set `OIDC_ISSUER`, e.g. `https://auth.example.com/application/o/teilchen/`.
 4. Put the client ID and client secret into `.env`.
@@ -45,7 +46,7 @@ pnpm worker     # eBon mail import
 1. Set `INBOX_ADDRESS` (e.g. `teilchen@example.com`) and the IMAP credentials.
 2. Everyone gets their own address `teilchen+<token>@example.com` in the profile.
    - This needs a mail server that delivers plus addresses into the same mailbox.
-3. Without the plus part, the person is recognised by the sender of the forwarded mail.
+3. Without the plus part, the person is recognised by the sender of the forwarded mail, but only if the mail server confirmed that sender with DMARC (its topmost `Authentication-Results` header, see `MAIL_AUTHSERV_ID`) and only one account has that address. A forged `From` is ignored.
 4. Mails that are not REWE eBons (e.g. forwarded login codes) are deleted silently.
 5. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Broken mails move to the `Failed` folder right away; transient errors (DB, network) are retried on later polls for up to 3 days before the mail moves there too. `Failed` is purged after 14 days, so the inbox never fills up.
 

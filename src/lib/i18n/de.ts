@@ -180,6 +180,10 @@ export const de: Dictionary = {
 		name: 'Name',
 		save: 'Änderungen speichern',
 		saved: 'Gespeichert',
+		revokeInvites: 'Einladungslinks zurückziehen',
+		revokeInvitesHintAll: 'Macht alle offenen Einladungslinks dieser Gruppe ungültig.',
+		revokeInvitesHintOwn: 'Macht die Einladungslinks ungültig, die du erstellt hast.',
+		invitesRevoked: 'Einladungslinks zurückgezogen',
 		requestContact: 'Als Kontakt anfragen',
 		requested: 'Angefragt',
 		keepDebts: 'Schulden in der Gruppe lassen',
@@ -220,6 +224,8 @@ export const de: Dictionary = {
 		requestsHint:
 			'Leute aus deinen Gruppen kannst du auch direkt anfragen: in der Gruppe beim Mitglied.',
 		createInvite: 'Kontakt-Link erstellen',
+		revokeInvites: 'Offene Kontakt-Links zurückziehen',
+		invitesRevoked: 'Kontakt-Links zurückgezogen',
 		inviteHint:
 			'Erstellt einen Link, der 7 Tage gilt. Schick ihn jemandem, der schon ein Teilchen-Konto hat. Wer ihn annimmt, wird dein Kontakt. Dann könnt ihr Ausgaben und Bons direkt teilen, ganz ohne Gruppe.',
 		ebonHeading: 'eBons per Mail',
@@ -262,6 +268,8 @@ export const de: Dictionary = {
 		receiptNotFound: 'Einkauf nicht gefunden oder schon gebucht',
 		inviteInvalid: 'Einladung ungültig oder abgelaufen',
 		noNewEbon: 'Kein neuer REWE-eBon erkannt',
+		uploadTooLarge: 'Zu viele oder zu große Dateien (höchstens 20 PDFs mit je 5 MB)',
+		invalidDate: 'Ungültiges Datum',
 		generic: 'Etwas ist schiefgelaufen'
 	}
 };

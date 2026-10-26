@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { groupBalances, isSettled, personBalances } from '#lib/ledger.ts';
 import { translate } from '#lib/i18n/index.ts';
 import { parseCents } from '#lib/money.ts';
@@ -24,6 +24,10 @@ async function membership(groupId: string, userId: string) {
 	return { group: group!, memberIds };
 }
 
+/** The group's invites `me` may revoke: all of them for the creator (`me` null), else their own. */
+const revocableInvites = (groupId: string, me: string | null) =>
+	and(eq(schema.invites.groupId, groupId), me ? eq(schema.invites.inviterId, me) : undefined);
+
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const me = locals.user!.id;
 	const { group, memberIds } = await membership(params.id, me);
@@ -32,9 +36,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const totals = groupBalances(memberIds, entries);
 	const mine = personBalances(me, entries);
 	const contacts = await contactStatuses(me, memberIds);
+	const openInvites = await db.$count(
+		schema.invites,
+		and(
+			revocableInvites(params.id, group.createdBy === me ? null : me),
+			gt(schema.invites.expiresAt, new Date())
+		)
+	);
 	return {
 		group,
 		isCreator: group.createdBy === me,
+		openInvites,
 		settled: isSettled(totals),
 		// Oldest member first: the suggested next creator when the creator leaves.
 		others: memberIds
@@ -61,6 +73,15 @@ export const actions: Actions = {
 			expiresAt: new Date(Date.now() + 7 * 864e5)
 		});
 		return { inviteUrl: new URL(`/invite/${token}`, url.origin).toString() };
+	},
+
+	revokeInvites: async ({ locals, params }) => {
+		const me = locals.user!.id;
+		const { group } = await membership(params.id, me);
+		await db
+			.delete(schema.invites)
+			.where(revocableInvites(params.id, group.createdBy === me ? null : me));
+		return { invitesRevoked: true };
 	},
 
 	/** Any member may rename the group or change its icon. */

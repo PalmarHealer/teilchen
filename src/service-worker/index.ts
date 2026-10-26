@@ -1,9 +1,11 @@
 /// <reference lib="webworker" />
 import { assets, immutable } from '$app/manifest';
 import { version } from '$app/env';
+import { PAGE_CACHE_PREFIX } from '#lib/page-cache.ts';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE = `teilchen-${version}`;
+const PAGES = `${PAGE_CACHE_PREFIX}${version}`;
 const PRECACHE = [...immutable, ...assets].map((f) => f.path);
 
 sw.addEventListener('install', (event) => {
@@ -19,7 +21,9 @@ sw.addEventListener('activate', (event) => {
 	event.waitUntil(
 		caches
 			.keys()
-			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+			.then((keys) =>
+				Promise.all(keys.filter((k) => k !== CACHE && k !== PAGES).map((k) => caches.delete(k)))
+			)
 			.then(() => sw.clients.claim())
 	);
 });
@@ -46,7 +50,7 @@ sw.addEventListener('fetch', (event) => {
 			.then((res) => {
 				if (res.ok && res.type === 'basic') {
 					const copy = res.clone();
-					void caches.open(CACHE).then((c) => c.put(req, copy));
+					void caches.open(PAGES).then((c) => c.put(req, copy));
 				}
 				return res;
 			})

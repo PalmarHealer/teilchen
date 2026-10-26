@@ -180,6 +180,10 @@ export const en = {
 		name: 'Name',
 		save: 'Save changes',
 		saved: 'Saved',
+		revokeInvites: 'Revoke invite links',
+		revokeInvitesHintAll: 'Makes every open invite link of this group invalid.',
+		revokeInvitesHintOwn: 'Makes the invite links you created invalid.',
+		invitesRevoked: 'Invite links revoked',
 		requestContact: 'Ask to be contacts',
 		requested: 'Requested',
 		keepDebts: 'Keep debts in the group',
@@ -219,6 +223,8 @@ export const en = {
 		requestsHint:
 			'People from your groups can also be asked directly: in the group, next to the member.',
 		createInvite: 'Create contact link',
+		revokeInvites: 'Revoke open contact links',
+		invitesRevoked: 'Contact links revoked',
 		inviteHint:
 			'Creates a link valid for 7 days. Send it to someone who already has a Teilchen account. Whoever accepts it becomes your contact, so you can split expenses and receipts directly – without a group.',
 		ebonHeading: 'eBons by email',
@@ -261,6 +267,8 @@ export const en = {
 		receiptNotFound: 'Receipt not found or already booked',
 		inviteInvalid: 'Invite invalid or expired',
 		noNewEbon: 'No new REWE eBon detected',
+		uploadTooLarge: 'Too many or too large files (at most 20 PDFs of 5 MB each)',
+		invalidDate: 'Invalid date',
 		generic: 'Something went wrong'
 	}
 };

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { MessageKey } from '../i18n/index.ts';
 import { allocate, parseCents, type Cents } from '../money.ts';
+import { UUID_SOURCE } from '../uuid.ts';
 import { contactsOf, groupMemberIds, groupsOf, usersByIds } from './domain.ts';
 import { isIcon } from './tabler.ts';
 
@@ -25,7 +26,7 @@ export async function expenseFormOptions(me: string) {
 const Input = z.object({
 	title: z.string().trim().min(1, 'errors.titleMissing').max(120),
 	amount: z.string(),
-	context: z.string().regex(/^(direct|group:[0-9a-f-]{36})$/),
+	context: z.string().regex(new RegExp(`^(direct|group:${UUID_SOURCE})$`)),
 	payer: z.string().uuid(),
 	participants: z.array(z.string().uuid()).min(1, 'errors.atLeastOne'),
 	mode: z.enum(['equal', 'exact']),
@@ -63,6 +64,10 @@ export async function parseExpenseForm(fd: FormData, me: string): Promise<Parsed
 		return bad((msg.startsWith('errors.') ? msg : 'errors.invalidInput') as MessageKey);
 	}
 	const v = parsed.data;
+	const spentAt = new Date(`${v.date}T12:00:00`);
+	// "2025-02-30" passes the pattern but is no date (Date would roll it over to March).
+	if (Number.isNaN(spentAt.getTime()) || spentAt.toISOString().slice(0, 10) !== v.date)
+		return bad('errors.invalidDate');
 	const amount = parseCents(v.amount);
 	if (!amount || amount <= 0) return bad('errors.invalidAmount');
 
@@ -106,7 +111,7 @@ export async function parseExpenseForm(fd: FormData, me: string): Promise<Parsed
 		title: v.title,
 		icon: isIcon(fd.get('icon')) ? (fd.get('icon') as string) : null,
 		shares,
-		spentAt: new Date(`${v.date}T12:00:00`),
+		spentAt,
 		people
 	};
 }

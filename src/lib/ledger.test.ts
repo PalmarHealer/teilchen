@@ -32,6 +32,8 @@ describe('money', () => {
 		expect(parseCents('12.3 €')).toBe(1230);
 		expect(parseCents('-0,05')).toBe(-5);
 		expect(parseCents('1,234')).toBeNull();
+		expect(parseCents('99999999999')).toBeNull();
+		expect(parseCents('-99999999999')).toBeNull();
 	});
 
 	it('turns cents back into input text', () => {
