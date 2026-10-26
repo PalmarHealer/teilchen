@@ -11,11 +11,12 @@
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { toast, withToast } from '#lib/toast.ts';
 
 	let { data, form } = $props();
 	const i = useI18n();
-	let copied = $state(false);
 	let langForm: HTMLFormElement;
+	let uploadForm: HTMLFormElement;
 	// svelte-ignore state_referenced_locally
 	let lang = $state<'auto' | 'en' | 'de'>(data.langPref);
 
@@ -27,7 +28,7 @@
 	async function copyInbox() {
 		if (!data.inboxAddress) return;
 		await navigator.clipboard.writeText(data.inboxAddress);
-		copied = true;
+		toast.success(i.t('common.copied'));
 	}
 </script>
 
@@ -100,7 +101,6 @@
 					<Icon name="mail" size={16} />
 					<span class="truncate">{data.inboxAddress}</span>
 				</Button>
-				{#if copied}<span class="text-positive text-xs">{i.t('common.copied')}</span>{/if}
 				<p class="text-muted-foreground text-xs">
 					{i.t('settings.ebonFromHint', { email: data.email })}
 				</p>
@@ -119,7 +119,13 @@
 				method="POST"
 				action="?/upload"
 				enctype="multipart/form-data"
-				use:enhance
+				bind:this={uploadForm}
+				use:enhance={withToast(i.t, {
+					loading: i.t('settings.importing'),
+					// Also after a failure, so picking the same file again starts a new import
+					done: () => uploadForm.reset(),
+					success: (d) => i.t('settings.imported', { n: Number(d?.imported ?? 0) })
+				})}
 				class="flex flex-col gap-3"
 			>
 				<FilePicker
@@ -129,14 +135,6 @@
 					label={i.t('settings.choosePdf')}
 					emptyText={i.t('settings.noFileChosen')}
 				/>
-				<Button type="submit" variant="outline"
-					><Icon name="upload" size={16} /> {i.t('settings.import')}</Button
-				>
-				{#if form?.imported}<span class="text-positive text-xs"
-						>{i.t('settings.imported', { n: form.imported })}</span
-					>{/if}
-				{#if form?.uploadError}<span class="text-destructive text-xs">{i.t(form.uploadError)}</span
-					>{/if}
 			</form>
 		</Card.Content>
 	</Card.Root>

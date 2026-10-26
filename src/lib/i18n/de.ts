@@ -201,7 +201,7 @@ export const de: Dictionary = {
 		ebonFromHint: 'Weiterleitungen von {email} werden auch ohne den +-Teil erkannt.',
 		noInbox: 'Kein eBon-Postfach konfiguriert (INBOX_ADDRESS).',
 		uploadHeading: 'eBon-PDF hochladen',
-		import: 'Importieren',
+		importing: 'Importiere eBons …',
 		choosePdf: 'eBon-PDFs auswählen',
 		noFileChosen: 'oder hierher ziehen',
 		imported: (p) => (p.n === 1 ? '1 Einkauf importiert' : `${p.n} Einkäufe importiert`),

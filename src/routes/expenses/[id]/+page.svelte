@@ -62,7 +62,6 @@
 		{#if !data.canManage}
 			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.readOnly')}</p>
 		{/if}
-		{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
 	{/if}
 
 	{#if data.canManage}

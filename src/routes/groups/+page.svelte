@@ -13,8 +13,9 @@
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { withToast } from '#lib/toast.ts';
 
-	let { data, form } = $props();
+	let { data } = $props();
 	const i = useI18n();
 	let icon = $state('home');
 </script>
@@ -71,14 +72,18 @@
 			<Card.Title>{i.t('groups.newGroup')}</Card.Title>
 		</Card.Header>
 		<Card.Content>
-			<form method="POST" action="?/create" use:enhance class="flex flex-col gap-4">
+			<form
+				method="POST"
+				action="?/create"
+				use:enhance={withToast(i.t)}
+				class="flex flex-col gap-4"
+			>
 				<Input name="name" placeholder={i.t('groups.namePlaceholder')} required maxlength={60} />
 				<IconPicker
 					bind:value={icon}
 					suggestions={GROUP_ICON_SUGGESTIONS}
 					legend={i.t('groups.icon')}
 				/>
-				{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
 				<Button type="submit"><Icon name="plus" size={16} /> {i.t('groups.create')}</Button>
 			</form>
 		</Card.Content>

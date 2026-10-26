@@ -200,7 +200,7 @@ export const en = {
 		ebonFromHint: 'Forwards from {email} are recognised even without the + part.',
 		noInbox: 'No eBon inbox configured (INBOX_ADDRESS).',
 		uploadHeading: 'Upload eBon PDF',
-		import: 'Import',
+		importing: 'Importing eBons …',
 		choosePdf: 'Choose eBon PDFs',
 		noFileChosen: 'or drop them here',
 		imported: ((p) => (p.n === 1 ? '1 purchase imported' : `${p.n} purchases imported`)) as Plural,

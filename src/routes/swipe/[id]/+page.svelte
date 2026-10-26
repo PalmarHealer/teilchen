@@ -10,6 +10,7 @@
 	import * as List from '#lib/components/ui/list/index.ts';
 	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { withToast } from '#lib/toast.ts';
 	import { splitEqually } from '#lib/money.ts';
 	import { productIcon } from '#lib/product-icon.ts';
 	import {
@@ -21,7 +22,7 @@
 		type ItemDecision
 	} from '#lib/split.ts';
 
-	let { data, form } = $props();
+	let { data } = $props();
 	const i = useI18n();
 
 	let target = $state<string | null>(null);
@@ -388,8 +389,7 @@
 			{/each}
 		</List.Root>
 		<p class="text-muted-foreground px-1 text-xs">{i.t('swipe.youPaid')}</p>
-		{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
-		<form method="POST" action="?/book" use:enhance>
+		<form method="POST" action="?/book" use:enhance={withToast(i.t)}>
 			<input type="hidden" name="target" value={target} />
 			<input type="hidden" name="decisions" value={JSON.stringify(booked)} />
 			<Button type="submit" size="lg" class="w-full"

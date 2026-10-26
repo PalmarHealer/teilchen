@@ -1,7 +1,10 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
 
-	/** A styled picker; the native input stays (invisible) so the form posts the files. */
+	/**
+	 * A styled picker; the native input stays (invisible) so the form posts the files. Choosing
+	 * files submits the form, there is no separate upload button.
+	 */
 	let {
 		name,
 		accept,
@@ -17,6 +20,14 @@
 	} = $props();
 
 	let files = $state<string[]>([]);
+	let input: HTMLInputElement;
+	// Forget the names once the form resets after the upload.
+	$effect(() => {
+		const form = input.form;
+		const clear = () => (files = []);
+		form?.addEventListener('reset', clear);
+		return () => form?.removeEventListener('reset', clear);
+	});
 </script>
 
 <label
@@ -29,7 +40,11 @@
 		{multiple}
 		required
 		class="absolute inset-0 cursor-pointer opacity-0"
-		onchange={(e) => (files = [...(e.currentTarget.files ?? [])].map((f) => f.name))}
+		bind:this={input}
+		onchange={(e) => {
+			files = [...(e.currentTarget.files ?? [])].map((f) => f.name);
+			if (files.length) e.currentTarget.form?.requestSubmit();
+		}}
 	/>
 	<span class="bg-primary/12 text-primary grid size-10 shrink-0 place-items-center rounded-md">
 		<Icon name="pdf" size={20} />

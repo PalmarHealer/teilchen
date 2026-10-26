@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
+	import { Toaster } from '#lib/components/ui/sonner/index.ts';
 	import { provideI18n, type MessageKey } from '#lib/i18n/index.ts';
 	import type { Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
@@ -25,6 +26,8 @@
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 </script>
+
+<Toaster />
 
 {#if data.user}
 	<div class="min-h-dvh md:grid md:grid-cols-[220px_480px] md:justify-center md:gap-8 md:bg-outer">

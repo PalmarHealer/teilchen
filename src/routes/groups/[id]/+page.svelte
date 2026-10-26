@@ -19,6 +19,7 @@
 	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { withToast } from '#lib/toast.ts';
 	import { centsToInput } from '#lib/money.ts';
 
 	let { data, form } = $props();
@@ -38,7 +39,7 @@
 			size="icon"
 			aria-label={i.t('groups.manage')}
 			aria-expanded={managing}
-			onclick={() => (managing = !managing)}><Icon name="settings" size={20} /></Button
+			onclick={() => (managing = !managing)}><Icon name="settings" size={24} /></Button
 		>
 	{/snippet}
 </Header>
@@ -89,7 +90,12 @@
 						<Amount cents={Math.abs(m.withMe!)} class="text-foreground font-medium" /></span
 					>
 					<!-- The amount defaults to everything that is open; less is a partial payment. -->
-					<form method="POST" action="?/settle" use:enhance class="flex w-full gap-2">
+					<form
+						method="POST"
+						action="?/settle"
+						use:enhance={withToast(i.t, { success: () => i.t('person.paid') })}
+						class="flex w-full gap-2"
+					>
 						<input type="hidden" name="member" value={m.id} />
 						<Input
 							name="amount"
@@ -109,7 +115,6 @@
 			{/each}
 		</List.Root>
 	{/if}
-	{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
 
 	<div class="grid grid-cols-2 gap-2">
 		<Button href="/expenses/new?group={data.group.id}"
@@ -125,7 +130,7 @@
 		<InviteBox url={form.inviteUrl} text={i.t('groups.inviteText', { name: data.group.name })} />
 	{/if}
 
-	{#if managing || form?.manageError || form?.updated}
+	{#if managing}
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>{i.t('groups.manage')}</Card.Title>
@@ -134,9 +139,7 @@
 				<form
 					method="POST"
 					action="?/update"
-					use:enhance={() =>
-						async ({ update }) =>
-							update({ reset: false })}
+					use:enhance={withToast(i.t, { reset: false, success: () => i.t('groups.saved') })}
 					class="flex flex-col gap-5"
 				>
 					<Label>
@@ -157,7 +160,6 @@
 					</label>
 					<div class="flex items-center gap-3">
 						<Button type="submit"><Icon name="edit" size={16} /> {i.t('groups.save')}</Button>
-						{#if form?.updated}<span class="text-positive text-sm">{i.t('groups.saved')}</span>{/if}
 					</div>
 				</form>
 				<div class="flex flex-col gap-2 border-t pt-5">
@@ -207,9 +209,6 @@
 							<p class="text-muted-foreground text-xs">{i.t('groups.deleteNeedsSettled')}</p>
 						{/if}
 					{/if}
-					{#if form?.manageError}<p class="text-destructive text-sm">
-							{i.t(form.manageError)}
-						</p>{/if}
 				</div>
 			</Card.Content>
 		</Card.Root>

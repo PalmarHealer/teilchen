@@ -12,9 +12,10 @@
 	import * as List from '#lib/components/ui/list/index.ts';
 	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
+	import { withToast } from '#lib/toast.ts';
 	import { centsToInput, parseCents } from '#lib/money.ts';
 
-	let { data, form } = $props();
+	let { data } = $props();
 	const i = useI18n();
 	const first = $derived(data.person.name.split(' ')[0] ?? data.person.name);
 	const iPay = $derived(data.net < 0);
@@ -86,11 +87,11 @@
 		<form
 			method="POST"
 			action="?/settle"
-			use:enhance={() =>
-				async ({ update }) => {
-					typed = null;
-					await update();
-				}}
+			use:enhance={withToast(i.t, {
+				done: () => (typed = null),
+				// After the reload, a zero balance means everything is settled.
+				success: () => (data.net === 0 ? i.t('person.done') : i.t('person.paid'))
+			})}
 			class="flex flex-col gap-3"
 		>
 			{#if data.plan.transfer}
@@ -121,15 +122,6 @@
 			</Button>
 		</form>
 	{/if}
-	{#if form?.settled !== undefined}
-		<p
-			class="border-positive/30 bg-positive/10 text-positive flex items-center gap-2 rounded-lg border p-3 text-sm font-medium"
-		>
-			<Icon name="done" size={18} />
-			{data.net === 0 ? i.t('person.done') : i.t('person.paid')}
-		</p>
-	{/if}
-	{#if form?.message}<p class="text-destructive text-sm">{i.t(form.message)}</p>{/if}
 
 	<Button href="/expenses/new?person={data.person.id}" variant="outline"
 		><Icon name="plus" size={16} /> {i.t('person.expenseWith', { name: first })}</Button
