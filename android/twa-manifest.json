@@ -1,0 +1,52 @@
+{
+  "packageId": "de.nauren.teilchen",
+  "host": "teilchen.nauren.de",
+  "name": "Teilchen",
+  "launcherName": "Teilchen",
+  "display": "standalone",
+  "themeColor": "#171412",
+  "themeColorDark": "#171412",
+  "navigationColor": "#171412",
+  "navigationColorDark": "#171412",
+  "navigationDividerColor": "#171412",
+  "navigationDividerColorDark": "#171412",
+  "backgroundColor": "#171412",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://teilchen.nauren.de/icon-512.png",
+  "maskableIconUrl": "https://teilchen.nauren.de/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./teilchen.keystore",
+    "alias": "teilchen"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Swipe",
+      "shortName": "Swipe",
+      "url": "/swipe",
+      "chosenIconUrl": "https://teilchen.nauren.de/icon-512.png"
+    },
+    {
+      "name": "New expense",
+      "shortName": "Expense",
+      "url": "/expenses/new",
+      "chosenIconUrl": "https://teilchen.nauren.de/icon-512.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-core",
+  "webManifestUrl": "https://teilchen.nauren.de/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://teilchen.nauren.de/",
+  "minSdkVersion": 24,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

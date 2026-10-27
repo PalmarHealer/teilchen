@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
+	import AndroidAppBanner from '#lib/components/AndroidAppBanner.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import { Toaster } from '#lib/components/ui/sonner/index.ts';
 	import { provideI18n, type MessageKey } from '#lib/i18n/index.ts';
@@ -70,11 +71,13 @@
 		<main
 			class="bg-background min-h-dvh overflow-x-clip px-4 pt-[max(12px,env(safe-area-inset-top))] pb-[calc(var(--nav-h)+24px)] md:border-x md:px-6 md:pt-7 md:pb-10 md:shadow-sm"
 		>
+			{#if data.apkAvailable}<AndroidAppBanner />{/if}
 			{@render children()}
 		</main>
 	</div>
 {:else}
 	<main class="mx-auto min-h-dvh max-w-[480px] px-4 pt-[max(12px,env(safe-area-inset-top))] pb-6">
+		{#if data.apkAvailable}<AndroidAppBanner />{/if}
 		{@render children()}
 	</main>
 {/if}

@@ -6,6 +6,7 @@
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import FilePicker from '#lib/components/FilePicker.svelte';
 	import Header from '#lib/components/Header.svelte';
+	import { APK_PATH } from '#lib/android.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import InviteBox from '#lib/components/InviteBox.svelte';
 	import Select from '#lib/components/Select.svelte';
@@ -258,6 +259,21 @@
 			</Card.Content>
 		</Card.Root>
 	</form>
+
+	{#if data.apkAvailable}
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>{i.t('android.heading')}</Card.Title>
+				<Card.Description>{i.t('android.text')}</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<Button href={APK_PATH} download variant="outline" class="w-full">
+					<Icon name="android" size={16} />
+					{i.t('android.download')}
+				</Button>
+			</Card.Content>
+		</Card.Root>
+	{/if}
 
 	<form method="POST" action="/auth/logout">
 		<Button type="submit" variant="ghost" class="text-muted-foreground w-full"

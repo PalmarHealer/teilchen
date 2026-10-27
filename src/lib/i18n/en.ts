@@ -17,6 +17,7 @@ export const en = {
 		back: 'Back',
 		you: 'you',
 		youSuffix: '{name} (you)',
+		close: 'Close',
 		direct: 'Direct',
 		group: 'Group',
 		member: 'Member',
@@ -257,6 +258,14 @@ export const en = {
 		share: 'Share link',
 		validFor: 'Valid for 7 days.',
 		text: "Let's split costs on Teilchen"
+	},
+	android: {
+		bannerTitle: 'Teilchen as an Android app',
+		bannerText: 'Starts right away, without browser or address bar.',
+		get: 'Get',
+		heading: 'Android app',
+		text: 'Opens Teilchen like an app, no address to type. When installing, Android asks whether to allow apps from this source.',
+		download: 'Download APK'
 	},
 	settings: {
 		title: 'Profile',

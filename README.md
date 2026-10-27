@@ -62,3 +62,16 @@ Every push to `main` runs `.github/workflows/deploy.yml`:
 On start the site runs the migrations, then the app; the worker (IMAP import, product links) runs as a background process of the site. Environment variables (see `.env.example`) are configured on the site, never in the repo.
 
 For a self-hosted stack, `compose.yaml` builds the `Dockerfile` and runs app, worker and Postgres.
+
+## Android app
+
+`android/` is a Trusted Web Activity (generated with Bubblewrap from `android/twa-manifest.json`):
+the APK opens https://teilchen.nauren.de full screen. Every deploy builds it; once a signing key is
+set up it is signed, served at `/teilchen.apk` and offered in the profile and to Android visitors.
+
+One-time key setup (keep the keystore safe: updates only install with the same key):
+
+1. `keytool -genkeypair -keystore teilchen.keystore -storetype PKCS12 -alias teilchen -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Teilchen"`
+2. `gh secret set ANDROID_KEYSTORE_PASSWORD` and `base64 -w0 teilchen.keystore | gh secret set ANDROID_KEYSTORE_BASE64`
+3. Put the key's SHA-256 fingerprint (`keytool -list -v -keystore teilchen.keystore -alias teilchen`)
+   into `ANDROID_CERT_SHA256` in `src/lib/android.ts`. CI fails if it doesn't match the key.

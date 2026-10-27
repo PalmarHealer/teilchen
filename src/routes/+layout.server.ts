@@ -1,10 +1,12 @@
 import { and, eq, isNull } from 'drizzle-orm';
+import { apkAvailable } from '#lib/server/android.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const locale = locals.locale;
-	if (!locals.user) return { user: null, openReceipts: 0, contactRequests: 0, locale };
+	if (!locals.user)
+		return { user: null, openReceipts: 0, contactRequests: 0, locale, apkAvailable };
 	const open = await db.$count(
 		schema.receipts,
 		and(
@@ -22,6 +24,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		user: { id, name, avatarUrl, email },
 		openReceipts: open,
 		contactRequests: requests,
-		locale
+		locale,
+		apkAvailable
 	};
 };

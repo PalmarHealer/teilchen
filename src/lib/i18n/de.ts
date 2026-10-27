@@ -16,6 +16,7 @@ export const de: Dictionary = {
 		back: 'Zurück',
 		you: 'du',
 		youSuffix: '{name} (du)',
+		close: 'Schließen',
 		direct: 'Direkt',
 		group: 'Gruppe',
 		member: 'Mitglied',
@@ -262,6 +263,14 @@ export const de: Dictionary = {
 		share: 'Link teilen',
 		validFor: 'Gültig für 7 Tage.',
 		text: 'Lass uns Kosten auf Teilchen teilen'
+	},
+	android: {
+		bannerTitle: 'Teilchen als Android-App',
+		bannerText: 'Startet direkt, ohne Browser und Adressleiste.',
+		get: 'Holen',
+		heading: 'Android-App',
+		text: 'Öffnet Teilchen wie eine App, ohne Adresse eingeben zu müssen. Android fragt beim Installieren, ob du Apps aus dieser Quelle erlaubst.',
+		download: 'APK herunterladen'
 	},
 	settings: {
 		title: 'Profil',

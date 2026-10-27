@@ -5,10 +5,12 @@
 	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
 	import ArrowUp from '@tabler/icons-svelte/icons/arrow-up';
 	import ArrowsLeftRight from '@tabler/icons-svelte/icons/arrows-left-right';
+	import BrandAndroid from '@tabler/icons-svelte/icons/brand-android';
 	import Calendar from '@tabler/icons-svelte/icons/calendar';
 	import Cards from '@tabler/icons-svelte/icons/cards';
 	import Check from '@tabler/icons-svelte/icons/check';
 	import Clock from '@tabler/icons-svelte/icons/clock';
+	import Download from '@tabler/icons-svelte/icons/download';
 	import ChevronDown from '@tabler/icons-svelte/icons/chevron-down';
 	import ChevronLeft from '@tabler/icons-svelte/icons/chevron-left';
 	import ChevronRight from '@tabler/icons-svelte/icons/chevron-right';
@@ -83,7 +85,9 @@
 		sparkles: Sparkles,
 		trash: Trash,
 		split: ArrowsSplit,
-		alert: AlertTriangle
+		alert: AlertTriangle,
+		android: BrandAndroid,
+		download: Download
 	};
 	export type IconName = keyof typeof icons;
 </script>

@@ -1,12 +1,14 @@
 /// <reference lib="webworker" />
 import { assets, immutable } from '$app/manifest';
 import { version } from '$app/env';
+import { APK_PATH } from '#lib/android.ts';
 import { PAGE_CACHE_PREFIX } from '#lib/page-cache.ts';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE = `teilchen-${version}`;
 const PAGES = `${PAGE_CACHE_PREFIX}${version}`;
-const PRECACHE = [...immutable, ...assets].map((f) => f.path);
+// The APK is a big download, not something to keep for offline use
+const PRECACHE = [...immutable, ...assets].map((f) => f.path).filter((p) => p !== APK_PATH);
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -36,7 +38,9 @@ sw.addEventListener('fetch', (event) => {
 	if (
 		req.method !== 'GET' ||
 		url.origin !== sw.location.origin ||
-		url.pathname.startsWith('/auth/')
+		url.pathname.startsWith('/auth/') ||
+		// The APK is a big download, not a page to keep for offline use
+		url.pathname === APK_PATH
 	)
 		return;
 
