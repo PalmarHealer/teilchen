@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { LedgerEntry } from '#lib/ledger.ts';
-import { partialSettlement, planPersonSettlement, withoutKept } from '#lib/ledger.ts';
+import {
+	partialSettlement,
+	planPersonSettlement,
+	simplifiedBalances,
+	withoutKept,
+	type SettlementLine
+} from '#lib/ledger.ts';
 import type { Cents } from '#lib/money.ts';
 import { db, schema } from './db';
 
@@ -242,30 +248,46 @@ export async function createExpense(
 	return row!.id;
 }
 
-/** Groups of `me` that keep their debts inside the group instead of netting them per person. */
-export async function keptGroupIds(me: string): Promise<Set<string>> {
-	return new Set((await groupsOf(me)).filter((g) => g.keepDebts).map((g) => g.id));
+/**
+ * Groups that keep their debts and that `me` belongs to or has bookings in. Groups I left count
+ * too: their bookings are settled by the group's plan and must not leak into per-person netting.
+ */
+export async function keptGroups(me: string) {
+	const involved = db
+		.select({ id: expenseShares.expenseId })
+		.from(expenseShares)
+		.where(eq(expenseShares.userId, me));
+	const booked = db
+		.select({ id: expenses.groupId })
+		.from(expenses)
+		.where(or(eq(expenses.payerId, me), inArray(expenses.id, involved)));
+	const member = db
+		.select({ id: groupMembers.groupId })
+		.from(groupMembers)
+		.where(eq(groupMembers.userId, me));
+	return db
+		.select({ id: groups.id, name: groups.name, icon: groups.icon })
+		.from(groups)
+		.where(
+			and(eq(groups.keepDebts, true), or(inArray(groups.id, member), inArray(groups.id, booked)))
+		);
 }
 
-/**
- * Person-based settlement: one net payment, but one settlement booking per context (group/direct)
- * so that every group stays consistent for all its other members. Groups that keep their debts
- * are left out; pass `entries` of just such a group to settle inside it. With `cents`, only that
- * much is paid (see partialSettlement).
- */
-export async function settleWith(
-	me: string,
-	other: string,
-	title: string,
-	opts: { entries?: LedgerEntry[]; cents?: Cents } = {}
-) {
-	const entries = opts.entries ?? withoutKept(await entriesFor(me), await keptGroupIds(me));
-	const full = planPersonSettlement(me, other, entries);
-	const plan = opts.cents === undefined ? full : partialSettlement(full, opts.cents);
-	if (!plan.lines.length) return plan;
+export async function keptGroupIds(me: string): Promise<Set<string>> {
+	return new Set((await keptGroups(me)).map((g) => g.id));
+}
+
+/** My balances in groups that keep their debts, from each group's simplified plan. */
+export async function keptBalances(me: string, groupIds: Iterable<string>) {
+	const entries = await Promise.all([...groupIds].map(entriesForGroup));
+	return simplifiedBalances(me, entries.flat());
+}
+
+/** Books settlement lines as one batch (a payment, or the residue of a closed group). */
+export async function bookSettlementLines(me: string, title: string, lines: SettlementLine[]) {
 	const batch = randomUUID();
 	await db.transaction(async (tx) => {
-		for (const l of plan.lines) {
+		for (const l of lines) {
 			await createExpense(
 				{
 					kind: 'settlement',
@@ -280,6 +302,24 @@ export async function settleWith(
 			);
 		}
 	});
+}
+
+/**
+ * Person-based settlement: one net payment, but one settlement booking per context (group/direct)
+ * so that every group stays consistent for all its other members. Groups that keep their debts
+ * are left out (they settle by their simplified plan). With `cents`, only that much is paid
+ * (see partialSettlement).
+ */
+export async function settleWith(
+	me: string,
+	other: string,
+	title: string,
+	opts: { cents?: Cents } = {}
+) {
+	const entries = withoutKept(await entriesFor(me), await keptGroupIds(me));
+	const full = planPersonSettlement(me, other, entries);
+	const plan = opts.cents === undefined ? full : partialSettlement(full, opts.cents);
+	if (plan.lines.length) await bookSettlementLines(me, title, plan.lines);
 	return plan;
 }
 

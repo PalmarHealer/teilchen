@@ -8,6 +8,8 @@ import {
 	entriesFor,
 	groupMatesOf,
 	groupsOf,
+	keptBalances,
+	keptGroups,
 	requestContact,
 	settleWith,
 	usersByIds
@@ -25,13 +27,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!person || (status !== 'contact' && !mates.has(params.id) && !sharesBookings))
 		error(404, 'errors.personNotFound');
 	const groups = new Map((await groupsOf(me)).map((g) => [g.id, g]));
-	const kept = new Set([...groups.values()].filter((g) => g.keepDebts).map((g) => g.id));
-	const entries = withoutKept(all, kept);
+	const kept = new Map((await keptGroups(me)).map((g) => [g.id, g]));
+	const entries = withoutKept(all, new Set(kept.keys()));
 	const balance = personBalances(me, entries).get(person.id);
-	const keptBalance = personBalances(
-		me,
-		all.filter((e) => e.contextId && kept.has(e.contextId))
-	).get(person.id);
+	const keptBalance = (await keptBalances(me, kept.keys())).get(person.id);
 	return {
 		person,
 		// A contact request is possible only with people I share a group with.
@@ -47,8 +46,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		// Settled inside the group, not part of the net above
 		keptGroups: [...(keptBalance?.byContext ?? [])].map(([id, cents]) => ({
 			id: id!,
-			name: groups.get(id!)!.name,
-			icon: groups.get(id!)!.icon,
+			name: kept.get(id!)!.name,
+			icon: kept.get(id!)!.icon,
 			cents
 		})),
 		plan: planPersonSettlement(me, person.id, entries)

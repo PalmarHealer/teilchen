@@ -29,7 +29,7 @@
 	let icon = $state<string | null>(data.group.icon);
 	// svelte-ignore state_referenced_locally
 	let newCreator = $state(data.others[0]?.id ?? '');
-	const open = $derived(data.members.filter((m) => m.withMe));
+	const me = $derived(data.user!.id);
 </script>
 
 <Header title={data.group.name} back="/groups">
@@ -109,44 +109,52 @@
 		{i.t(data.group.keepDebts ? 'groups.hintKept' : 'groups.hint')}
 	</p>
 
-	{#if data.group.keepDebts && open.length}
-		<SectionTitle>{i.t('groups.settleHere')}</SectionTitle>
+	{#if data.plan.length}
+		<SectionTitle>{i.t('groups.plan')}</SectionTitle>
 		<List.Root>
-			{#each open as m (m.id)}
+			{#each data.plan as t (t.fromId + t.toId)}
+				{@const other = t.fromId === me ? t.toId : t.toId === me ? t.fromId : null}
+				{@const otherName = t.fromId === me ? t.toName : t.fromName}
 				<List.Item class="flex-wrap">
-					<Avatar name={m.name} src={m.avatarUrl} size={28} />
-					<span class="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
-					<span class="text-muted-foreground text-xs"
-						>{m.withMe! < 0
-							? i.t('person.youOwe', { name: m.name.split(' ')[0] ?? m.name })
-							: i.t('person.owesYou', { name: m.name.split(' ')[0] ?? m.name })}
-						<Amount cents={Math.abs(m.withMe!)} class="text-foreground font-medium" /></span
-					>
-					<!-- The amount defaults to everything that is open; less is a partial payment. -->
-					<form
-						method="POST"
-						action="?/settle"
-						use:enhance={withToast(i.t, { success: () => i.t('person.paid') })}
-						class="flex w-full gap-2"
-					>
-						<input type="hidden" name="member" value={m.id} />
-						<Input
-							name="amount"
-							inputmode="decimal"
-							aria-label={i.t('person.amount')}
-							value={centsToInput(Math.abs(m.withMe!), i.locale === 'de' ? ',' : '.')}
-							class="tabular h-8 w-28 md:text-sm"
-						/>
-						<Button type="submit" size="sm" variant="outline" class="flex-1">
-							<Icon name="check" size={14} />
-							{m.withMe! < 0
-								? i.t('person.iPaidShort')
-								: i.t('person.theyPaidShort', { name: m.name.split(' ')[0] ?? m.name })}
-						</Button>
-					</form>
+					<span class="flex min-w-0 flex-1 items-center gap-1.5 text-sm">
+						<span class="truncate"
+							>{t.fromId === me ? i.t('common.youSuffix', { name: t.fromName }) : t.fromName}</span
+						>
+						<span class="text-muted-foreground flex-none"><Icon name="arrowRight" size={14} /></span
+						>
+						<span class="truncate"
+							>{t.toId === me ? i.t('common.youSuffix', { name: t.toName }) : t.toName}</span
+						>
+					</span>
+					<Amount cents={t.cents} class="text-sm font-medium" />
+					{#if other}
+						<!-- The amount defaults to the whole transfer; less is a partial payment. -->
+						<form
+							method="POST"
+							action="?/settle"
+							use:enhance={withToast(i.t, { success: () => i.t('person.paid') })}
+							class="flex w-full gap-2"
+						>
+							<input type="hidden" name="member" value={other} />
+							<Input
+								name="amount"
+								inputmode="decimal"
+								aria-label={i.t('person.amount')}
+								value={centsToInput(t.cents, i.locale === 'de' ? ',' : '.')}
+								class="tabular h-8 w-28 md:text-sm"
+							/>
+							<Button type="submit" size="sm" variant="outline" class="flex-1">
+								<Icon name="check" size={14} />
+								{t.fromId === me
+									? i.t('person.iPaidShort')
+									: i.t('person.theyPaidShort', { name: otherName.split(' ')[0] ?? otherName })}
+							</Button>
+						</form>
+					{/if}
 				</List.Item>
 			{/each}
 		</List.Root>
+		<p class="text-muted-foreground px-1 text-xs">{i.t('groups.planHint')}</p>
 	{/if}
 
 	<div class="grid grid-cols-2 gap-2">

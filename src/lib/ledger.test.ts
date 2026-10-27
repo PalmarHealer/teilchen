@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
 	groupBalances,
 	isSettled,
+	pairResidue,
 	personBalances,
 	planPersonSettlement,
 	partialSettlement,
 	settlementEntries,
+	simplifiedBalances,
+	simplifyDebts,
 	withoutKept,
 	type LedgerEntry
 } from './ledger';
@@ -150,5 +153,46 @@ describe('partial settlement', () => {
 	it('is the full settlement for the full amount or more', () => {
 		expect(partialSettlement(full, 2500)).toEqual(full);
 		expect(partialSettlement(full, 9999)).toEqual(full);
+	});
+});
+
+describe('simplified debts', () => {
+	// Ben paid 30 for Ann, Cleo paid 30 for Ben: Ben is even, so Ann pays Cleo directly.
+	const chain = [inGroup('trip', 'ben', [['ann', 3000]]), inGroup('trip', 'cleo', [['ben', 3000]])];
+
+	it('skips people who are even overall', () => {
+		const plan = simplifyDebts(groupBalances([], chain));
+		expect(plan).toEqual([{ fromId: 'ann', toId: 'cleo', cents: 3000 }]);
+		expect(simplifiedBalances('ann', chain).get('cleo')?.net).toBe(-3000);
+		expect(simplifiedBalances('ben', chain).size).toBe(0);
+	});
+
+	it('needs at most members − 1 transfers and settles the group', () => {
+		const entries = [
+			inGroup('trip', 'a', [
+				['b', 1000],
+				['c', 2500],
+				['d', 700]
+			]),
+			inGroup('trip', 'b', [
+				['c', 400],
+				['e', 1800]
+			]),
+			inGroup('trip', 'e', [['a', 900]])
+		];
+		const plan = simplifyDebts(groupBalances([], entries));
+		expect(plan.length).toBeLessThanOrEqual(4);
+		const paid = plan.map((t) => inGroup('trip', t.fromId, [[t.toId, t.cents]]));
+		expect(isSettled(groupBalances([], [...entries, ...paid]))).toBe(true);
+	});
+
+	it('leaves a circle between pairs that pairResidue clears', () => {
+		const paid = [...chain, inGroup('trip', 'ann', [['cleo', 3000]])];
+		expect(isSettled(groupBalances([], paid))).toBe(true);
+		expect(personBalances('ann', paid).size).toBeGreaterThan(0);
+		const residue = pairResidue('trip', paid);
+		const closed = [...paid, ...settlementEntries({ transfer: null, lines: residue })];
+		expect(isSettled(groupBalances([], closed))).toBe(true);
+		for (const p of ['ann', 'ben', 'cleo']) expect(personBalances(p, closed).size).toBe(0);
 	});
 });

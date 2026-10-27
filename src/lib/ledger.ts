@@ -52,9 +52,15 @@ export interface SettlementLine {
 	cents: Cents;
 }
 
+export interface Transfer {
+	fromId: string;
+	toId: string;
+	cents: Cents;
+}
+
 export interface SettlementPlan {
 	/** What is actually transferred (or null when everything cancels out). */
-	transfer: { fromId: string; toId: string; cents: Cents } | null;
+	transfer: Transfer | null;
 	/**
 	 * One booking per context that zeroes each individual balance. Their sum equals `transfer`,
 	 * so groups stay correct for all other members even though only the net amount is paid.
@@ -129,3 +135,79 @@ export function groupBalances(memberIds: string[], entries: LedgerEntry[]): Map<
 
 export const isSettled = (balances: Map<string, Cents>) =>
 	[...balances.values()].every((c) => c === 0);
+
+/**
+ * Few transfers that settle a group (at most members − 1): the biggest debtor pays the biggest
+ * creditor, again and again. Ties go by id, so every member sees the same plan.
+ */
+export function simplifyDebts(balances: Map<string, Cents>): Transfer[] {
+	const side = (sign: 1 | -1) =>
+		[...balances].filter(([, c]) => c * sign > 0).map(([id, c]) => ({ id, left: Math.abs(c) }));
+	const debtors = side(-1);
+	const creditors = side(1);
+	const biggest = (xs: { id: string; left: Cents }[]) =>
+		xs.filter((x) => x.left > 0).sort((a, b) => b.left - a.left || (a.id < b.id ? -1 : 1))[0];
+	const transfers: Transfer[] = [];
+	for (;;) {
+		const d = biggest(debtors);
+		const c = biggest(creditors);
+		if (!d || !c) return transfers;
+		const cents = Math.min(d.left, c.left);
+		transfers.push({ fromId: d.id, toId: c.id, cents });
+		d.left -= cents;
+		c.left -= cents;
+	}
+}
+
+/**
+ * Balance of `me` towards the other members of groups that keep their debts, from each group's
+ * simplified plan (same sign convention as personBalances). There the group balance is what
+ * counts: who consumed what from whom no longer matters once someone paid for someone else.
+ * `entries` must hold all bookings of these groups, not just mine.
+ */
+export function simplifiedBalances(me: string, entries: LedgerEntry[]): Map<string, PersonBalance> {
+	const byGroup = new Map<string, LedgerEntry[]>();
+	for (const e of entries) {
+		if (e.contextId === null) continue;
+		byGroup.set(e.contextId, [...(byGroup.get(e.contextId) ?? []), e]);
+	}
+	const result = new Map<string, PersonBalance>();
+	for (const [groupId, groupEntries] of byGroup) {
+		for (const t of simplifyDebts(groupBalances([], groupEntries))) {
+			if (t.toId !== me && t.fromId !== me) continue;
+			const [other, cents] = t.toId === me ? [t.fromId, t.cents] : [t.toId, -t.cents];
+			let b = result.get(other);
+			if (!b) result.set(other, (b = { net: 0, byContext: new Map() }));
+			b.net += cents;
+			b.byContext.set(groupId, cents);
+		}
+	}
+	return result;
+}
+
+/**
+ * Settlement lines that zero what is left between each pair once a group's totals are all zero.
+ * After simplified payments that is a circle (A owes B owes C owes A), which would turn into
+ * debts again if the group's bookings were netted per person.
+ */
+export function pairResidue(groupId: string, entries: LedgerEntry[]): SettlementLine[] {
+	const pairs = new Map<string, Cents>();
+	for (const e of entries) {
+		for (const s of e.shares) {
+			if (s.userId === e.payerId) continue;
+			// > 0: the first id (sorted) is owed by the second.
+			const [a, b, sign] =
+				e.payerId < s.userId ? [e.payerId, s.userId, 1] : [s.userId, e.payerId, -1];
+			const key = `${a} ${b}`;
+			pairs.set(key, (pairs.get(key) ?? 0) + sign * s.cents);
+		}
+	}
+	return [...pairs]
+		.filter(([, c]) => c !== 0)
+		.map(([key, c]) => {
+			const [a, b] = key.split(' ') as [string, string];
+			return c > 0
+				? { contextId: groupId, fromId: b, toId: a, cents: c }
+				: { contextId: groupId, fromId: a, toId: b, cents: -c };
+		});
+}

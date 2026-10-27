@@ -1,5 +1,11 @@
 import { personBalances, withoutKept } from '#lib/ledger.ts';
-import { entriesFor, keptGroupIds, recentExpenses, usersByIds } from '#lib/server/domain.ts';
+import {
+	entriesFor,
+	keptBalances,
+	keptGroupIds,
+	recentExpenses,
+	usersByIds
+} from '#lib/server/domain.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -14,10 +20,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.filter((r) => r.user && r.net !== 0)
 		.sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
 	// … but they still belong in what I get and owe overall.
-	const inKept = personBalances(
-		me,
-		all.filter((e) => e.contextId !== null && kept.has(e.contextId))
-	);
+	const inKept = await keptBalances(me, kept);
 	const open = [
 		...rows.map((r) => r.net),
 		...[...inKept.values()].flatMap((b) => [...b.byContext.values()])

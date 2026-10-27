@@ -237,10 +237,13 @@ export const de: Dictionary = {
 		requested: 'Angefragt',
 		keepDebts: 'Schulden in der Gruppe lassen',
 		keepDebtsHint:
-			'Offene Beträge dieser Gruppe werden nicht mit anderen Gruppen oder direkten Ausgaben verrechnet. Ihr gleicht sie hier in der Gruppe aus.',
+			'Offene Beträge dieser Gruppe werden nicht mit anderen Gruppen oder direkten Ausgaben verrechnet. Ihr gleicht sie hier in der Gruppe aus, mit möglichst wenigen Überweisungen.',
 		hintKept:
 			'Diese Gruppe lässt ihre Schulden in der Gruppe: Was ihr hier offen habt, gleicht ihr auch hier aus.',
-		settleHere: 'Mit dir ausgleichen',
+		plan: 'So gleicht ihr aus',
+		planHint:
+			'Möglichst wenige Überweisungen: Wer zahlt, muss nicht an die Person zahlen, die eingekauft hat. Es zählt nur, was jemand insgesamt in der Gruppe offen hat.',
+		closedTitle: 'Gruppe abgeschlossen',
 		leave: 'Gruppe verlassen',
 		leaveConfirm: 'Wirklich verlassen? Offene Beträge bleiben auf den Personenseiten erhalten.',
 		delete: 'Gruppe löschen',
@@ -323,6 +326,8 @@ export const de: Dictionary = {
 		nameMissing: 'Name fehlt',
 		onlyCreatorDeletes: 'Nur wer die Gruppe erstellt hat, kann sie löschen',
 		groupNotSettled: 'Erst ausgleichen, dann kann die Gruppe gelöscht werden',
+		keepDebtsUnsettled: 'Erst alles ausgleichen, dann können die Schulden wieder verrechnet werden',
+		leaveKeptUnsettled: 'Gleiche erst aus, was du in dieser Gruppe offen hast',
 		notAllowed: 'Das darfst du nicht',
 		soleCreatorMustDelete: 'Du bist das einzige Mitglied, lösch die Gruppe stattdessen',
 		chooseNewCreator: 'Wähle, wer die Gruppe übernimmt',

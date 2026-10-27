@@ -233,9 +233,12 @@ export const en = {
 		requested: 'Requested',
 		keepDebts: 'Keep debts in the group',
 		keepDebtsHint:
-			'Open amounts of this group are not netted with other groups or direct expenses. You settle them here in the group.',
+			'Open amounts of this group are not netted with other groups or direct expenses. You settle them here in the group, with as few transfers as possible.',
 		hintKept: 'This group keeps its debts: what is open between you here is settled here too.',
-		settleHere: 'Settle with you',
+		plan: 'How to settle up',
+		planHint:
+			'As few transfers as possible: you don’t have to pay the person who bought something. Only what someone has open in the group overall counts.',
+		closedTitle: 'Group closed',
 		leave: 'Leave group',
 		leaveConfirm: 'Really leave? Your open amounts stay on the person pages.',
 		delete: 'Delete group',
@@ -317,6 +320,8 @@ export const en = {
 		nameMissing: 'Name missing',
 		onlyCreatorDeletes: 'Only the person who created the group can delete it',
 		groupNotSettled: 'Settle up first, then the group can be deleted',
+		keepDebtsUnsettled: 'Settle everything first, then debts can be netted again',
+		leaveKeptUnsettled: 'Settle what you have open in this group first',
 		notAllowed: 'You are not allowed to do that',
 		soleCreatorMustDelete: 'You are the only member – delete the group instead',
 		chooseNewCreator: 'Choose who takes over the group',
