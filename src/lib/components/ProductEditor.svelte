@@ -6,7 +6,7 @@
 	import { productThumb } from '../product-image.ts';
 	import { withToast } from '../toast.ts';
 	import Icon from './Icon.svelte';
-	import { Button } from './ui/button/index.ts';
+	import { Button, buttonVariants } from './ui/button/index.ts';
 	import { Input } from './ui/input/index.ts';
 	import { Label } from './ui/label/index.ts';
 
@@ -55,6 +55,22 @@
 		});
 	});
 
+	// The keyboard covers the lower half of a phone, and the layout viewport doesn't shrink for
+	// it: on small screens the dialog sits at the top of what stays visible and fits into it.
+	let visible = $state<{ top: number; height: number } | null>(null);
+	$effect(() => {
+		const vv = window.visualViewport;
+		if (!open || !vv) return;
+		const update = () => (visible = { top: vv.offsetTop, height: vv.height });
+		update();
+		vv.addEventListener('resize', update);
+		vv.addEventListener('scroll', update);
+		return () => {
+			vv.removeEventListener('resize', update);
+			vv.removeEventListener('scroll', update);
+		};
+	});
+
 	let seq = 0;
 	async function search() {
 		const q = query.trim();
@@ -82,9 +98,18 @@
 			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50"
 		/>
 		<Dialog.Content
-			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl border p-6 shadow-lg"
+			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[calc(var(--vv-top,0px)+1rem)] left-1/2 z-50 grid max-h-[calc(var(--vv-height,100dvh)-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 gap-4 sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2 overflow-y-auto rounded-xl border p-6 shadow-lg"
+			style={visible ? `--vv-top: ${visible.top}px; --vv-height: ${visible.height}px` : undefined}
 		>
-			<Dialog.Title class="text-lg font-semibold">
+			<Dialog.Close
+				class={buttonVariants({
+					variant: 'ghost',
+					size: 'icon',
+					class: 'text-muted-foreground absolute top-3 right-3 size-8'
+				})}
+				aria-label={i.t('common.close')}><Icon name="x" size={18} /></Dialog.Close
+			>
+			<Dialog.Title class="pr-8 text-lg font-semibold">
 				{item.imageUrl ? i.t('product.relink') : i.t('product.findPhoto')}
 			</Dialog.Title>
 			<Dialog.Description class="text-muted-foreground text-sm">
