@@ -6,6 +6,7 @@
 	import SwipeHelp from '#lib/components/SwipeHelp.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import ProductEditor from '#lib/components/ProductEditor.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
@@ -14,6 +15,7 @@
 	import { withToast } from '#lib/toast.ts';
 	import { splitEqually } from '#lib/money.ts';
 	import { productIcon } from '#lib/product-icon.ts';
+	import { productThumb } from '#lib/product-image.ts';
 	import {
 		expandUnits,
 		sharesFromItems,
@@ -180,6 +182,11 @@
 	const round =
 		'bg-card hover:bg-accent focus-visible:ring-ring/50 flex size-[68px] flex-col items-center justify-center gap-0.5 rounded-full border shadow-sm transition-colors outline-none focus-visible:ring-[3px] disabled:opacity-40 [&_small]:max-w-[60px] [&_small]:truncate [&_small]:text-[11px] [&_small]:font-medium';
 
+	// Photos that didn't load (REWE moved them): the icon again, until a new one is picked
+	let broken = $state<Record<string, true>>({});
+	let editing = $state(false);
+	const hasPhoto = $derived(!!current?.item.imageUrl && !broken[current.item.imageUrl]);
+
 	const fmtQty = (q: string, unit: string | null) =>
 		unit === 'kg' ? `${Number(q).toLocaleString(i.locale)} kg` : Number(q) > 1 ? `${q}×` : '';
 </script>
@@ -187,13 +194,27 @@
 <svelte:window onkeydown={key} />
 
 {#snippet face(card: (typeof cards)[number])}
-	<GroupIcon icon={productIcon(card.item.name)} size={80} />
+	{@const url = card.item.imageUrl}
+	{#if url && !broken[url]}
+		<img
+			src={productThumb(url, 320)}
+			alt=""
+			draggable="false"
+			class="pointer-events-none size-40 object-contain"
+			onerror={() => (broken[url] = true)}
+		/>
+	{:else}
+		<GroupIcon icon={productIcon(card.item.name)} size={80} />
+	{/if}
 	<span class="text-muted-foreground min-h-5 text-sm">
 		{card.of > 1
 			? i.t('swipe.piece', { n: card.piece + 1, of: card.of })
 			: fmtQty(card.item.quantity, card.item.unit)}
 	</span>
-	<h2 class="text-2xl font-semibold break-words">{card.item.name}</h2>
+	<h2 class="text-2xl font-semibold break-words">{card.item.title ?? card.item.name}</h2>
+	{#if card.item.title && card.item.title !== card.item.name}
+		<span class="text-muted-foreground -mt-2 font-mono text-xs">{card.item.name}</span>
+	{/if}
 	<Amount
 		cents={card.cents}
 		class="text-5xl font-semibold tracking-tight {card.cents < 0 ? 'text-destructive' : ''}"
@@ -295,13 +316,31 @@
 					class:dragging
 					role="button"
 					tabindex="0"
-					aria-label={i.t('swipe.cardLabel', { name: current.item.name })}
+					aria-label={i.t('swipe.cardLabel', { name: current.item.title ?? current.item.name })}
 					style:transform="translate({dx}px, {dy}px) rotate({dx / 18}deg)"
 					onpointerdown={down}
 					onpointermove={move}
 					onpointerup={up}
 					onpointercancel={up}
 				>
+					{#if current.item.canLink}
+						<Button
+							variant={hasPhoto ? 'ghost' : 'outline'}
+							size={hasPhoto ? 'icon' : 'sm'}
+							class="absolute top-3 right-3"
+							aria-label={hasPhoto ? i.t('product.relink') : undefined}
+							title={hasPhoto ? i.t('product.relink') : undefined}
+							onpointerdown={(e: PointerEvent) => e.stopPropagation()}
+							onclick={() => (editing = true)}
+						>
+							{#if hasPhoto}
+								<Icon name="photoSearch" size={18} />
+							{:else}
+								<Icon name="photoSearch" size={16} />
+								{i.t('product.findPhoto')}
+							{/if}
+						</Button>
+					{/if}
 					{#if hint}
 						<span class="stamp {hint}"
 							>{hint === 'theirs'
@@ -327,6 +366,7 @@
 				</div>
 			{/key}
 		</div>
+		<ProductEditor item={current.item} canRename={data.canRename} bind:open={editing} />
 
 		<div class="flex items-center justify-center gap-4">
 			<button

@@ -129,6 +129,22 @@ export const en = {
 		book: 'Book',
 		undoLast: 'Undo last'
 	},
+	product: {
+		findPhoto: 'Find photo',
+		relink: 'Link another product',
+		onReceipt: 'On the receipt:',
+		learns: 'The product you pick is used for this line on every receipt, for everyone.',
+		search: 'Search the REWE shop',
+		searchHint: 'Name or link to the product',
+		searching: 'Searching…',
+		noHits: 'Nothing found. Try fewer or full words, or paste a link from rewe.de.',
+		adminName: 'Name for everyone (admin)',
+		adminNameHint:
+			'Used on every receipt with this line, also the old ones. Empty: the shop name again.',
+		nameSaved: 'Name saved',
+		link: 'Link product',
+		retryIn: 'The REWE search is pausing us, try again in {s} s'
+	},
 	expenses: {
 		title: 'Expenses',
 		new: 'New expense',
@@ -241,6 +257,11 @@ export const en = {
 	},
 	settings: {
 		title: 'Profile',
+		editLinks: 'Edit links',
+		editLinksHint:
+			'Shows “Find photo” on products that are already linked, so you can link another one.',
+		editLinksAdmin:
+			'As an admin you can also change the links the shop search made on its own, and name products by hand.',
 		language: 'Language',
 		languageAuto: 'Browser language',
 		inviteHeading: 'Contacts',
@@ -278,6 +299,11 @@ export const en = {
 		logout: 'Sign out'
 	},
 	errors: {
+		cannotLink:
+			'Changing a linked product needs “Edit links” in the settings (automatic links: admins only)',
+		productNotFound: 'That product is no longer in the shop search, please search again',
+		shopUnavailable: 'The REWE search can’t be reached right now, try again in a few minutes',
+		adminsOnly: 'Only admins can do that, with “Edit links” on in the settings',
 		invalidInput: 'Invalid input',
 		notYourGroup: 'Not one of your groups',
 		unknownPerson: 'Unknown person',

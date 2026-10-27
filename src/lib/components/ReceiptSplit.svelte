@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { useI18n } from '../i18n/index.ts';
+	import { productIcon } from '../product-icon.ts';
+	import { productThumb } from '../product-image.ts';
 	import type { ItemDecision } from '../split.ts';
 	import { withToast } from '../toast.ts';
 	import Amount from './Amount.svelte';
+	import GroupIcon from './GroupIcon.svelte';
 	import Icon from './Icon.svelte';
 	import { Badge } from './ui/badge/index.ts';
 	import { Button } from './ui/button/index.ts';
@@ -27,6 +30,8 @@
 			lines: {
 				id: string;
 				name: string;
+				/** Product photo, when the line is linked to a shop product */
+				imageUrl: string | null;
 				quantity: string;
 				unit: string | null;
 				cents: number;
@@ -39,6 +44,8 @@
 	} = $props();
 	const i = useI18n();
 	let open = $state<string | null>(null);
+	// Photos that didn't load: the icon instead
+	let broken = $state<Record<string, true>>({});
 
 	const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 	const name = (id: string) =>
@@ -88,6 +95,18 @@
 				onclick={() => (open = open === l.id ? null : l.id)}
 				aria-expanded={open === l.id}
 			>
+				{#if l.imageUrl && !broken[l.imageUrl]}
+					{@const url = l.imageUrl}
+					<img
+						src={productThumb(url, 152)}
+						alt=""
+						loading="lazy"
+						class="size-9 flex-none object-contain"
+						onerror={() => (broken[url] = true)}
+					/>
+				{:else}
+					<GroupIcon icon={productIcon(l.name)} size={36} />
+				{/if}
 				<span class="flex min-w-0 flex-1 flex-col gap-0.5">
 					<span class="truncate text-sm font-medium">{l.name}</span>
 					<span class="text-muted-foreground truncate text-xs"

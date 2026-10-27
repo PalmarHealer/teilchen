@@ -10,6 +10,7 @@
 	import InviteBox from '#lib/components/InviteBox.svelte';
 	import Select from '#lib/components/Select.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
 	import { useI18n } from '#lib/i18n/index.ts';
@@ -18,6 +19,9 @@
 	let { data, form } = $props();
 	const i = useI18n();
 	let langForm: HTMLFormElement;
+	let linksForm: HTMLFormElement;
+	// svelte-ignore state_referenced_locally
+	let editLinks = $state(data.editLinks);
 	let uploadForm: HTMLFormElement;
 	// svelte-ignore state_referenced_locally
 	let lang = $state<'auto' | 'en' | 'de'>(data.langPref);
@@ -226,6 +230,34 @@
 			</form>
 		</Card.Content>
 	</Card.Root>
+
+	<form
+		method="POST"
+		action="?/editLinks"
+		bind:this={linksForm}
+		use:enhance={withToast(i.t, { reset: false })}
+	>
+		<input type="hidden" name="on" value={editLinks} />
+		<Card.Root>
+			<Card.Content class="flex items-start gap-4">
+				<label for="edit-links" class="flex flex-1 flex-col gap-1">
+					<span class="text-sm font-medium">{i.t('settings.editLinks')}</span>
+					<span class="text-muted-foreground text-sm">
+						{i.t('settings.editLinksHint')}
+						{#if data.isAdmin}{i.t('settings.editLinksAdmin')}{/if}
+					</span>
+				</label>
+				<Switch
+					id="edit-links"
+					bind:checked={editLinks}
+					onCheckedChange={async () => {
+						await tick();
+						linksForm.requestSubmit();
+					}}
+				/>
+			</Card.Content>
+		</Card.Root>
+	</form>
 
 	<form method="POST" action="/auth/logout">
 		<Button type="submit" variant="ghost" class="text-muted-foreground w-full"

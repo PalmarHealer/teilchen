@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { allocate, centsToInput } from '#lib/money.ts';
 import { canManageExpense } from '#lib/permissions.ts';
 import {
@@ -46,6 +46,29 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		...(split?.everyone ?? [])
 	]);
 
+	// Readable name and photo of the lines that are linked to a shop product
+	const links = new Map(
+		split
+			? (
+					await db
+						.select({
+							name: schema.productLinks.name,
+							title: sql<
+								string | null
+							>`coalesce(${schema.productLinks.label}, ${schema.productLinks.title})`,
+							imageUrl: schema.productLinks.imageUrl
+						})
+						.from(schema.productLinks)
+						.where(
+							inArray(
+								schema.productLinks.name,
+								split.lines.map((l) => l.name)
+							)
+						)
+				).map((l) => [l.name, l])
+			: []
+	);
+
 	// Equal split if the stored shares are exactly what an equal split would produce.
 	const sorted = (xs: number[]) => [...xs].sort((a, b) => a - b).join();
 	const shareCents = expense.shares.map((s) => s.cents);
@@ -89,7 +112,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 				.filter((l) => l.kind === 'product')
 				.map((l) => ({
 					id: l.id,
-					name: l.name,
+					name: links.get(l.name)?.title ?? l.name,
+					imageUrl: links.get(l.name)?.imageUrl ?? null,
 					quantity: l.quantity,
 					unit: l.unit,
 					cents: l.totalCents,

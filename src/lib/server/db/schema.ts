@@ -25,6 +25,10 @@ export const users = pgTable('users', {
 	name: text('name').notNull(),
 	avatarUrl: text('avatar_url'),
 	/** Personal part of the eBon forwarding address: teilchen+<token>@… */
+	/** In the identity provider's admin group (OIDC_ADMIN_GROUP), refreshed on every login */
+	isAdmin: boolean('is_admin').notNull().default(false),
+	/** Settings switch: show "find photo" on products that are already linked */
+	editLinks: boolean('edit_links').notNull().default(false),
 	inboxToken: text('inbox_token')
 		.notNull()
 		.unique()
@@ -169,6 +173,30 @@ export const receiptItems = pgTable(
 	},
 	(t) => [index('receipt_items_receipt').on(t.receiptId)]
 );
+
+/**
+ * eBon line name → REWE shop product (readable name + photo), learned once for everyone:
+ * "BAD BR. HIM.ZIT." is the same product on every receipt. See #lib/product-image.
+ */
+export const productLinks = pgTable('product_links', {
+	name: text('name').primaryKey(),
+	/** The linked shop product; all three null while only an admin's label is set */
+	title: text('title'),
+	/** On REWE's image CDN, stored as a link */
+	imageUrl: text('image_url'),
+	/** 'system': first search hit of the worker; 'user': picked by hand */
+	source: text('source', { enum: ['system', 'user'] }),
+	/** Name typed by an admin; wins over the shop title and survives relinking */
+	label: text('label'),
+	linkedBy: uuid('linked_by').references(() => users.id, { onDelete: 'set null' }),
+	linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+/** eBon line names the shop search found nothing for, so the worker doesn't ask again and again. */
+export const productMisses = pgTable('product_misses', {
+	name: text('name').primaryKey(),
+	searchedAt: timestamp('searched_at', { withTimezone: true }).notNull().defaultNow()
+});
 
 /** One person's swipe of a booked receipt: decision per line id, or per piece (see #lib/split). */
 export const receiptSwipes = pgTable(

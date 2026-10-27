@@ -3,6 +3,7 @@ import * as client from 'openid-client';
 import { createSession } from '#lib/server/auth/session.ts';
 import { oidc, redirectUri } from '#lib/server/auth/oidc.ts';
 import { db, schema } from '#lib/server/db/index.ts';
+import { optionalEnv } from '#lib/server/db/env.ts';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
@@ -31,10 +32,18 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
 	const claims = tokens.claims();
 	if (!claims) error(400, 'errors.noIdToken');
 
+	// Authentik puts the groups into the profile scope; the ID token only has them if the provider
+	// includes claims there, so ask the userinfo endpoint otherwise.
+	let groups = claims.groups;
+	if (!Array.isArray(groups))
+		groups = (await client.fetchUserInfo(await oidc(), tokens.access_token, claims.sub)).groups;
+	const adminGroup = optionalEnv('OIDC_ADMIN_GROUP') ?? 'authentik Admins';
+
 	const profile = {
 		email: String(claims.email ?? ''),
 		name: String(claims.name ?? claims.preferred_username ?? claims.email ?? 'Unknown'),
-		avatarUrl: typeof claims.picture === 'string' ? claims.picture : null
+		avatarUrl: typeof claims.picture === 'string' ? claims.picture : null,
+		isAdmin: Array.isArray(groups) && groups.includes(adminGroup)
 	};
 	const [user] = await db
 		.insert(schema.users)

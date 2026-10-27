@@ -24,6 +24,8 @@
 	import Logout from '@tabler/icons-svelte/icons/logout';
 	import Mail from '@tabler/icons-svelte/icons/mail';
 	import Pencil from '@tabler/icons-svelte/icons/pencil';
+	import PhotoOff from '@tabler/icons-svelte/icons/photo-off';
+	import PhotoSearch from '@tabler/icons-svelte/icons/photo-search';
 	import Plus from '@tabler/icons-svelte/icons/plus';
 	import Receipt from '@tabler/icons-svelte/icons/receipt';
 	import Search from '@tabler/icons-svelte/icons/search';
@@ -74,6 +76,8 @@
 		leave: DoorExit,
 		pdf: FileTypePdf,
 		edit: Pencil,
+		photoOff: PhotoOff,
+		photoSearch: PhotoSearch,
 		search: Search,
 		settings: Settings,
 		sparkles: Sparkles,

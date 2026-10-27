@@ -24,6 +24,8 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		email: user.email,
 		inboxAddress: local && domain ? `${local}+${user.inboxToken}@${domain}` : null,
 		langPref: (isLocale(pref) ? pref : 'auto') as Locale | 'auto',
+		editLinks: user.editLinks,
+		isAdmin: user.isAdmin,
 		contacts: await contactsOf(user.id),
 		requests: await incomingContactRequests(user.id),
 		openInvites: await db.$count(
@@ -69,6 +71,14 @@ export const actions: Actions = {
 		} else {
 			cookies.delete(LANG_COOKIE, { path: '/' });
 		}
+	},
+
+	editLinks: async ({ locals, request }) => {
+		const on = (await request.formData()).get('on') === 'true';
+		await db
+			.update(schema.users)
+			.set({ editLinks: on })
+			.where(eq(schema.users.id, locals.user!.id));
 	},
 
 	upload: async ({ locals, request }) => {

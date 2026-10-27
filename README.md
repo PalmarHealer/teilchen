@@ -28,7 +28,7 @@ docker compose up -d db
 pnpm db:migrate
 pnpm db:seed    # demo data; prints a session token (cookie `teilchen_session`)
 pnpm dev
-pnpm worker     # eBon mail import
+pnpm worker     # eBon mail import, linking receipt lines to shop products
 ```
 
 ### Authentik
@@ -59,6 +59,6 @@ Every push to `main` runs `.github/workflows/deploy.yml`:
 2. A release is built on `node:24-alpine` (same as the site's runtime) with a flat production `node_modules`.
 3. It is uploaded to the site on `sites.nauren.de` through its deploy API, authenticated with GitHub OIDC, so there is no deploy secret.
 
-On start the site runs the migrations, then the app; the IMAP worker runs as a background process of the site. Environment variables (see `.env.example`) are configured on the site, never in the repo.
+On start the site runs the migrations, then the app; the worker (IMAP import, product links) runs as a background process of the site. Environment variables (see `.env.example`) are configured on the site, never in the repo.
 
 For a self-hosted stack, `compose.yaml` builds the `Dockerfile` and runs app, worker and Postgres.

@@ -1,9 +1,16 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { formatDate, translate, type Locale } from '#lib/i18n/index.ts';
 import { unitCount } from '#lib/split.ts';
 import { db, schema } from '#lib/server/db/index.ts';
+import { canLink } from '#lib/product-image.ts';
+import {
+	linkProduct,
+	renameProduct,
+	searchProducts,
+	shopRetryIn
+} from '#lib/server/product-images.ts';
 import { UUID_SOURCE } from '#lib/uuid.ts';
 import {
 	connect,
@@ -45,6 +52,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		.select({
 			id: schema.receiptItems.id,
 			name: schema.receiptItems.name,
+			// An admin's label wins over the shop title
+			title: sql<
+				string | null
+			>`coalesce(${schema.productLinks.label}, ${schema.productLinks.title})`,
+			label: schema.productLinks.label,
+			imageUrl: schema.productLinks.imageUrl,
+			linkSource: schema.productLinks.source,
 			quantity: schema.receiptItems.quantity,
 			unit: schema.receiptItems.unit,
 			totalCents: schema.receiptItems.totalCents,
@@ -52,6 +66,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			discountable: schema.receiptItems.discountable
 		})
 		.from(schema.receiptItems)
+		.leftJoin(schema.productLinks, eq(schema.productLinks.name, schema.receiptItems.name))
 		.where(eq(schema.receiptItems.receiptId, receipt.id))
 		.orderBy(asc(schema.receiptItems.position));
 	const base = {
@@ -61,7 +76,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			purchasedAt: receipt.purchasedAt,
 			totalCents: receipt.totalCents
 		},
-		items
+		items: items.map(({ linkSource, ...it }) => ({
+			...it,
+			canLink: canLink(linkSource, locals.user!)
+		})),
+		// Naming by hand: admins, with "edit links" on in the settings
+		canRename: locals.user!.isAdmin && locals.user!.editLinks
 	};
 
 	if (!payer) {
@@ -112,6 +132,16 @@ const BookInput = z.object({
 	target: z.string().regex(new RegExp(`^(user|group):${UUID_SOURCE}$`)),
 	// One decision per line, or one per piece for lines swiped piece by piece
 	decisions: z.record(z.string().uuid(), z.union([Decision, z.array(Decision)]))
+});
+
+const RenameInput = z.object({
+	item: z.string().uuid(),
+	label: z.string().trim().max(120)
+});
+const LinkInput = z.object({
+	item: z.string().uuid(),
+	query: z.string().trim().min(1).max(300),
+	url: z.string().max(300)
 });
 
 export const actions: Actions = {
@@ -187,6 +217,51 @@ export const actions: Actions = {
 		});
 		if (kind === 'user') await connect(me, targetId);
 		redirect(303, '/swipe');
+	},
+
+	/**
+	 * "Find photo": link a line to a shop product, for this and every later receipt. Only a hit of
+	 * the search itself, so nobody can give a line a made-up name.
+	 */
+	link: async ({ locals, params, request }) => {
+		const user = locals.user!;
+		const { receipt } = await swipeableReceipt(params.id, user.id);
+		const parsed = LinkInput.safeParse(Object.fromEntries(await request.formData()));
+		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
+		const { item, query, url } = parsed.data;
+		const [line] = await db
+			.select({ name: schema.receiptItems.name, source: schema.productLinks.source })
+			.from(schema.receiptItems)
+			.leftJoin(schema.productLinks, eq(schema.productLinks.name, schema.receiptItems.name))
+			.where(and(eq(schema.receiptItems.id, item), eq(schema.receiptItems.receiptId, receipt.id)));
+		if (!line) return fail(404, { message: 'errors.invalidInput' as const });
+		if (!canLink(line.source, user)) return fail(403, { message: 'errors.cannotLink' as const });
+		const hits = await searchProducts(query);
+		if (!hits)
+			return fail(503, { message: 'errors.shopUnavailable' as const, retryIn: shopRetryIn() });
+		const hit = hits.find((h) => h.imageUrl === url);
+		if (!hit) return fail(400, { message: 'errors.productNotFound' as const });
+		await linkProduct(line.name, hit, { source: 'user', userId: user.id });
+	},
+
+	/**
+	 * Admins with "edit links" on: name a line by hand, for every receipt it's on and every line
+	 * linked to the same product. Empty = the shop title again.
+	 */
+	rename: async ({ locals, params, request }) => {
+		const user = locals.user!;
+		if (!user.isAdmin || !user.editLinks)
+			return fail(403, { message: 'errors.adminsOnly' as const });
+		const { receipt } = await swipeableReceipt(params.id, user.id);
+		const parsed = RenameInput.safeParse(Object.fromEntries(await request.formData()));
+		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
+		const { item, label } = parsed.data;
+		const [line] = await db
+			.select({ name: schema.receiptItems.name })
+			.from(schema.receiptItems)
+			.where(and(eq(schema.receiptItems.id, item), eq(schema.receiptItems.receiptId, receipt.id)));
+		if (!line) return fail(404, { message: 'errors.invalidInput' as const });
+		await renameProduct(line.name, label || null, user.id);
 	},
 
 	/** Not shared: an expense of mine alone, so it still shows up under expenses. */

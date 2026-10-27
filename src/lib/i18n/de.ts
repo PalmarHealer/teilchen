@@ -129,6 +129,23 @@ export const de: Dictionary = {
 		book: 'Buchen',
 		undoLast: 'Letzte zurück'
 	},
+	product: {
+		findPhoto: 'Bild finden',
+		relink: 'Anderes Produkt verknüpfen',
+		onReceipt: 'Auf dem Bon:',
+		learns: 'Das gewählte Produkt gilt für diese Zeile auf allen Bons, für alle.',
+		search: 'Im REWE-Shop suchen',
+		searchHint: 'Name oder Link zum Produkt',
+		searching: 'Suche läuft…',
+		noHits:
+			'Nichts gefunden. Probier weniger oder ganze Wörter, oder füg einen Link von rewe.de ein.',
+		adminName: 'Name für alle (Admin)',
+		adminNameHint:
+			'Gilt auf allen Bons mit dieser Zeile, auch den alten. Leer: wieder der Name aus dem Shop.',
+		nameSaved: 'Name gespeichert',
+		link: 'Produkt verknüpfen',
+		retryIn: 'Die REWE-Suche bremst uns gerade, probier es in {s} s nochmal'
+	},
 	expenses: {
 		title: 'Ausgaben',
 		new: 'Neue Ausgabe',
@@ -245,6 +262,11 @@ export const de: Dictionary = {
 	},
 	settings: {
 		title: 'Profil',
+		editLinks: 'Verknüpfungen bearbeiten',
+		editLinksHint:
+			'Zeigt „Bild finden“ auch bei schon verknüpften Produkten, damit du ein anderes wählen kannst.',
+		editLinksAdmin:
+			'Als Admin kannst du auch die Verknüpfungen ändern, die die Shop-Suche selbst gesetzt hat, und Produkte von Hand benennen.',
 		language: 'Sprache',
 		languageAuto: 'Browsersprache',
 		inviteHeading: 'Kontakte',
@@ -282,6 +304,12 @@ export const de: Dictionary = {
 		logout: 'Abmelden'
 	},
 	errors: {
+		cannotLink:
+			'Verknüpfte Produkte ändern geht mit „Verknüpfungen bearbeiten“ in den Einstellungen (automatische nur für Admins)',
+		productNotFound: 'Das Produkt ist nicht mehr in der Shop-Suche, bitte neu suchen',
+		shopUnavailable:
+			'Die REWE-Suche ist gerade nicht erreichbar, probier es in ein paar Minuten nochmal',
+		adminsOnly: 'Das dürfen nur Admins, mit „Verknüpfungen bearbeiten“ in den Einstellungen',
 		invalidInput: 'Ungültige Eingabe',
 		notYourGroup: 'Keine Gruppe von dir',
 		unknownPerson: 'Unbekannte Person',
