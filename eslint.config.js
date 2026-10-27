@@ -35,6 +35,21 @@ export default ts.config(
 		}
 	},
 	{
+		// Server code also runs in the worker (tsx, no Vite): no SvelteKit virtual modules there.
+		files: ['src/lib/server/**', 'src/worker/**'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{ group: ['$env/*'], message: 'Use process.env (the worker has no Vite).' },
+						{ group: ['$app/*'], message: 'Not available in the worker.' }
+					]
+				}
+			]
+		}
+	},
+	{
 		rules: {
 			'no-undef': 'off',
 			// No base path in use; resolve() on every link would just be noise.
