@@ -3,6 +3,7 @@
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import ExpenseForm from '#lib/components/ExpenseForm.svelte';
 	import Header from '#lib/components/Header.svelte';
+	import ReceiptSplit from '#lib/components/ReceiptSplit.svelte';
 	import GroupIcon from '#lib/components/GroupIcon.svelte';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
@@ -54,28 +55,41 @@
 			{/each}
 		</List.Root>
 
+		{#if data.receipt}
+			<SectionTitle>{i.t('expenses.items')}</SectionTitle>
+			<ReceiptSplit me={data.user!.id} receipt={data.receipt} />
+		{/if}
+
 		{#if e.kind === 'settlement'}
 			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.settlementInfo')}</p>
+		{:else if data.receipt}
+			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.fromReceiptSwiped')}</p>
 		{:else if e.fromReceipt}
 			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.fromReceipt')}</p>
 		{/if}
-		{#if !data.canManage}
+		{#if !data.canManage && !data.receipt?.canEdit}
 			<p class="text-muted-foreground px-1 text-xs">{i.t('expenses.readOnly')}</p>
 		{/if}
 	{/if}
 
-	{#if data.canManage}
+	{#if data.canResplit || data.canManage}
 		<div class="mt-2 flex flex-col gap-2">
-			{#if e.fromReceipt}
+			{#if data.canResplit}
 				<ConfirmAction
 					action="?/resplit"
 					icon="swipe"
 					label={i.t('expenses.resplit')}
-					question={i.t('expenses.resplitConfirm')}
+					question={data.receipt && !data.receipt.isPayer
+						? i.t('expenses.resplitOwnConfirm')
+						: i.t('expenses.resplitConfirm')}
 					confirmLabel={i.t('expenses.confirm')}
 					cancelLabel={i.t('expenses.cancel')}
 				/>
 			{/if}
+		</div>
+	{/if}
+	{#if data.canManage}
+		<div class="flex flex-col gap-2">
 			<ConfirmAction
 				action="?/delete"
 				icon="trash"
@@ -83,7 +97,9 @@
 				label={e.kind === 'settlement' ? i.t('expenses.undoSettlement') : i.t('expenses.delete')}
 				question={e.kind === 'settlement'
 					? i.t('expenses.undoSettlementConfirm')
-					: i.t('expenses.deleteConfirm')}
+					: e.fromReceipt
+						? i.t('expenses.deleteReceiptConfirm')
+						: i.t('expenses.deleteConfirm')}
 				confirmLabel={i.t('expenses.confirm')}
 				cancelLabel={i.t('expenses.cancel')}
 			/>

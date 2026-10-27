@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { ItemDecision } from '../../split.ts';
 import {
 	boolean,
 	index,
@@ -128,7 +129,13 @@ export const receipts = pgTable(
 		totalCents: integer('total_cents').notNull(),
 		/** Only set once all items are swiped and the expense is booked */
 		expenseId: uuid('expense_id').references(() => expenses.id, { onDelete: 'set null' }),
+		/** Old receipts only: skipped before "all mine" was booked as an expense of its own */
 		dismissed: boolean('dismissed').notNull().default(false),
+		/** Everyone the booking is split between, fixed when it's booked; they can swipe it too */
+		participants: uuid('participants')
+			.array()
+			.notNull()
+			.default(sql`'{}'::uuid[]`),
 		raw: jsonb('raw'),
 		createdAt: createdAt()
 	},
@@ -155,10 +162,31 @@ export const receiptItems = pgTable(
 			.default('product'),
 		/** False for lines marked "*" on the receipt: discounts don't apply to them */
 		discountable: boolean('discountable').notNull().default(true),
-		/** Null until swiped, and for lines whose pieces were swiped differently */
-		decision: itemDecision('decision')
+		/** Old receipts only; swipes now live in receipt_swipes */
+		decision: itemDecision('decision'),
+		/** Who gets this line, set by hand after swiping; null = follow the swipes */
+		owners: uuid('owners').array()
 	},
 	(t) => [index('receipt_items_receipt').on(t.receiptId)]
+);
+
+/** One person's swipe of a booked receipt: decision per line id, or per piece (see #lib/split). */
+export const receiptSwipes = pgTable(
+	'receipt_swipes',
+	{
+		receiptId: uuid('receipt_id')
+			.notNull()
+			.references(() => receipts.id, { onDelete: 'cascade' }),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		decisions: jsonb('decisions').$type<Record<string, ItemDecision>>().notNull(),
+		swipedAt: createdAt()
+	},
+	(t) => [
+		primaryKey({ columns: [t.receiptId, t.userId] }),
+		index('receipt_swipes_user').on(t.userId)
+	]
 );
 
 export const expenseKind = pgEnum('expense_kind', ['expense', 'settlement']);

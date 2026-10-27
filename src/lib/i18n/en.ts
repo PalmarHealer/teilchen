@@ -106,12 +106,12 @@ export const en = {
 		cardLabel: '{name}, swipe to assign',
 		mine: 'Mine',
 		share: 'Ours',
-		theirsGroup: 'Group',
+		theirsGroup: 'Others',
 		undo: 'Undo',
 		undoShort: 'Undo',
 		mineAria: 'Mine (left arrow)',
-		theirsAria: 'Belongs to {name} (up arrow)',
-		shareAria: 'Ours, split between all (right arrow)',
+		theirsAria: 'Belongs to {name} (right arrow)',
+		shareAria: 'Ours, split between all (up arrow)',
 		piece: 'Piece {n} of {of}',
 		splitPieces: 'Swipe the {n} pieces one by one',
 		finished: 'All swiped',
@@ -120,7 +120,12 @@ export const en = {
 		pileShared: 'For all of us',
 		discountSpread: 'Discounts & coupons, spread proportionally',
 		perPerson: 'Per person',
-		youPaid: 'You paid. The other shares are credited to you.',
+		youPaid:
+			'You paid. The other shares are credited to you. The others can swipe the purchase too; where you disagree, the expense shows it.',
+		theyPaid: '{name} paid. Wherever you swiped differently, the expense marks it afterwards.',
+		swipeToo: 'Booked with you',
+		swipeTooHint: "Swipe what of it was yours. It's booked already, you only correct it.",
+		paidBy: 'paid by {name}',
 		book: 'Book',
 		undoLast: 'Undo last'
 	},
@@ -154,8 +159,27 @@ export const en = {
 		delete: 'Delete expense',
 		deleteConfirm: 'Delete this expense for everyone involved?',
 		fromReceipt: 'Booked from a receipt. To change the split, swipe it again.',
+		fromReceiptSwiped:
+			'Booked from a receipt. Tap an item to see how everyone swiped it and to set who gets it.',
+		items: 'Items',
+		everyone: 'everyone',
+		notMine: 'not mine',
+		conflicts: ((p) =>
+			p.n === 1 ? 'You disagree on 1 item' : `You disagree on ${p.n} items`) as Plural,
+		pendingSwipes: ((p) =>
+			p.n === 1 ? "1 person hasn't swiped yet." : `${p.n} people haven't swiped yet.`) as Plural,
+		disagree: 'disagree',
+		setByHand: 'set',
+		whoGetsIt: 'Who gets it?',
+		saveOwners: 'Set',
+		followSwipes: 'Back to swipes',
+		ownersSaved: 'Split changed',
+		deleteReceiptConfirm:
+			'Delete the expense and its receipt for everyone? You can upload the receipt again afterwards.',
 		resplit: 'Swipe again',
-		resplitConfirm: 'The receipt goes back to your swipe list and this booking is removed.',
+		resplitConfirm:
+			'The booking and all swipes are dropped, the receipt goes back to your swipe list.',
+		resplitOwnConfirm: 'Your swipes are dropped and you swipe the receipt again.',
 		settlementInfo:
 			'A settlement is booked once per group it netted, so it can only be undone as a whole.',
 		undoSettlement: 'Undo settlement',
@@ -281,7 +305,9 @@ export const en = {
 		groupNotFound: 'Group not found',
 		receiptNotFound: 'Receipt not found or already booked',
 		inviteInvalid: 'Invite invalid or expired',
-		noNewEbon: 'No new REWE eBon detected',
+		noNewEbon: 'No REWE eBon found in the PDF',
+		ebonKnown:
+			'You already imported this receipt. It is listed under expenses; delete it there to upload it again.',
 		uploadTooLarge: 'Too many or too large files (at most 20 PDFs of 5 MB each)',
 		invalidDate: 'Invalid date',
 		generic: 'Something went wrong'

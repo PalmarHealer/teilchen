@@ -26,7 +26,9 @@
 	let { data } = $props();
 	const i = useI18n();
 
-	let target = $state<string | null>(null);
+	// Fixed when swiping someone else's booking
+	// svelte-ignore state_referenced_locally
+	let target = $state<string | null>(data.fixedTarget);
 	// Keyed by card: the item id, or `<item id>#<piece>` for lines swiped piece by piece
 	let decisions = $state<Record<string, Decision>>({});
 	let split = $state<Record<string, boolean>>({});
@@ -137,9 +139,9 @@
 	const THRESHOLD = 90;
 	const hint = $derived<Decision | null>(
 		dy < -THRESHOLD && Math.abs(dy) > Math.abs(dx)
-			? 'theirs'
+			? 'shared'
 			: dx > THRESHOLD
-				? 'shared'
+				? 'theirs'
 				: dx < -THRESHOLD
 					? 'mine'
 					: null
@@ -168,8 +170,8 @@
 		if (document.querySelector('[role="dialog"][data-state="open"]')) return;
 		if ((e.target as Element | null)?.closest?.('input, textarea')) return;
 		if (e.key === 'ArrowLeft') decide('mine');
-		else if (e.key === 'ArrowRight') decide('shared');
-		else if (e.key === 'ArrowUp') decide('theirs');
+		else if (e.key === 'ArrowRight') decide('theirs');
+		else if (e.key === 'ArrowUp') decide('shared');
 		else if (e.key === 'Backspace') undo();
 	}
 
@@ -272,9 +274,11 @@
 		<p class="text-muted-foreground mt-3 text-sm">
 			<span class="tabular">{done + 1} / {cards.length}</span> · {i.t('swipe.with')}
 			<strong class="text-foreground font-medium">{targetInfo?.label}</strong>
-			<Button variant="link" class="h-auto p-0" onclick={() => (target = null)}
-				>{i.t('swipe.change')}</Button
-			>
+			{#if !data.fixedTarget}
+				<Button variant="link" class="h-auto p-0" onclick={() => (target = null)}
+					>{i.t('swipe.change')}</Button
+				>
+			{/if}
 		</p>
 
 		<div class="deck">
@@ -343,20 +347,20 @@
 				<small>{i.t('swipe.undoShort')}</small>
 			</button>
 			<button
-				class="{round} text-primary"
-				onclick={() => decide('theirs')}
-				aria-label={i.t('swipe.theirsAria', { name: targetInfo?.theirs ?? '' })}
-			>
-				<Icon name="arrowUp" size={22} />
-				<small>{targetInfo?.theirs}</small>
-			</button>
-			<button
 				class="{round} text-shared"
 				onclick={() => decide('shared')}
 				aria-label={i.t('swipe.shareAria')}
 			>
 				<Icon name="share" size={22} />
 				<small>{i.t('swipe.share')}</small>
+			</button>
+			<button
+				class="{round} text-primary"
+				onclick={() => decide('theirs')}
+				aria-label={i.t('swipe.theirsAria', { name: targetInfo?.theirs ?? '' })}
+			>
+				<Icon name="arrowRight" size={22} />
+				<small>{targetInfo?.theirs}</small>
 			</button>
 		</div>
 	</div>
@@ -373,7 +377,7 @@
 				<Amount cents={totals.mine} class="font-medium" />
 			</List.Item>
 			<List.Item class="text-sm">
-				<span class="text-muted-foreground"><Icon name="arrowUp" size={18} /></span>
+				<span class="text-muted-foreground"><Icon name="arrowRight" size={18} /></span>
 				<span class="flex-1">{i.t('swipe.pileTheirs', { name: targetInfo?.theirs ?? '' })}</span>
 				<Amount cents={totals.theirs} class="font-medium" />
 			</List.Item>
@@ -399,7 +403,9 @@
 				</List.Item>
 			{/each}
 		</List.Root>
-		<p class="text-muted-foreground px-1 text-xs">{i.t('swipe.youPaid')}</p>
+		<p class="text-muted-foreground px-1 text-xs">
+			{data.payerName ? i.t('swipe.theyPaid', { name: data.payerName }) : i.t('swipe.youPaid')}
+		</p>
 		<form method="POST" action="?/book" use:enhance={withToast(i.t)}>
 			<input type="hidden" name="target" value={target} />
 			<input type="hidden" name="decisions" value={JSON.stringify(booked)} />
@@ -494,14 +500,14 @@
 		color: var(--muted-foreground);
 		transform: rotate(10deg);
 	}
-	.stamp.shared {
+	.stamp.theirs {
 		left: 24px;
-		color: var(--shared);
+		color: var(--primary);
 		transform: rotate(-10deg);
 	}
-	.stamp.theirs {
+	.stamp.shared {
 		left: 50%;
 		transform: translateX(-50%);
-		color: var(--primary);
+		color: var(--shared);
 	}
 </style>

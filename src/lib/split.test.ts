@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { expandUnits, sharesFromItems, swipeTotals, unitCount, type SplitItem } from './split';
+import {
+	expandUnits,
+	resolveReceipt,
+	resolveSwipes,
+	sharesFromItems,
+	swipeTotals,
+	unitCount,
+	type Decision,
+	type SplitItem
+} from './split';
 
 const product = (
 	totalCents: number,
@@ -98,5 +107,96 @@ describe('swiping piece by piece', () => {
 		]);
 		const s = sharesFromItems('me', ['me', 'ben'], items);
 		expect(Object.fromEntries(s)).toEqual({ me: 75, ben: 124 });
+	});
+});
+
+describe('resolveSwipes', () => {
+	const two = ['me', 'ben'];
+	const group = ['me', 'ben', 'cleo'];
+	const votes = (v: Record<string, Decision>) => new Map(Object.entries(v));
+
+	it('agrees when both see it the same way', () => {
+		expect(resolveSwipes('me', two, votes({ me: 'theirs', ben: 'mine' }))).toEqual({
+			owners: ['ben'],
+			conflict: false
+		});
+		expect(resolveSwipes('me', two, votes({ me: 'shared', ben: 'shared' }))).toEqual({
+			owners: two,
+			conflict: false
+		});
+	});
+
+	it('finds the owner in a group from everyone\'s "not mine"', () => {
+		// I say "yours", Ben says "yours" (so not his), Cleo hasn't swiped: it's Cleo's.
+		expect(resolveSwipes('me', group, votes({ me: 'theirs', ben: 'theirs' }))).toEqual({
+			owners: ['cleo'],
+			conflict: false
+		});
+		expect(resolveSwipes('me', group, votes({ me: 'theirs', cleo: 'mine' }))).toEqual({
+			owners: ['cleo'],
+			conflict: false
+		});
+	});
+
+	it("is a conflict when claims don't fit, and then the payer's swipe counts", () => {
+		expect(resolveSwipes('me', two, votes({ me: 'shared', ben: 'theirs' }))).toEqual({
+			owners: two,
+			conflict: true
+		});
+		expect(resolveSwipes('me', group, votes({ me: 'theirs', ben: 'mine', cleo: 'mine' }))).toEqual({
+			owners: ['ben', 'cleo'],
+			conflict: true
+		});
+		expect(resolveSwipes('me', two, votes({ me: 'shared', ben: 'mine' })).conflict).toBe(true);
+	});
+});
+
+describe('resolveReceipt', () => {
+	const line = (id: string, totalCents: number, quantity = 1) => ({
+		id,
+		totalCents,
+		kind: 'product' as const,
+		discountable: true,
+		quantity,
+		unit: null,
+		owners: null
+	});
+
+	it('combines swipes into shares and counts conflicts', () => {
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben'],
+			[line('a', 300), line('b', 200)],
+			new Map([
+				['me', { a: 'shared', b: 'theirs' }],
+				['ben', { a: 'mine', b: 'mine' }]
+			])
+		);
+		expect(r.conflicts).toBe(1);
+		expect(Object.fromEntries(r.shares)).toEqual({ me: 150, ben: 350 });
+	});
+
+	it('resolves piece by piece when one person split the line', () => {
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben'],
+			[line('a', 300, 3)],
+			new Map([
+				['me', { a: 'shared' }],
+				['ben', { a: ['shared', 'mine', 'shared'] }]
+			])
+		);
+		expect(r.lines[0]!.pieces.map((p) => p.conflict)).toEqual([false, true, false]);
+	});
+
+	it('uses owners set by hand over all swipes', () => {
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben'],
+			[{ ...line('a', 300), owners: ['ben'] }],
+			new Map([['me', { a: 'mine' }]])
+		);
+		expect(r.conflicts).toBe(0);
+		expect(Object.fromEntries(r.shares)).toEqual({ me: 0, ben: 300 });
 	});
 });

@@ -12,49 +12,160 @@ export interface SplitItem {
 	decision: Decision | null;
 }
 
+/** Who gets a product under `voter`'s decision. Without anyone else, "theirs" stays with `voter`. */
+export function ownersOf(voter: string, d: Decision, everyone: string[]): string[] {
+	if (d === 'mine') return [voter];
+	if (d === 'shared') return everyone;
+	const others = everyone.filter((p) => p !== voter);
+	return others.length ? others : [voter];
+}
+
+/** A product (or discount) with the people who split it equally. Discounts have no owners. */
+export interface OwnedItem {
+	totalCents: Cents;
+	kind: 'product' | 'discount';
+	discountable: boolean;
+	owners: string[];
+}
+
 /**
- * Receipt items → share per person. Products follow their swipe decision; discounts and redeemed
- * coupons are spread over the people in proportion to what they got of the discountable products.
+ * Owned items → share per person. Products are split equally between their owners (or go to
+ * `fallback` without any); discounts and redeemed coupons are spread over the people in proportion
+ * to what they got of the discountable products.
  */
+export function sharesFromOwners(
+	everyone: string[],
+	fallback: string,
+	items: OwnedItem[]
+): Map<string, Cents> {
+	const people = everyone.includes(fallback) ? everyone : [fallback, ...everyone];
+	const shares = new Map<string, Cents>(people.map((p) => [p, 0]));
+	const eligible = new Map<string, Cents>(people.map((p) => [p, 0]));
+
+	for (const it of items) {
+		if (it.kind !== 'product') continue;
+		const owners = it.owners.length ? it.owners : [fallback];
+		allocate(
+			it.totalCents,
+			owners.map(() => 1)
+		).forEach((c, i) => {
+			const p = owners[i]!;
+			shares.set(p, (shares.get(p) ?? 0) + c);
+			if (it.discountable && c > 0) eligible.set(p, (eligible.get(p) ?? 0) + c);
+		});
+	}
+
+	const discount = items.filter((i) => i.kind === 'discount').reduce((a, i) => a + i.totalCents, 0);
+	if (discount !== 0) {
+		const all = [...shares.keys()];
+		// Fall back to all positive shares, then to `fallback`, if nothing discountable was bought.
+		let weights = all.map((p) => eligible.get(p) ?? 0);
+		if (weights.every((w) => w <= 0)) weights = all.map((p) => Math.max(0, shares.get(p)!));
+		if (weights.every((w) => w <= 0)) weights = all.map((p) => (p === fallback ? 1 : 0));
+		allocate(discount, weights).forEach((c, i) => {
+			const p = all[i]!;
+			shares.set(p, shares.get(p)! + c);
+		});
+	}
+	return shares;
+}
+
+/** Receipt items swiped by `me` → share per person. */
 export function sharesFromItems(
 	me: string,
 	participants: string[],
 	items: SplitItem[]
 ): Map<string, Cents> {
 	const everyone = participants.includes(me) ? participants : [me, ...participants];
-	const others = everyone.filter((p) => p !== me);
-	const shares = new Map<string, Cents>(everyone.map((p) => [p, 0]));
-	const eligible = new Map<string, Cents>(everyone.map((p) => [p, 0]));
+	return sharesFromOwners(
+		everyone,
+		me,
+		items.map((it) => ({
+			...it,
+			owners: it.kind === 'product' ? ownersOf(me, it.decision ?? 'theirs', everyone) : []
+		}))
+	);
+}
 
-	const add = (people: string[], item: SplitItem) =>
-		allocate(
-			item.totalCents,
-			people.map(() => 1)
-		).forEach((c, i) => {
-			const p = people[i]!;
-			shares.set(p, shares.get(p)! + c);
-			if (item.discountable && c > 0) eligible.set(p, eligible.get(p)! + c);
+/**
+ * Combines everyone's swipe of one product (or piece). In a group, "theirs" only says "not mine",
+ * so the owners are whoever all swipes allow together; "mine" and "shared" are exact claims.
+ * Swipes that can't all hold are a conflict: then the payer's swipe counts.
+ */
+export function resolveSwipes(
+	payer: string,
+	everyone: string[],
+	votes: Map<string, Decision>
+): { owners: string[]; conflict: boolean } {
+	if (!votes.size) return { owners: [payer], conflict: false };
+	const claims = [...votes].map(([voter, d]) => ({ d, owners: ownersOf(voter, d, everyone) }));
+	const owners = everyone.filter((p) => claims.every((c) => c.owners.includes(p)));
+	const exact = (c: (typeof claims)[number]) =>
+		c.d === 'theirs' || c.owners.length === owners.length;
+	if (owners.length && claims.every(exact)) return { owners, conflict: false };
+	const mine = votes.get(payer);
+	return { owners: mine ? ownersOf(payer, mine, everyone) : [payer], conflict: true };
+}
+
+export interface ReceiptLine {
+	id: string;
+	totalCents: Cents;
+	kind: 'product' | 'discount';
+	discountable: boolean;
+	quantity: string | number;
+	unit: string | null;
+	/** Set by hand after swiping; overrides all swipes */
+	owners: string[] | null;
+}
+
+/**
+ * A receipt swiped by several people: per line its pieces with owners and conflicts, and the
+ * resulting shares. `swipes` holds each person's decisions by line id. A line one person swiped
+ * piece by piece is resolved piece by piece for everyone.
+ */
+export function resolveReceipt<L extends ReceiptLine>(
+	payer: string,
+	everyone: string[],
+	lines: L[],
+	swipes: Map<string, Record<string, ItemDecision>>
+) {
+	const resolved = lines.map((line) => {
+		if (line.kind !== 'product')
+			return { ...line, pieces: [{ cents: line.totalCents, owners: [], conflict: false }] };
+		const own = [...swipes].filter(([, d]) => d[line.id]);
+		const n = unitCount(line.quantity, line.unit);
+		const split = own.some(([, d]) => Array.isArray(d[line.id]) && d[line.id]!.length === n);
+		const cents = split ? splitEqually(line.totalCents, n) : [line.totalCents];
+		const manual = line.owners?.filter((p) => everyone.includes(p));
+		const pieces = cents.map((c, u) => {
+			if (manual?.length) return { cents: c, owners: manual, conflict: false };
+			const votes = new Map(
+				own.map(([voter, d]) => {
+					const x = d[line.id]!;
+					return [voter, Array.isArray(x) ? (x[u] ?? x[0]!) : x] as const;
+				})
+			);
+			return { cents: c, ...resolveSwipes(payer, everyone, votes) };
 		});
-
-	for (const it of items) {
-		if (it.kind !== 'product') continue;
-		if (it.decision === 'mine' || others.length === 0) add([me], it);
-		else if (it.decision === 'shared') add(everyone, it);
-		else add(others, it);
-	}
-
-	const discount = items.filter((i) => i.kind === 'discount').reduce((a, i) => a + i.totalCents, 0);
-	if (discount !== 0) {
-		// Fall back to all positive shares, then to me, if nothing discountable was bought.
-		let weights = everyone.map((p) => eligible.get(p)!);
-		if (weights.every((w) => w <= 0)) weights = everyone.map((p) => Math.max(0, shares.get(p)!));
-		if (weights.every((w) => w <= 0)) weights = everyone.map((p) => (p === me ? 1 : 0));
-		allocate(discount, weights).forEach((c, i) => {
-			const p = everyone[i]!;
-			shares.set(p, shares.get(p)! + c);
-		});
-	}
-	return shares;
+		return { ...line, pieces };
+	});
+	const shares = sharesFromOwners(
+		everyone,
+		payer,
+		resolved.flatMap((l) =>
+			l.pieces.map((p) => ({
+				totalCents: p.cents,
+				kind: l.kind,
+				discountable: l.discountable,
+				owners: p.owners
+			}))
+		)
+	);
+	return {
+		lines: resolved,
+		shares,
+		conflicts: resolved.filter((l) => l.pieces.some((p) => p.conflict)).length
+	};
 }
 
 /** A product's swipe: one decision for the whole line, or one per unit when swiped piece by piece. */

@@ -3,7 +3,8 @@ import { parseReceiptText } from './parse';
 
 /** PDF → text lines. Fragments are joined into lines by their y coordinate. */
 export async function pdfToText(pdf: Uint8Array): Promise<string> {
-	const { items } = await extractTextItems(pdf);
+	// A copy: pdf.js takes over (detaches) the buffer it gets, which would leave `pdf` empty.
+	const { items } = await extractTextItems(pdf.slice());
 	const out: string[] = [];
 	for (const page of items) {
 		const rows = new Map<number, { x: number; s: string }[]>();

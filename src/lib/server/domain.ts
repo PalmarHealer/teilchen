@@ -346,8 +346,24 @@ export async function getExpense(id: string) {
 	};
 }
 
+export type Db = Pick<typeof db, 'select' | 'insert' | 'update' | 'delete'>;
+
+/** Replaces an expense's shares; its amount becomes their sum. */
+export async function replaceShares(tx: Db, id: string, all: Map<string, Cents>) {
+	const shares = [...all].filter(([, c]) => c !== 0);
+	await tx
+		.update(expenses)
+		.set({ amountCents: shares.reduce((a, [, c]) => a + c, 0) })
+		.where(eq(expenses.id, id));
+	await tx.delete(expenseShares).where(eq(expenseShares.expenseId, id));
+	if (shares.length) {
+		await tx
+			.insert(expenseShares)
+			.values(shares.map(([userId, cents]) => ({ expenseId: id, userId, cents })));
+	}
+}
+
 export async function updateExpense(id: string, e: Omit<NewExpense, 'kind' | 'createdBy'>) {
-	const shares = [...e.shares].filter(([, c]) => c !== 0);
 	await db.transaction(async (tx) => {
 		await tx
 			.update(expenses)
@@ -356,39 +372,20 @@ export async function updateExpense(id: string, e: Omit<NewExpense, 'kind' | 'cr
 				payerId: e.payerId,
 				title: e.title,
 				icon: e.icon ?? null,
-				amountCents: shares.reduce((a, [, c]) => a + c, 0),
 				...(e.spentAt ? { spentAt: e.spentAt } : {})
 			})
 			.where(eq(expenses.id, id));
-		await tx.delete(expenseShares).where(eq(expenseShares.expenseId, id));
-		if (shares.length) {
-			await tx
-				.insert(expenseShares)
-				.values(shares.map(([userId, cents]) => ({ expenseId: id, userId, cents })));
-		}
+		await replaceShares(tx, id, e.shares);
 	});
 }
 
 /**
  * Deletes an expense. A settlement goes as a whole batch (its lines only add up together);
- * an expense booked from a receipt sends the receipt back to the swipe queue.
+ * an expense booked from a receipt takes the receipt with it, so it can be imported again.
  */
 export async function deleteExpense(expense: { id: string; settlementBatch: string | null }) {
 	await db.transaction(async (tx) => {
-		const [receipt] = await tx
-			.select({ id: schema.receipts.id })
-			.from(schema.receipts)
-			.where(eq(schema.receipts.expenseId, expense.id));
-		if (receipt) {
-			await tx
-				.update(schema.receiptItems)
-				.set({ decision: null })
-				.where(eq(schema.receiptItems.receiptId, receipt.id));
-			await tx
-				.update(schema.receipts)
-				.set({ expenseId: null, dismissed: false })
-				.where(eq(schema.receipts.id, receipt.id));
-		}
+		await tx.delete(schema.receipts).where(eq(schema.receipts.expenseId, expense.id));
 		await tx
 			.delete(expenses)
 			.where(

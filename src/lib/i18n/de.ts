@@ -105,12 +105,12 @@ export const de: Dictionary = {
 		cardLabel: '{name}, wischen zum Zuordnen',
 		mine: 'Meins',
 		share: 'Unseres',
-		theirsGroup: 'Gruppe',
+		theirsGroup: 'Euers',
 		undo: 'Rückgängig',
 		undoShort: 'Zurück',
 		mineAria: 'Meins (Pfeil links)',
-		theirsAria: 'Gehört {name} (Pfeil hoch)',
-		shareAria: 'Unseres, auf alle aufteilen (Pfeil rechts)',
+		theirsAria: 'Gehört {name} (Pfeil rechts)',
+		shareAria: 'Unseres, auf alle aufteilen (Pfeil hoch)',
 		piece: 'Stück {n} von {of}',
 		splitPieces: '{n} Stück einzeln swipen',
 		finished: 'Fertig geswiped',
@@ -119,7 +119,13 @@ export const de: Dictionary = {
 		pileShared: 'Für uns alle',
 		discountSpread: 'Rabatte & Gutscheine, anteilig verteilt',
 		perPerson: 'Pro Person',
-		youPaid: 'Du hast bezahlt. Die anderen Anteile werden dir gutgeschrieben.',
+		youPaid:
+			'Du hast bezahlt. Die anderen Anteile werden dir gutgeschrieben. Die anderen können den Einkauf auch swipen; wo ihr uneinig seid, siehst du es in der Ausgabe.',
+		theyPaid:
+			'{name} hat bezahlt. Wo ihr unterschiedlich geswiped habt, ist es danach in der Ausgabe markiert.',
+		swipeToo: 'Für dich mitgebucht',
+		swipeTooHint: 'Swipe, was davon deins war. Gebucht ist schon, du korrigierst nur.',
+		paidBy: 'bezahlt von {name}',
 		book: 'Buchen',
 		undoLast: 'Letzte zurück'
 	},
@@ -153,8 +159,29 @@ export const de: Dictionary = {
 		delete: 'Ausgabe löschen',
 		deleteConfirm: 'Diese Ausgabe für alle Beteiligten löschen?',
 		fromReceipt: 'Aus einem Bon gebucht. Um die Aufteilung zu ändern, swipe ihn neu.',
+		fromReceiptSwiped:
+			'Aus einem Bon gebucht. Tipp auf einen Artikel, um zu sehen, wie ihr geswiped habt, und um festzulegen, wem er gehört.',
+		items: 'Artikel',
+		everyone: 'alle',
+		notMine: 'nicht meins',
+		conflicts: (p) =>
+			p.n === 1 ? 'Bei 1 Artikel seid ihr uneinig' : `Bei ${p.n} Artikeln seid ihr uneinig`,
+		pendingSwipes: (p) =>
+			p.n === 1
+				? '1 Person hat noch nicht geswiped.'
+				: `${p.n} Personen haben noch nicht geswiped.`,
+		disagree: 'uneinig',
+		setByHand: 'festgelegt',
+		whoGetsIt: 'Wem gehört das?',
+		saveOwners: 'Festlegen',
+		followSwipes: 'Wieder nach Swipes',
+		ownersSaved: 'Aufteilung geändert',
+		deleteReceiptConfirm:
+			'Ausgabe samt Bon für alle löschen? Danach kannst du den Bon neu hochladen.',
 		resplit: 'Neu swipen',
-		resplitConfirm: 'Der Bon kommt zurück in deine Swipe-Liste, diese Buchung wird entfernt.',
+		resplitConfirm:
+			'Die Buchung und alle Swipes werden verworfen, der Bon kommt zurück in deine Swipe-Liste.',
+		resplitOwnConfirm: 'Deine Swipes werden verworfen und du swipest den Bon neu.',
 		settlementInfo:
 			'Ein Ausgleich wird pro verrechneter Gruppe gebucht und lässt sich deshalb nur als Ganzes rückgängig machen.',
 		undoSettlement: 'Ausgleich rückgängig machen',
@@ -282,7 +309,9 @@ export const de: Dictionary = {
 		groupNotFound: 'Gruppe nicht gefunden',
 		receiptNotFound: 'Einkauf nicht gefunden oder schon gebucht',
 		inviteInvalid: 'Einladung ungültig oder abgelaufen',
-		noNewEbon: 'Kein neuer REWE-eBon erkannt',
+		noNewEbon: 'Kein REWE-eBon in der PDF erkannt',
+		ebonKnown:
+			'Diesen Bon hast du schon importiert. Er steht unter Ausgaben; löschst du ihn dort, kannst du ihn neu hochladen.',
 		uploadTooLarge: 'Zu viele oder zu große Dateien (höchstens 20 PDFs mit je 5 MB)',
 		invalidDate: 'Ungültiges Datum',
 		generic: 'Etwas ist schiefgelaufen'

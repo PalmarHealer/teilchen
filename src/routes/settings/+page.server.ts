@@ -77,14 +77,22 @@ export const actions: Actions = {
 		if (files.length > MAX_UPLOAD_FILES || files.some((f) => f.size > MAX_UPLOAD_BYTES))
 			return fail(400, { uploadError: 'errors.uploadTooLarge' as const });
 		let imported = 0;
+		let known = 0;
 		for (const file of files) {
 			const bytes = new Uint8Array(await file.arrayBuffer());
-			const bon = await parseReceiptPdf(bytes).catch(() => null);
-			if (!bon) continue;
 			const id = `upload:${sha256(Buffer.from(bytes).toString('base64'))}`;
+			const bon = await parseReceiptPdf(bytes).catch((e: unknown) => {
+				console.error('upload: unreadable PDF', e);
+				return null;
+			});
+			if (!bon) continue;
 			if (await importEbon(locals.user!.id, id, bon)) imported++;
+			else known++;
 		}
-		if (!imported) return fail(400, { uploadError: 'errors.noNewEbon' as const });
+		if (!imported)
+			return fail(400, {
+				uploadError: known ? ('errors.ebonKnown' as const) : ('errors.noNewEbon' as const)
+			});
 		return { imported };
 	},
 

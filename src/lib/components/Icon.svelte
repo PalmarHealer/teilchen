@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import AlertTriangle from '@tabler/icons-svelte/icons/alert-triangle';
 	import ArrowBackUp from '@tabler/icons-svelte/icons/arrow-back-up';
 	import ArrowLeft from '@tabler/icons-svelte/icons/arrow-left';
 	import ArrowRight from '@tabler/icons-svelte/icons/arrow-right';
@@ -77,7 +78,8 @@
 		settings: Settings,
 		sparkles: Sparkles,
 		trash: Trash,
-		split: ArrowsSplit
+		split: ArrowsSplit,
+		alert: AlertTriangle
 	};
 	export type IconName = keyof typeof icons;
 </script>

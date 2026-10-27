@@ -1,8 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { formatDate, translate } from '#lib/i18n/index.ts';
-import { expandUnits, sharesFromItems, unitCount } from '#lib/split.ts';
+import { formatDate, translate, type Locale } from '#lib/i18n/index.ts';
+import { unitCount } from '#lib/split.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { UUID_SOURCE } from '#lib/uuid.ts';
 import {
@@ -13,26 +13,34 @@ import {
 	groupsOf,
 	usersByIds
 } from '#lib/server/domain.ts';
+import { rebookReceipt, saveSwipe } from '#lib/server/receipt-split.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-async function ownReceipt(id: string, userId: string) {
-	const [receipt] = await db
-		.select()
-		.from(schema.receipts)
-		.where(
-			and(
-				eq(schema.receipts.id, id),
-				eq(schema.receipts.ownerId, userId),
-				isNull(schema.receipts.expenseId)
-			)
-		);
-	if (!receipt) error(404, 'errors.receiptNotFound');
-	return receipt;
+/**
+ * A receipt I can swipe: my own one before it's booked, or a booked one I'm part of but haven't
+ * swiped yet (to say what was mine).
+ */
+async function swipeableReceipt(id: string, me: string) {
+	const [receipt] = await db.select().from(schema.receipts).where(eq(schema.receipts.id, id));
+	if (receipt?.ownerId === me && !receipt.expenseId) return { receipt, payer: true as const };
+	if (receipt?.expenseId && receipt.ownerId !== me && receipt.participants.includes(me)) {
+		const [swiped] = await db
+			.select({ at: schema.receiptSwipes.swipedAt })
+			.from(schema.receiptSwipes)
+			.where(and(eq(schema.receiptSwipes.receiptId, id), eq(schema.receiptSwipes.userId, me)));
+		if (!swiped) return { receipt, payer: false as const };
+	}
+	error(404, 'errors.receiptNotFound');
 }
+
+const receiptTitle = (locale: Locale, at: Date) =>
+	translate(locale, 'expenses.receiptTitle', {
+		date: formatDate(locale, at, { day: '2-digit', month: '2-digit', year: 'numeric' })
+	});
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const me = locals.user!.id;
-	const receipt = await ownReceipt(params.id, me);
+	const { receipt, payer } = await swipeableReceipt(params.id, me);
 	const items = await db
 		.select({
 			id: schema.receiptItems.id,
@@ -46,17 +54,47 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		.from(schema.receiptItems)
 		.where(eq(schema.receiptItems.receiptId, receipt.id))
 		.orderBy(asc(schema.receiptItems.position));
-	const groups = await Promise.all(
-		(await groupsOf(me)).map(async (g) => ({ ...g, memberIds: await groupMemberIds(g.id) }))
-	);
-	return {
+	const base = {
 		receipt: {
 			id: receipt.id,
 			market: receipt.market,
 			purchasedAt: receipt.purchasedAt,
 			totalCents: receipt.totalCents
 		},
-		items,
+		items
+	};
+
+	if (!payer) {
+		// Swiping someone else's booking: who it's split with is already fixed.
+		const [expense] = await db
+			.select({ groupId: schema.expenses.groupId })
+			.from(schema.expenses)
+			.where(eq(schema.expenses.id, receipt.expenseId!));
+		const people = await usersByIds(receipt.participants);
+		const group = expense?.groupId
+			? (await groupsOf(me)).find((g) => g.id === expense.groupId)
+			: undefined;
+		const owner = people.get(receipt.ownerId);
+		return {
+			...base,
+			payerName: owner?.name ?? null,
+			fixedTarget: group ? `group:${group.id}` : `user:${receipt.ownerId}`,
+			contacts: group || !owner ? [] : [owner],
+			groups: group ? [{ ...group, memberIds: receipt.participants }] : [],
+			names: Object.fromEntries([...people].map(([id, u]) => [id, u.name])) as Record<
+				string,
+				string
+			>
+		};
+	}
+
+	const groups = await Promise.all(
+		(await groupsOf(me)).map(async (g) => ({ ...g, memberIds: await groupMemberIds(g.id) }))
+	);
+	return {
+		...base,
+		payerName: null,
+		fixedTarget: null,
 		contacts: await contactsOf(me),
 		groups,
 		// Names for the per-person preview; group members need not be contacts
@@ -79,7 +117,7 @@ const BookInput = z.object({
 export const actions: Actions = {
 	book: async ({ locals, params, request }) => {
 		const me = locals.user!.id;
-		const receipt = await ownReceipt(params.id, me);
+		const { receipt, payer } = await swipeableReceipt(params.id, me);
 		const form = await request.formData();
 		let raw: unknown;
 		try {
@@ -90,6 +128,29 @@ export const actions: Actions = {
 		const parsed = BookInput.safeParse({ target: form.get('target'), decisions: raw });
 		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
 		const { target, decisions } = parsed.data;
+
+		const items = await db
+			.select()
+			.from(schema.receiptItems)
+			.where(eq(schema.receiptItems.receiptId, receipt.id));
+		// Only products are swiped; discounts are spread over them when the shares are computed.
+		const swiped = (i: (typeof items)[number]) => {
+			const d = decisions[i.id];
+			return Array.isArray(d) ? d.length === unitCount(i.quantity, i.unit) && d.length > 1 : !!d;
+		};
+		if (items.some((i) => i.kind === 'product' && !swiped(i)))
+			return fail(400, { message: 'errors.notAllSwiped' as const });
+		const own = Object.fromEntries(
+			items.filter((i) => i.kind === 'product').map((i) => [i.id, decisions[i.id]!])
+		);
+
+		if (!payer) {
+			await db.transaction(async (tx) => {
+				await saveSwipe(tx, receipt.id, me, own);
+				await rebookReceipt(receipt.id, tx);
+			});
+			redirect(303, `/expenses/${receipt.expenseId}`);
+		}
 
 		const [kind, targetId] = target.split(':') as ['user' | 'group', string];
 		let participants: string[];
@@ -104,69 +165,53 @@ export const actions: Actions = {
 			participants = [me, targetId];
 		}
 
-		const items = await db
-			.select()
-			.from(schema.receiptItems)
-			.where(eq(schema.receiptItems.receiptId, receipt.id));
-		// Only products are swiped; discounts are spread over them by sharesFromItems.
-		const swiped = (i: (typeof items)[number]) => {
-			const d = decisions[i.id];
-			return Array.isArray(d) ? d.length === unitCount(i.quantity, i.unit) && d.length > 1 : !!d;
-		};
-		if (items.some((i) => i.kind === 'product' && !swiped(i)))
-			return fail(400, { message: 'errors.notAllSwiped' as const });
-		const decided = items.map((i) => ({
-			...i,
-			decision: i.kind === 'product' ? decisions[i.id]! : null
-		}));
-		const shares = sharesFromItems(me, participants, expandUnits(decided));
-
+		// Booked right away with my swipe; the others can swipe it too and correct it.
 		await db.transaction(async (tx) => {
-			for (const i of decided) {
-				// A line swiped piece by piece keeps a decision only if all pieces agree.
-				const d = i.decision;
-				const decision = Array.isArray(d) ? (d.every((x) => x === d[0]) ? d[0]! : null) : d;
-				await tx
-					.update(schema.receiptItems)
-					.set({ decision })
-					.where(eq(schema.receiptItems.id, i.id));
-			}
-			const othersPay = [...shares].some(([id, c]) => id !== me && c !== 0);
-			if (!othersPay) {
-				await tx
-					.update(schema.receipts)
-					.set({ dismissed: true })
-					.where(eq(schema.receipts.id, receipt.id));
-				return;
-			}
-			const date = formatDate(locals.locale, receipt.purchasedAt, {
-				day: '2-digit',
-				month: '2-digit',
-				year: 'numeric'
-			});
 			const expenseId = await createExpense(
 				{
 					groupId,
 					payerId: me,
 					createdBy: me,
-					title: translate(locals.locale, 'expenses.receiptTitle', { date }),
-					shares,
+					title: receiptTitle(locals.locale, receipt.purchasedAt),
+					shares: new Map(),
 					spentAt: receipt.purchasedAt
 				},
 				tx
 			);
-			await tx.update(schema.receipts).set({ expenseId }).where(eq(schema.receipts.id, receipt.id));
+			await tx
+				.update(schema.receipts)
+				.set({ expenseId, participants })
+				.where(eq(schema.receipts.id, receipt.id));
+			await saveSwipe(tx, receipt.id, me, own);
+			await rebookReceipt(receipt.id, tx);
 		});
 		if (kind === 'user') await connect(me, targetId);
 		redirect(303, '/swipe');
 	},
 
+	/** Not shared: an expense of mine alone, so it still shows up under expenses. */
 	dismiss: async ({ locals, params }) => {
-		const receipt = await ownReceipt(params.id, locals.user!.id);
-		await db
-			.update(schema.receipts)
-			.set({ dismissed: true })
-			.where(eq(schema.receipts.id, receipt.id));
+		const me = locals.user!.id;
+		const { receipt, payer } = await swipeableReceipt(params.id, me);
+		if (!payer) error(404, 'errors.receiptNotFound');
+		await db.transaction(async (tx) => {
+			const expenseId = await createExpense(
+				{
+					groupId: null,
+					payerId: me,
+					createdBy: me,
+					title: receiptTitle(locals.locale, receipt.purchasedAt),
+					shares: new Map(),
+					spentAt: receipt.purchasedAt
+				},
+				tx
+			);
+			await tx
+				.update(schema.receipts)
+				.set({ expenseId, participants: [me] })
+				.where(eq(schema.receipts.id, receipt.id));
+			await rebookReceipt(receipt.id, tx);
+		});
 		redirect(303, '/swipe');
 	}
 };

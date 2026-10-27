@@ -10,8 +10,8 @@
 
 	const directions = $derived([
 		{ icon: 'arrowLeft', tone: 'text-foreground', text: i.t('swipe.helpMine') },
-		{ icon: 'arrowUp', tone: 'text-primary', text: i.t('swipe.helpTheirs', { name: theirs }) },
-		{ icon: 'arrowRight', tone: 'text-shared', text: i.t('swipe.helpShared') }
+		{ icon: 'arrowUp', tone: 'text-shared', text: i.t('swipe.helpShared') },
+		{ icon: 'arrowRight', tone: 'text-primary', text: i.t('swipe.helpTheirs', { name: theirs }) }
 	]);
 	const notes = $derived([
 		{ icon: 'undo', text: i.t('swipe.helpUndo') },
