@@ -34,7 +34,7 @@ jobs:
           mkdir out
           cp -r package.json node_modules build src drizzle out/
           # sites starts the app with `npm start`: migrations first, as the image did
-          node -e 'const f="out/package.json",p=require("./"+f);p.scripts={start:"node node_modules/tsx/dist/cli.mjs src/lib/server/db/migrate.ts && node build"};require("fs").writeFileSync(f,JSON.stringify(p,null,2))'
+          node -e 'const f="out/package.json",p=require("./"+f);p.scripts={start:"node node_modules/tsx/dist/cli.mjs src/lib/server/db/migrate.ts && BODY_SIZE_LIMIT=10M node build"};require("fs").writeFileSync(f,JSON.stringify(p,null,2))'
           tar -czf release.tar.gz --hard-dereference --exclude='node_modules/.bin' -C out .
           ls -lh release.tar.gz
       - name: Deploy to sites

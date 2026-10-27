@@ -4,8 +4,9 @@ Swipe groceries, split costs, settle up fairly. Teilchen is a PWA. On desktop th
 
 - **Swipe:** assign REWE receipts item by item.
   - ← mine
-  - → share with everyone
-  - ↑ belongs to the other person or the group
+  - ↑ share with everyone
+  - → belongs to the other person or the group
+  - The others swipe it too; disagreements are marked on the expense, where anyone in it can set who gets an item.
 - **Classic splitting:** expenses directly or in groups, equally or with exact amounts.
 - **Smart netting:** settling happens per person. Whatever two people have open directly and across groups is netted and settled with one single payment. The groups stay correct for everyone else.
 - **Import:**
@@ -52,10 +53,12 @@ pnpm worker     # eBon mail import
 
 ## Deployment
 
-Every push to `main` runs the same steps:
+Every push to `main` runs `.github/workflows/deploy.yml`:
 
-1. `pnpm verify`
-2. image to `ghcr.io/palmarhealer/teilchen:latest`
-3. the GitHub secret `PORTAINER_STACK_WEBHOOK` triggers a redeploy of the Portainer stack `teilchen`.
+1. CI: `pnpm verify`, migrations match the schema, `pnpm build`.
+2. A release is built on `node:24-alpine` (same as the site's runtime) with a flat production `node_modules`.
+3. It is uploaded to the site on `sites.nauren.de` through its deploy API, authenticated with GitHub OIDC, so there is no deploy secret.
 
-The stack uses `deploy/portainer-compose.yml`. Secrets live only in the Portainer stack variables. It is reachable through Nginx Proxy Manager: `teilchen.nauren.de` → `teilchen-app:3000`.
+On start the site runs the migrations, then the app; the IMAP worker runs as a background process of the site. Environment variables (see `.env.example`) are configured on the site, never in the repo.
+
+For a self-hosted stack, `compose.yaml` builds the `Dockerfile` and runs app, worker and Postgres.

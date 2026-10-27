@@ -82,7 +82,8 @@
 				</AlertDialog.Description>
 				{@render children?.()}
 				<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-					<AlertDialog.Cancel class={buttonVariants({ variant: 'outline' })}>
+					<!-- type="button": inside the form it would otherwise submit the action -->
+					<AlertDialog.Cancel type="button" class={buttonVariants({ variant: 'outline' })}>
 						{cancelLabel}
 					</AlertDialog.Cancel>
 					<Button type="submit" variant={danger ? 'destructive' : 'default'}>
