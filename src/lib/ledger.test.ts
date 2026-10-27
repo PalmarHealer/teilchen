@@ -34,7 +34,14 @@ describe('money', () => {
 		expect(parseCents('12,34')).toBe(1234);
 		expect(parseCents('12.3 €')).toBe(1230);
 		expect(parseCents('-0,05')).toBe(-5);
-		expect(parseCents('1,234')).toBeNull();
+		// Three digits after a separator group thousands; cents have at most two
+		expect(parseCents('1,234')).toBe(123400);
+		expect(parseCents('1.234,56')).toBe(123456);
+		expect(parseCents('1,234,567.8')).toBe(123456780);
+		expect(parseCents('12.345.678,9 €')).toBe(1234567890);
+		expect(parseCents('1.234.5')).toBeNull();
+		expect(parseCents('1,23,456')).toBeNull();
+		expect(parseCents('1.2345')).toBeNull();
 		expect(parseCents('99999999999')).toBeNull();
 		expect(parseCents('-99999999999')).toBeNull();
 	});

@@ -5,16 +5,19 @@ export type Cents = number;
 export const MAX_CENTS: Cents = 100_000_000_00;
 
 /**
- * Parses "12,34", "12.34", "-1,5", "3" into cents. Returns null for invalid input, including
- * amounts beyond ±MAX_CENTS.
+ * Parses "12,34", "12.34", "-1,5", "3" and grouped "1.234,5" / "1,234.5" into cents. A separator
+ * followed by three digits groups thousands (cents have at most two). Returns null for invalid
+ * input, including amounts beyond ±MAX_CENTS.
  */
 export function parseCents(input: string): Cents | null {
 	const m = input
 		.trim()
 		.replace(/\s|€/g, '')
-		.match(/^(-?)(\d+)(?:[.,](\d{1,2}))?$/);
+		.match(/^(-?)(\d{1,3}(?:([.,])\d{3})(?:\3\d{3})*|\d+)(?:([.,])(\d{1,2}))?$/);
 	if (!m) return null;
-	const [, sign, euros, frac = ''] = m;
+	const [, sign, grouped, group, decimal, frac = ''] = m;
+	if (group && group === decimal) return null;
+	const euros = group ? grouped!.replaceAll(group, '') : grouped!;
 	const cents = Number(euros) * 100 + Number(frac.padEnd(2, '0'));
 	if (cents > MAX_CENTS) return null;
 	return sign ? -cents : cents;

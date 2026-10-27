@@ -17,7 +17,8 @@
 	import { untrack } from 'svelte';
 	import { useI18n, type MessageKey } from '../i18n/index.ts';
 	import { EXPENSE_ICON_SUGGESTIONS } from '../icon-suggestions.ts';
-	import { allocate, centsToInput, parseCents } from '../money.ts';
+	import { formatAmountInput, reformatInput } from '../amount-input.ts';
+	import { allocate, centsToInput, parseCents, type Cents } from '../money.ts';
 	import { centsForPercents, parsePercent, percentOf } from '../percent.ts';
 	import Amount from './Amount.svelte';
 	import DatePicker from './DatePicker.svelte';
@@ -55,9 +56,18 @@
 	} = $props();
 
 	const i = useI18n();
+	const decimal = $derived(i.locale === 'de' ? ',' : '.');
+	/** Cents as formatted input text ("1.234,50"). */
+	const moneyText = (c: Cents) => formatAmountInput(centsToInput(c, decimal), 0, decimal).text;
+	const formatted = (text: string) => (text ? formatAmountInput(text, 0, decimal).text : '');
+
 	// The form owns its values after the first render.
 	// svelte-ignore state_referenced_locally
-	let v = $state(structuredClone(initial));
+	let v = $state({
+		...structuredClone(initial),
+		amount: formatted(initial.amount),
+		exact: Object.fromEntries(Object.entries(initial.exact).map(([id, t]) => [id, formatted(t)]))
+	});
 
 	const people = $derived.by(() => {
 		const you = { id: me.id, name: i.t('common.youSuffix', { name: me.name }) };
@@ -91,7 +101,18 @@
 	// Exact mode: each amount can also be entered as a percentage of the total. Rows typed as a
 	// percentage keep it (and follow the total); the others show the percentage of their amount.
 	let percents = $state<Record<string, string>>({});
-	const decimal = $derived(i.locale === 'de' ? ',' : '.');
+	// Rows whose amount was typed by hand keep it; the rest of the total is split equally over the
+	// others, so going down the list always leaves the remainder. A stored exact split is kept.
+	// svelte-ignore state_referenced_locally
+	let pinned = $state<Record<string, true>>(
+		initial.mode === 'exact'
+			? Object.fromEntries(
+					Object.entries(initial.exact)
+						.filter(([, t]) => t)
+						.map(([id]) => [id, true])
+				)
+			: {}
+	);
 	const percentFormat = $derived(
 		new Intl.NumberFormat(i.locale, { maximumFractionDigits: 1, useGrouping: false })
 	);
@@ -110,23 +131,46 @@
 			rows.map((id) => parsePercent(percents[id]!) ?? 0)
 		);
 		rows.forEach((id, idx) => {
-			v.exact[id] = percents[id]!.trim() ? centsToInput(parts[idx]!, decimal) : '';
+			v.exact[id] = moneyText(parts[idx]!);
 		});
 	}
 
+	/** Percentage rows from the total, then the rest split equally over the rows not set by hand. */
+	function rebalance() {
+		applyPercents();
+		const free = v.participants.filter((id) => !pinned[id] && !(id in percents));
+		const set = v.participants
+			.filter((id) => !free.includes(id))
+			.reduce((sum, id) => sum + (parseCents(v.exact[id] ?? '') ?? 0), 0);
+		const parts = allocate(
+			Math.max(0, cents - set),
+			free.map(() => 1)
+		);
+		free.forEach((id, idx) => {
+			v.exact[id] = cents > 0 ? moneyText(parts[idx]!) : '';
+		});
+	}
+
+	// Clearing a row hands it back to the automatic split.
 	function typedAmount(id: string, value: string) {
 		v.exact[id] = value;
 		delete percents[id];
+		if (value.trim()) pinned[id] = true;
+		else delete pinned[id];
+		rebalance();
 	}
 
 	function typedPercent(id: string, value: string) {
-		percents[id] = value;
-		applyPercents();
+		delete pinned[id];
+		if (value.trim()) percents[id] = value;
+		else delete percents[id];
+		rebalance();
 	}
 
 	$effect(() => {
 		void cents;
-		untrack(applyPercents);
+		void v.participants.join();
+		untrack(rebalance);
 	});
 
 	const assigned = $derived(
@@ -162,7 +206,8 @@
 				required
 				inputmode="decimal"
 				placeholder="0,00"
-				bind:value={v.amount}
+				value={v.amount}
+				oninput={(e) => (v.amount = reformatInput(e, decimal))}
 				class="tabular text-lg font-semibold md:text-lg"
 			/>
 		</Label>
@@ -228,7 +273,7 @@
 								aria-label={i.t('expenses.shareAmount', { name: name ?? '' })}
 								class="tabular pr-7"
 								value={v.exact[id] ?? ''}
-								oninput={(e) => typedAmount(id, e.currentTarget.value)}
+								oninput={(e) => typedAmount(id, reformatInput(e, decimal))}
 							/>
 							<span
 								class="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 grid place-items-center text-sm"
