@@ -7,8 +7,7 @@ import { PAGE_CACHE_PREFIX } from '#lib/page-cache.ts';
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE = `teilchen-${version}`;
 const PAGES = `${PAGE_CACHE_PREFIX}${version}`;
-// The APK is a big download, not something to keep for offline use
-const PRECACHE = [...immutable, ...assets].map((f) => f.path).filter((p) => p !== APK_PATH);
+const PRECACHE = [...immutable, ...assets].map((f) => f.path);
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(

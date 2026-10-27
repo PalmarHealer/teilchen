@@ -39,14 +39,16 @@ jobs:
           fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/teilchen.keystore"
           # assetlinks.json must name this key, or the app shows an address bar
-          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/teilchen.keystore" -alias teilchen             -storepass "$ANDROID_KEYSTORE_PASSWORD" | sed -n 's/^[[:space:]]*SHA256: //p')
+          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/teilchen.keystore" -alias teilchen \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" | sed -n 's/^[[:space:]]*SHA256: //p')
           grep -q "'$FP'" src/lib/android.ts || {
             echo "::error::Set ANDROID_CERT_SHA256 in src/lib/android.ts to '$FP'"
             exit 1
           }
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
-          "$BT/apksigner" sign --ks "$RUNNER_TEMP/teilchen.keystore" --ks-key-alias teilchen             --ks-pass env:ANDROID_KEYSTORE_PASSWORD --out teilchen.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/teilchen.keystore" --ks-key-alias teilchen \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD --out teilchen.apk "$RUNNER_TEMP/aligned.apk"
           rm "$RUNNER_TEMP/teilchen.keystore"
       - uses: actions/upload-artifact@v4
         with:
@@ -63,18 +65,18 @@ jobs:
     steps:
       - run: apk add --no-cache curl jq tar git
       - uses: actions/checkout@v7
-      # A static file like the icons (only files there at build time are served); missing while
-      # there is no signing key
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: apk
-          path: static
       - name: Build
         run: |
           corepack enable
           pnpm install --frozen-lockfile --ignore-scripts
           pnpm exec svelte-kit sync && pnpm build
+      # Served by the /teilchen.apk route (with the APK content type); missing while there is no
+      # signing key
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: apk
+          path: build/android
       - name: Assemble the release
         run: |
           # Flat production node_modules: the upload keeps no symlinks

@@ -1,7 +1,7 @@
 /** The Android app: a Trusted Web Activity around this site, built by CI from android/. */
 export const ANDROID_PACKAGE = 'de.nauren.teilchen';
 
-/** Where the deploy puts the signed APK: a static file, kept out of the service worker cache. */
+/** Where the signed APK is served (see routes/teilchen.apk). */
 export const APK_PATH = '/teilchen.apk';
 
 /**

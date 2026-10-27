@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
+import { APK_PATH } from '#lib/android.ts';
 import { isLocale, LANG_COOKIE, negotiate } from '#lib/i18n/index.ts';
 import { SESSION_COOKIE, userFromSession } from '#lib/server/auth/session.ts';
 
-const PUBLIC = ['/login', '/auth/', '/icons/', '/.well-known/'];
+const PUBLIC = ['/login', '/auth/', '/icons/', '/.well-known/', APK_PATH];
 
 // The CSP itself is configured in vite.config.ts.
 const SECURITY_HEADERS = {

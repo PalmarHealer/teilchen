@@ -347,6 +347,7 @@ export const de: Dictionary = {
 		loginExpired: 'Login abgelaufen, bitte erneut versuchen',
 		loginRejected: 'Die Anmeldung wurde vom Identity Provider abgelehnt',
 		noIdToken: 'Kein ID-Token erhalten',
+		appNotAvailable: 'Die Android-App ist gerade nicht verfügbar',
 		personNotFound: 'Person nicht gefunden',
 		groupNotFound: 'Gruppe nicht gefunden',
 		receiptNotFound: 'Einkauf nicht gefunden oder schon gebucht',

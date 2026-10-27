@@ -12,4 +12,3 @@ node_modules
 /android/app/build
 *.keystore
 *.jks
-/static/teilchen.apk

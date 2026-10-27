@@ -267,7 +267,7 @@
 				<Card.Description>{i.t('android.text')}</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<Button href={APK_PATH} download variant="outline" class="w-full">
+				<Button href={APK_PATH} download="teilchen.apk" variant="outline" class="w-full">
 					<Icon name="android" size={16} />
 					{i.t('android.download')}
 				</Button>

@@ -39,7 +39,7 @@
 			<span class="text-sm font-medium">{i.t('android.bannerTitle')}</span>
 			<span class="text-muted-foreground text-xs">{i.t('android.bannerText')}</span>
 		</span>
-		<Button href={APK_PATH} download size="sm" onclick={dismiss}>
+		<Button href={APK_PATH} download="teilchen.apk" size="sm" onclick={dismiss}>
 			<Icon name="download" size={16} />
 			{i.t('android.get')}
 		</Button>
