@@ -186,7 +186,36 @@ describe('resolveReceipt', () => {
 				['ben', { a: ['shared', 'mine', 'shared'] }]
 			])
 		);
-		expect(r.lines[0]!.pieces.map((p) => p.conflict)).toEqual([false, true, false]);
+		expect(r.lines[0]!.pieces.filter((p) => p.conflict)).toHaveLength(1);
+	});
+
+	it('matches pieces by count, not by the order they were swiped in', () => {
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben'],
+			[line('a', 400, 4)],
+			new Map([
+				['me', { a: ['mine', 'mine', 'theirs', 'mine'] }],
+				['ben', { a: ['mine', 'theirs', 'theirs', 'theirs'] }]
+			])
+		);
+		expect(r.conflicts).toBe(0);
+		expect(Object.fromEntries(r.shares)).toEqual({ me: 300, ben: 100 });
+	});
+
+	it('matches pieces in a group, where "not mine" leaves the owner open', () => {
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben', 'cleo'],
+			[line('a', 300, 3)],
+			new Map([
+				['me', { a: ['theirs', 'theirs', 'mine'] }],
+				['ben', { a: ['mine', 'theirs', 'theirs'] }],
+				['cleo', { a: ['theirs', 'theirs', 'mine'] }]
+			])
+		);
+		expect(r.conflicts).toBe(0);
+		expect(Object.fromEntries(r.shares)).toEqual({ me: 100, ben: 100, cleo: 100 });
 	});
 
 	it('uses owners set by hand over all swipes', () => {

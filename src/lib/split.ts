@@ -107,6 +107,54 @@ export function resolveSwipes(
 	return { owners: mine ? ownersOf(payer, mine, everyone) : [payer], conflict: true };
 }
 
+/**
+ * The pieces of a line are alike, so it only matters how many of them each person claims, not
+ * in which order they swiped them ("1st mine, 2nd not" fits "1st not, 2nd mine"). Pairs up
+ * everyone's swipes into pieces that agree, as many as possible; the rest are conflicts.
+ * `perVoter` holds each voter's decisions, one per piece.
+ */
+function matchPieces(
+	payer: string,
+	everyone: string[],
+	n: number,
+	perVoter: Map<string, Decision[]>
+): Map<string, Decision>[] {
+	const voters = [...perVoter.keys()];
+	// Positional for more people than combinations we want to try per piece
+	if (voters.length < 2 || voters.length > 6)
+		return Array.from(
+			{ length: n },
+			(_, u) => new Map(voters.map((v) => [v, perVoter.get(v)![u]!]))
+		);
+
+	const left = new Map(voters.map((v) => [v, [...perVoter.get(v)!]]));
+	const options: Decision[] = ['mine', 'shared', 'theirs'];
+	const combos = voters.reduce<Decision[][]>(
+		(acc) => acc.flatMap((c) => options.map((o) => [...c, o])),
+		[[]]
+	);
+	const take = (combo: Decision[]) => {
+		const votes = new Map(voters.map((v, k) => [v, combo[k]!]));
+		voters.forEach((v, k) => {
+			const pile = left.get(v)!;
+			pile.splice(pile.indexOf(combo[k]!), 1);
+		});
+		return votes;
+	};
+	const pieces: Map<string, Decision>[] = [];
+	// Exact claims ("mine", "shared") first: "not mine" fits more combinations
+	const exactness = (c: Decision[]) => c.filter((d) => d === 'theirs').length;
+	const fitting = combos
+		.filter(
+			(c) => !resolveSwipes(payer, everyone, new Map(voters.map((v, k) => [v, c[k]!]))).conflict
+		)
+		.sort((a, b) => exactness(a) - exactness(b));
+	for (const combo of fitting)
+		while (voters.every((v, k) => left.get(v)!.includes(combo[k]!))) pieces.push(take(combo));
+	while (pieces.length < n) pieces.push(take(voters.map((v) => left.get(v)![0]!)));
+	return pieces;
+}
+
 export interface ReceiptLine {
 	id: string;
 	totalCents: Cents;
@@ -137,17 +185,19 @@ export function resolveReceipt<L extends ReceiptLine>(
 		const split = own.some(([, d]) => Array.isArray(d[line.id]) && d[line.id]!.length === n);
 		const cents = split ? splitEqually(line.totalCents, n) : [line.totalCents];
 		const manual = line.owners?.filter((p) => everyone.includes(p));
-		const pieces = cents.map((c, u) => {
-			if (manual?.length) return { cents: c, owners: manual, conflict: false };
-			const votes = new Map(
-				own.map(([voter, d]) => {
-					const x = d[line.id]!;
-					return [voter, Array.isArray(x) ? (x[u] ?? x[0]!) : x] as const;
-				})
-			);
-			return { cents: c, ...resolveSwipes(payer, everyone, votes) };
-		});
-		return { ...line, pieces };
+		if (manual?.length)
+			return { ...line, pieces: cents.map((c) => ({ cents: c, owners: manual, conflict: false })) };
+		const perVoter = new Map(
+			own.map(([voter, d]) => {
+				const x = d[line.id]!;
+				return [voter, cents.map((_, u) => (Array.isArray(x) ? (x[u] ?? x[0]!) : x))] as const;
+			})
+		);
+		const votes = matchPieces(payer, everyone, cents.length, perVoter);
+		return {
+			...line,
+			pieces: cents.map((c, u) => ({ cents: c, ...resolveSwipes(payer, everyone, votes[u]!) }))
+		};
 	});
 	const shares = sharesFromOwners(
 		everyone,
