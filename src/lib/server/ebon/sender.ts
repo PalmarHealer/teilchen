@@ -21,3 +21,27 @@ export function dmarcVerifiedDomain(
 	}
 	return null;
 }
+
+/** Headers that name who a mail was delivered to, also when it was redirected on the way. */
+const ENVELOPE_HEADERS = ['delivered-to', 'x-original-to', 'envelope-to', 'x-forwarded-to'];
+
+/**
+ * Recipient addresses from the delivery headers, not the visible To: a redirected mail keeps the
+ * original To (e.g. the user's own address) and only these name our teilchen+<token> address.
+ * Received headers count for their "for <address>" clause.
+ */
+export function envelopeAddresses(headerLines: readonly { key: string; line: string }[]): string[] {
+	const found: string[] = [];
+	for (const h of headerLines) {
+		const key = h.key.toLowerCase();
+		const value = h.line.replace(/\r?\n[ \t]+/g, ' ').slice(h.line.indexOf(':') + 1);
+		const text = ENVELOPE_HEADERS.includes(key)
+			? value
+			: key === 'received'
+				? (value.match(/\bfor\s+<?[^\s<>;]+@[^\s<>;]+>?/gi) ?? []).join(' ')
+				: '';
+		for (const m of text.matchAll(/[^\s<>"',;:]+@[^\s<>"',;]+\.[a-z]{2,}/gi))
+			found.push(m[0].toLowerCase());
+	}
+	return found;
+}

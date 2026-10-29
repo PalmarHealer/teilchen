@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dmarcVerifiedDomain } from './sender';
+import { dmarcVerifiedDomain, envelopeAddresses } from './sender';
 
 const ar = (line: string) => ({ key: 'authentication-results', line });
 const OURS = `Authentication-Results: mail.nauren.de;
@@ -34,5 +34,31 @@ describe('dmarcVerifiedDomain', () => {
 		expect(
 			dmarcVerifiedDomain([{ key: 'from', line: 'From: a@b.de' }], 'mail.nauren.de')
 		).toBeNull();
+	});
+});
+
+describe('envelopeAddresses', () => {
+	const line = (key: string, value: string) => ({ key, line: `${key}: ${value}` });
+
+	it('finds our address in a redirected mail whose To is the user address', () => {
+		const headers = [
+			line('Delivered-To', 'teilchen+abc123@nauren.de'),
+			line(
+				'Received',
+				'from mx.example.de by mail.nauren.de with ESMTPS id X\r\n\tfor <teilchen+abc123@nauren.de>; Wed, 29 Oct 2026 19:54:00 +0000'
+			),
+			line('Delivered-To', 'laurenz@example.de'),
+			line('To', 'laurenz@example.de')
+		];
+		expect(envelopeAddresses(headers)).toEqual([
+			'teilchen+abc123@nauren.de',
+			'teilchen+abc123@nauren.de',
+			'laurenz@example.de'
+		]);
+	});
+
+	it('reads only the "for" clause of Received headers', () => {
+		const headers = [line('Received', 'from a.example (helo=x@b.example) by mail.nauren.de; Wed')];
+		expect(envelopeAddresses(headers)).toEqual([]);
 	});
 });

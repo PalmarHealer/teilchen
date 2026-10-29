@@ -5,7 +5,7 @@ import { db, schema } from '#lib/server/db/index.ts';
 import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseReceiptPdf } from '#lib/server/ebon/pdf.ts';
 import { looksLikeEbon } from '#lib/server/ebon/classify.ts';
-import { dmarcVerifiedDomain } from '#lib/server/ebon/sender.ts';
+import { dmarcVerifiedDomain, envelopeAddresses } from '#lib/server/ebon/sender.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
 /** Mails that could not be processed; kept for inspection, then purged. */
@@ -150,11 +150,7 @@ function addresses(mail: ParsedMail): string[] {
 		.flat()
 		.flatMap((a) => a?.value ?? [])
 		.map((v) => v.address?.toLowerCase() ?? '');
-	for (const h of ['delivered-to', 'x-original-to']) {
-		const v = mail.headers.get(h);
-		if (typeof v === 'string') list.push(v.toLowerCase());
-	}
-	return list.filter(Boolean);
+	return [...new Set([...list, ...envelopeAddresses(mail.headerLines)])].filter(Boolean);
 }
 
 /**
