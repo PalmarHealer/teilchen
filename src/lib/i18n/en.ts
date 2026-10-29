@@ -11,7 +11,8 @@ export const en = {
 		swipe: 'Swipe',
 		expenses: 'Expenses',
 		groups: 'Groups',
-		profile: 'Profile'
+		profile: 'Profile',
+		admin: 'Admin'
 	},
 	common: {
 		back: 'Back',
@@ -145,6 +146,27 @@ export const en = {
 		nameSaved: 'Name saved',
 		link: 'Link product',
 		retryIn: 'The REWE search is pausing us, try again in {s} s'
+	},
+	admin: {
+		title: 'Admin',
+		mails: 'Mail import',
+		mailsHint:
+			'The last mails the inbox received, for everyone. Nothing here: the worker has not read any mail.',
+		noMails: 'No mails received yet.',
+		mailStatus: {
+			imported: 'imported',
+			no_ebon: 'no receipt in it',
+			unknown_user: 'unknown sender',
+			ignored: 'not an eBon'
+		},
+		products: 'Linked products',
+		productsHint:
+			'Receipt lines linked to a shop product or named by an admin. Changes apply to every receipt.',
+		filter: 'Filter',
+		noProducts: 'No linked products.',
+		auto: 'automatic',
+		byHand: 'by hand',
+		labelOnly: 'name only'
 	},
 	expenses: {
 		title: 'Expenses',
@@ -315,6 +337,7 @@ export const en = {
 			'Changing a linked product needs “Edit links” in the settings (automatic links: admins only)',
 		productNotFound: 'That product is no longer in the shop search, please search again',
 		shopUnavailable: 'The REWE search can’t be reached right now, try again in a few minutes',
+		notAdmin: 'Only admins can see this page',
 		adminsOnly: 'Only admins can do that, with “Edit links” on in the settings',
 		invalidInput: 'Invalid input',
 		notYourGroup: 'Not one of your groups',

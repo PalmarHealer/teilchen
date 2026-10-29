@@ -15,13 +15,16 @@
 		document.documentElement.lang = data.locale;
 	});
 
-	const nav: { href: string; label: MessageKey; icon: IconName }[] = [
+	const nav: { href: string; label: MessageKey; icon: IconName }[] = $derived([
 		{ href: '/', label: 'nav.overview', icon: 'home' },
 		{ href: '/swipe', label: 'nav.swipe', icon: 'swipe' },
 		{ href: '/expenses', label: 'nav.expenses', icon: 'list' },
 		{ href: '/groups', label: 'nav.groups', icon: 'users' },
-		{ href: '/settings', label: 'nav.profile', icon: 'user' }
-	];
+		{ href: '/settings', label: 'nav.profile', icon: 'user' },
+		...(data.user?.isAdmin
+			? [{ href: '/admin', label: 'nav.admin' as const, icon: 'admin' as const }]
+			: [])
+	]);
 	const badge =
 		'bg-primary text-primary-foreground grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums';
 	// Badges: open receipts on Swipe, contact requests waiting on Profile

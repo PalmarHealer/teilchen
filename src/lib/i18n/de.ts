@@ -10,7 +10,8 @@ export const de: Dictionary = {
 		swipe: 'Swipen',
 		expenses: 'Ausgaben',
 		groups: 'Gruppen',
-		profile: 'Profil'
+		profile: 'Profil',
+		admin: 'Admin'
 	},
 	common: {
 		back: 'Zurück',
@@ -146,6 +147,26 @@ export const de: Dictionary = {
 		nameSaved: 'Name gespeichert',
 		link: 'Produkt verknüpfen',
 		retryIn: 'Die REWE-Suche bremst uns gerade, probier es in {s} s nochmal'
+	},
+	admin: {
+		title: 'Admin',
+		mails: 'Mail-Import',
+		mailsHint:
+			'Die letzten Mails im Postfach, von allen. Nichts hier: Der Worker hat noch keine Mail gelesen.',
+		noMails: 'Noch keine Mails angekommen.',
+		mailStatus: {
+			imported: 'importiert',
+			no_ebon: 'kein Bon drin',
+			unknown_user: 'unbekannter Absender',
+			ignored: 'kein eBon'
+		},
+		products: 'Verknüpfte Produkte',
+		productsHint: 'Bon-Zeilen mit Shop-Produkt oder Admin-Namen. Änderungen gelten auf allen Bons.',
+		filter: 'Filtern',
+		noProducts: 'Keine verknüpften Produkte.',
+		auto: 'automatisch',
+		byHand: 'von Hand',
+		labelOnly: 'nur Name'
 	},
 	expenses: {
 		title: 'Ausgaben',
@@ -321,6 +342,7 @@ export const de: Dictionary = {
 		productNotFound: 'Das Produkt ist nicht mehr in der Shop-Suche, bitte neu suchen',
 		shopUnavailable:
 			'Die REWE-Suche ist gerade nicht erreichbar, probier es in ein paar Minuten nochmal',
+		notAdmin: 'Diese Seite sehen nur Admins',
 		adminsOnly: 'Das dürfen nur Admins, mit „Verknüpfungen bearbeiten“ in den Einstellungen',
 		invalidInput: 'Ungültige Eingabe',
 		notYourGroup: 'Keine Gruppe von dir',

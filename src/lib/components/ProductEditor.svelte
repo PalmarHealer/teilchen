@@ -22,12 +22,14 @@
 	/**
 	 * Links a receipt line to a product of the REWE shop search, which gives it a readable name
 	 * and a photo on every receipt. Admins (with "edit links" on) can also name it by hand.
+	 * The forms send `item.id` as `field`: a receipt line's id, or (admin page) the line's name.
 	 */
 	let {
 		item,
 		canRename = false,
+		field = 'item',
 		open = $bindable(false)
-	}: { item: Item; canRename?: boolean; open?: boolean } = $props();
+	}: { item: Item; canRename?: boolean; field?: string; open?: boolean } = $props();
 	const i = useI18n();
 
 	let query = $state('');
@@ -128,7 +130,7 @@
 						done: () => (open = false)
 					})}
 				>
-					<input type="hidden" name="item" value={item.id} />
+					<input type="hidden" name={field} value={item.id} />
 					<Label for="product-label">{i.t('product.adminName')}</Label>
 					<div class="flex gap-2">
 						<Input
@@ -201,7 +203,7 @@
 				action="?/link"
 				use:enhance={withToast(i.t, { done: () => (open = false) })}
 			>
-				<input type="hidden" name="item" value={item.id} />
+				<input type="hidden" name={field} value={item.id} />
 				<input type="hidden" name="query" value={searched} />
 				<input type="hidden" name="url" value={picked?.imageUrl ?? ''} />
 				<Button type="submit" class="w-full" disabled={!picked || searching}>

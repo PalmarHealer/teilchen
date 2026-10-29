@@ -19,9 +19,9 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		schema.contactRequests,
 		eq(schema.contactRequests.toId, locals.user.id)
 	);
-	const { id, name, avatarUrl, email } = locals.user;
+	const { id, name, avatarUrl, email, isAdmin } = locals.user;
 	return {
-		user: { id, name, avatarUrl, email },
+		user: { id, name, avatarUrl, email, isAdmin },
 		openReceipts: open,
 		contactRequests: requests,
 		locale,

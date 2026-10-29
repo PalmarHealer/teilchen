@@ -32,6 +32,7 @@
 	import Receipt from '@tabler/icons-svelte/icons/receipt';
 	import Search from '@tabler/icons-svelte/icons/search';
 	import Settings from '@tabler/icons-svelte/icons/settings';
+	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
 	import Share2 from '@tabler/icons-svelte/icons/share-2';
 	import ShoppingCart from '@tabler/icons-svelte/icons/shopping-cart';
 	import Sparkles from '@tabler/icons-svelte/icons/sparkles';
@@ -87,7 +88,8 @@
 		split: ArrowsSplit,
 		alert: AlertTriangle,
 		android: BrandAndroid,
-		download: Download
+		download: Download,
+		admin: ShieldCheck
 	};
 	export type IconName = keyof typeof icons;
 </script>
