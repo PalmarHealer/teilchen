@@ -161,12 +161,18 @@ export const de: Dictionary = {
 			ignored: 'kein eBon'
 		},
 		products: 'Verknüpfte Produkte',
-		productsHint: 'Bon-Zeilen mit Shop-Produkt oder Admin-Namen. Änderungen gelten auf allen Bons.',
+		productsHint: 'Bon-Zeilen mit Shop-Produkt. Änderungen gelten auf allen Bons.',
 		filter: 'Filtern',
 		noProducts: 'Keine verknüpften Produkte.',
 		auto: 'automatisch',
 		byHand: 'von Hand',
-		labelOnly: 'nur Name'
+		unlinked: 'Nicht verknüpft',
+		unlinkedHint:
+			'Bon-Zeilen ohne Shop-Produkt, die häufigsten zuerst. Neue sucht der Worker von selbst.',
+		noUnlinked: 'Alle Bon-Zeilen sind verknüpft.',
+		times: '{n}× gekauft',
+		notFound: 'nicht im Shop',
+		pending: 'noch nicht gesucht'
 	},
 	expenses: {
 		title: 'Ausgaben',

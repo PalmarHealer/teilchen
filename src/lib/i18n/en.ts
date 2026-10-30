@@ -160,13 +160,18 @@ export const en = {
 			ignored: 'not an eBon'
 		},
 		products: 'Linked products',
-		productsHint:
-			'Receipt lines linked to a shop product or named by an admin. Changes apply to every receipt.',
+		productsHint: 'Receipt lines linked to a shop product. Changes apply to every receipt.',
 		filter: 'Filter',
 		noProducts: 'No linked products.',
 		auto: 'automatic',
 		byHand: 'by hand',
-		labelOnly: 'name only'
+		unlinked: 'Not linked',
+		unlinkedHint:
+			'Receipt lines without a shop product, most bought first. The worker searches for new ones by itself.',
+		noUnlinked: 'Every receipt line is linked.',
+		times: '{n}× bought',
+		notFound: 'not in the shop',
+		pending: 'not searched yet'
 	},
 	expenses: {
 		title: 'Expenses',

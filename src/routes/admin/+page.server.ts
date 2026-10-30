@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { asc, desc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNotNull, isNull, max } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '#lib/server/db/index.ts';
 import {
@@ -10,7 +10,7 @@ import {
 } from '#lib/server/product-images.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-const { productLinks, inboundMails, users } = schema;
+const { productLinks, productMisses, receiptItems, inboundMails, users } = schema;
 
 const MAILS_SHOWN = 30;
 
@@ -21,7 +21,7 @@ function adminOnly(user: App.Locals['user']) {
 
 export const load: PageServerLoad = async ({ locals }) => {
 	adminOnly(locals.user);
-	const [products, mails] = await Promise.all([
+	const [products, unlinked, mails] = await Promise.all([
 		db
 			.select({
 				name: productLinks.name,
@@ -32,7 +32,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 				linkedAt: productLinks.linkedAt
 			})
 			.from(productLinks)
+			.where(isNotNull(productLinks.source))
 			.orderBy(asc(productLinks.name)),
+		// Product lines without a shop product (an admin's label alone doesn't count), most bought first
+		db
+			.select({
+				name: receiptItems.name,
+				label: max(productLinks.label),
+				count: count(),
+				missed: max(productMisses.searchedAt)
+			})
+			.from(receiptItems)
+			.leftJoin(productLinks, eq(productLinks.name, receiptItems.name))
+			.leftJoin(productMisses, eq(productMisses.name, receiptItems.name))
+			.where(and(eq(receiptItems.kind, 'product'), isNull(productLinks.source)))
+			.groupBy(receiptItems.name)
+			.orderBy(desc(count()), asc(receiptItems.name)),
 		db
 			.select({
 				messageId: inboundMails.messageId,
@@ -46,7 +61,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.orderBy(desc(inboundMails.receivedAt))
 			.limit(MAILS_SHOWN)
 	]);
-	return { products, mails };
+	return { products, unlinked, mails };
 };
 
 // `name` is the receipt line's name, the key of a product link
