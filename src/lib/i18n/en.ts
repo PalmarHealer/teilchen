@@ -153,10 +153,13 @@ export const en = {
 		mailsHint:
 			'The last mails the inbox received, for everyone. Nothing here: the worker has not read any mail.',
 		noMails: 'No mails received yet.',
+		noUser: 'No user found',
+		unknownUserHint:
+			'“Not matched”: an eBon, but none of its addresses belongs to a user (neither the personal forwarding address nor a verified sender). The mail was deleted.',
 		mailStatus: {
 			imported: 'imported',
 			no_ebon: 'no receipt in it',
-			unknown_user: 'unknown sender',
+			unknown_user: 'not matched',
 			ignored: 'not an eBon'
 		},
 		products: 'Linked products',

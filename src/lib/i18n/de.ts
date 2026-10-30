@@ -154,10 +154,13 @@ export const de: Dictionary = {
 		mailsHint:
 			'Die letzten Mails im Postfach, von allen. Nichts hier: Der Worker hat noch keine Mail gelesen.',
 		noMails: 'Noch keine Mails angekommen.',
+		noUser: 'Kein Nutzer gefunden',
+		unknownUserHint:
+			'„Nicht zugeordnet“: ein eBon, aber keine der Adressen gehört zu einem Nutzer (weder die persönliche Weiterleitungsadresse noch ein bestätigter Absender). Die Mail wurde gelöscht.',
 		mailStatus: {
 			imported: 'importiert',
 			no_ebon: 'kein Bon drin',
-			unknown_user: 'unbekannter Absender',
+			unknown_user: 'nicht zugeordnet',
 			ignored: 'kein eBon'
 		},
 		products: 'Verknüpfte Produkte',

@@ -62,9 +62,15 @@
 				<List.Item>
 					<Icon name="mail" size={18} />
 					<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-						<span class="truncate text-sm font-medium">{m.userName ?? '–'}</span>
-						<span class="text-muted-foreground truncate text-xs"
-							>{when(m.receivedAt)}{m.detail ? ` · ${m.detail}` : ''}</span
+						<span class="truncate text-sm font-medium"
+							>{m.userName ?? (m.status === 'unknown_user' ? i.t('admin.noUser') : '–')}</span
+						>
+						<!-- unknown_user: the addresses it was sent to/from, in full, to see why none matched -->
+						<span
+							class={[
+								'text-muted-foreground text-xs',
+								m.status === 'unknown_user' ? 'break-all' : 'truncate'
+							]}>{when(m.receivedAt)}{m.detail ? ` · ${m.detail}` : ''}</span
 						>
 					</span>
 					<Badge variant={m.status === 'imported' ? 'secondary' : 'outline'}
@@ -73,6 +79,9 @@
 				</List.Item>
 			{/each}
 		</List.Root>
+		{#if data.mails.some((m) => m.status === 'unknown_user')}
+			<p class="text-muted-foreground -mt-2 px-1 text-xs">{i.t('admin.unknownUserHint')}</p>
+		{/if}
 	{:else}
 		<p class="text-muted-foreground px-1 text-sm">{i.t('admin.noMails')}</p>
 	{/if}
@@ -103,10 +112,10 @@
 								<GroupIcon icon={productIcon(p.label ?? p.title ?? p.name)} size={72} />
 							</span>
 						{/if}
-						<span class="line-clamp-2 text-sm font-medium">{p.label ?? p.title ?? p.name}</span>
-						<span class="text-muted-foreground line-clamp-1 font-mono text-xs break-all"
-							>{p.name}</span
+						<span class="line-clamp-2 w-full text-sm font-medium hyphens-auto wrap-break-word"
+							>{p.label ?? p.title ?? p.name}</span
 						>
+						<span class="text-muted-foreground w-full truncate font-mono text-xs">{p.name}</span>
 						<Badge variant="outline" class="mt-auto"
 							>{p.source === 'system' ? i.t('admin.auto') : i.t('admin.byHand')}</Badge
 						>
