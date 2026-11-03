@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { formatDate, translate, type Locale } from '#lib/i18n/index.ts';
 import { unitCount } from '#lib/split.ts';
@@ -59,6 +59,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			label: schema.productLinks.label,
 			imageUrl: schema.productLinks.imageUrl,
 			linkSource: schema.productLinks.source,
+			reported: sql<boolean>`${schema.productReports.userId} is not null`,
 			quantity: schema.receiptItems.quantity,
 			unit: schema.receiptItems.unit,
 			totalCents: schema.receiptItems.totalCents,
@@ -67,6 +68,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		})
 		.from(schema.receiptItems)
 		.leftJoin(schema.productLinks, eq(schema.productLinks.name, schema.receiptItems.name))
+		.leftJoin(
+			schema.productReports,
+			and(
+				eq(schema.productReports.name, schema.receiptItems.name),
+				eq(schema.productReports.userId, me)
+			)
+		)
 		.where(eq(schema.receiptItems.receiptId, receipt.id))
 		.orderBy(asc(schema.receiptItems.position));
 	const base = {
@@ -78,7 +86,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		},
 		items: items.map(({ linkSource, ...it }) => ({
 			...it,
-			canLink: canLink(linkSource, locals.user!)
+			canLink: canLink(linkSource, locals.user!),
+			// Admins fix a wrong product themselves
+			canReport: !!linkSource && !locals.user!.isAdmin
 		})),
 		// Naming by hand: admins, with "edit links" on in the settings
 		canRename: locals.user!.isAdmin && locals.user!.editLinks
@@ -138,6 +148,7 @@ const RenameInput = z.object({
 	item: z.string().uuid(),
 	label: z.string().trim().max(120)
 });
+const ReportInput = z.object({ item: z.string().uuid() });
 const LinkInput = z.object({
 	item: z.string().uuid(),
 	query: z.string().trim().min(1).max(300),
@@ -262,6 +273,31 @@ export const actions: Actions = {
 			.where(and(eq(schema.receiptItems.id, item), eq(schema.receiptItems.receiptId, receipt.id)));
 		if (!line) return fail(404, { message: 'errors.invalidInput' as const });
 		await renameProduct(line.name, label || null, user.id);
+	},
+
+	/** "Wrong product": flags the line's link for an admin, who sees it in the admin tab. */
+	report: async ({ locals, params, request }) => {
+		const me = locals.user!.id;
+		const { receipt } = await swipeableReceipt(params.id, me);
+		const parsed = ReportInput.safeParse(Object.fromEntries(await request.formData()));
+		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
+		const [line] = await db
+			.select({ name: schema.receiptItems.name })
+			.from(schema.receiptItems)
+			.innerJoin(schema.productLinks, eq(schema.productLinks.name, schema.receiptItems.name))
+			.where(
+				and(
+					eq(schema.receiptItems.id, parsed.data.item),
+					eq(schema.receiptItems.receiptId, receipt.id),
+					isNotNull(schema.productLinks.source)
+				)
+			);
+		if (!line) return fail(404, { message: 'errors.invalidInput' as const });
+		await db
+			.insert(schema.productReports)
+			.values({ name: line.name, userId: me })
+			.onConflictDoNothing();
+		return { reported: true };
 	},
 
 	/** Not shared: an expense of mine alone, so it still shows up under expenses. */

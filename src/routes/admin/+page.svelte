@@ -3,13 +3,16 @@
 	import Header from '#lib/components/Header.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import ProductEditor from '#lib/components/ProductEditor.svelte';
+	import { enhance } from '$app/forms';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
 	import { SectionTitle } from '#lib/components/ui/section/index.ts';
 	import { useI18n, type MessageKey } from '#lib/i18n/index.ts';
 	import { productIcon } from '#lib/product-icon.ts';
 	import { productThumb } from '#lib/product-image.ts';
+	import { withToast } from '#lib/toast.ts';
 
 	let { data } = $props();
 	const i = useI18n();
@@ -84,6 +87,60 @@
 		{/if}
 	{:else}
 		<p class="text-muted-foreground px-1 text-sm">{i.t('admin.noMails')}</p>
+	{/if}
+
+	<SectionTitle>{i.t('admin.reports')} ({data.reports.length})</SectionTitle>
+	<p class="text-muted-foreground -mt-2 px-1 text-xs">{i.t('admin.reportsHint')}</p>
+	{#if data.reports.length}
+		<List.Root>
+			{#each data.reports as r (r.name)}
+				<li data-slot="list-item" class="flex items-center">
+					<button
+						class="hover:bg-accent/60 focus-visible:bg-accent/60 flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition-colors outline-none"
+						onclick={() => edit(r)}
+					>
+						{#if r.imageUrl && !broken[r.imageUrl]}
+							{@const url = r.imageUrl}
+							<img
+								src={productThumb(url, 96)}
+								alt=""
+								loading="lazy"
+								class="size-9 object-contain"
+								onerror={() => (broken[url] = true)}
+							/>
+						{:else}
+							<GroupIcon icon={productIcon(r.label ?? r.title ?? r.name)} size={36} />
+						{/if}
+						<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+							<span class="truncate text-sm font-medium">{r.label ?? r.title ?? r.name}</span>
+							<span class="text-muted-foreground truncate font-mono text-xs"
+								>{r.name} · {i.t('admin.reportCount', { n: r.count })}</span
+							>
+						</span>
+						<Icon name="edit" size={16} />
+					</button>
+					<form
+						method="POST"
+						action="?/dismissReports"
+						class="pr-2"
+						use:enhance={withToast(i.t, { success: () => i.t('admin.reportsDismissed') })}
+					>
+						<input type="hidden" name="name" value={r.name} />
+						<Button
+							type="submit"
+							variant="ghost"
+							size="icon"
+							aria-label={i.t('admin.dismissReports')}
+							title={i.t('admin.dismissReports')}
+						>
+							<Icon name="check" size={16} />
+						</Button>
+					</form>
+				</li>
+			{/each}
+		</List.Root>
+	{:else}
+		<p class="text-muted-foreground px-1 text-sm">{i.t('admin.noReports')}</p>
 	{/if}
 
 	<Input type="search" bind:value={filter} placeholder={i.t('admin.filter')} />

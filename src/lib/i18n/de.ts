@@ -146,7 +146,9 @@ export const de: Dictionary = {
 			'Gilt auf allen Bons mit dieser Zeile, auch den alten. Leer: wieder der Name aus dem Shop.',
 		nameSaved: 'Name gespeichert',
 		link: 'Produkt verknüpfen',
-		retryIn: 'Die REWE-Suche bremst uns gerade, probier es in {s} s nochmal'
+		retryIn: 'Die REWE-Suche bremst uns gerade, probier es in {s} s nochmal',
+		report: 'Falsches Produkt? Melden',
+		reported: 'Gemeldet, ein Admin schaut es sich an'
 	},
 	admin: {
 		title: 'Admin',
@@ -174,6 +176,13 @@ export const de: Dictionary = {
 			'Bon-Zeilen ohne Shop-Produkt, die häufigsten zuerst. Neue sucht der Worker von selbst.',
 		noUnlinked: 'Alle Bon-Zeilen sind verknüpft.',
 		times: '{n}× gekauft',
+		reports: 'Gemeldete Produkte',
+		reportsHint:
+			'Zeilen, die jemand als falsch verknüpft gemeldet hat. Ein anderes Produkt verknüpfen löscht die Meldungen, der Haken verwirft sie.',
+		noReports: 'Nichts gemeldet.',
+		reportCount: (p) => (p.n === 1 ? 'einmal gemeldet' : `${p.n}× gemeldet`),
+		dismissReports: 'Produkt stimmt, Meldungen verwerfen',
+		reportsDismissed: 'Meldungen verworfen',
 		notFound: 'nicht im Shop',
 		pending: 'noch nicht gesucht'
 	},
@@ -294,6 +303,14 @@ export const de: Dictionary = {
 		validFor: 'Gültig für 7 Tage.',
 		text: 'Lass uns Kosten auf Teilchen teilen'
 	},
+	mailAddress: {
+		title: 'Adresse bestätigen',
+		text: 'eBons an {address} werden ins Konto von {name} importiert.',
+		confirm: 'Bestätigen',
+		mailSubject: 'Bestätige deine Adresse für Teilchen',
+		mailText:
+			'Hallo {name},\n\ndu möchtest, dass eBons an {address} in dein Teilchen-Konto importiert werden. Wenn das deine Adresse ist, bestätige die Verknüpfung hier (angemeldet als {name}):\n\n{url}\n\nDer Link gilt 7 Tage. Wenn du das nicht warst, ignorier diese Mail einfach.'
+	},
 	android: {
 		bannerTitle: 'Teilchen als Android-App',
 		bannerText: 'Startet direkt, ohne Browser und Adressleiste.',
@@ -338,6 +355,14 @@ export const de: Dictionary = {
 			'Leite deine REWE-eBon-Mails an diese Adresse weiter, am besten mit einer automatischen Weiterleitung für den Absender:',
 		ebonFromHint: 'Weiterleitungen von {email} werden auch ohne den +-Teil erkannt.',
 		noInbox: 'Kein eBon-Postfach konfiguriert (INBOX_ADDRESS).',
+		redirectHint:
+			'Dein Mailkonto leitet die eBons um (Redirect), statt sie weiterzuleiten? Dann geht der +-Teil verloren. Trag die Adresse ein, an die REWE deine eBons schickt. Teilchen schickt ihr einen Link zum Bestätigen.',
+		addressPlaceholder: 'du@example.com',
+		addAddress: 'Hinzufügen',
+		addressRequested: 'Bestätigungslink an {address} geschickt',
+		addressConfirmed: 'bestätigt',
+		addressPending: 'wartet auf Bestätigung',
+		removeAddress: 'Adresse entfernen',
 		uploadHeading: 'eBon-PDF hochladen',
 		importing: 'Importiere eBons …',
 		choosePdf: 'eBon-PDFs auswählen',
@@ -388,6 +413,14 @@ export const de: Dictionary = {
 			'Diesen Bon hast du schon importiert. Er steht unter Ausgaben; löschst du ihn dort, kannst du ihn neu hochladen.',
 		uploadTooLarge: 'Zu viele oder zu große Dateien (höchstens 20 PDFs mit je 5 MB)',
 		invalidDate: 'Ungültiges Datum',
+		invalidAddress: 'Das ist keine Mailadresse',
+		addressIsInbox:
+			'Das ist das Teilchen-Postfach selbst, trag die Adresse ein, an die REWE schickt',
+		addressTaken: 'Diese Adresse hat schon jemand anderes bestätigt',
+		tooManyAddresses: 'Höchstens 5 Adressen',
+		mailUnavailable:
+			'Die Bestätigungsmail konnte nicht verschickt werden, versuch es später nochmal',
+		addressLinkInvalid: 'Link ungültig oder abgelaufen, oder für ein anderes Konto gedacht',
 		generic: 'Etwas ist schiefgelaufen'
 	}
 };

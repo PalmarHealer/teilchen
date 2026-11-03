@@ -10,7 +10,9 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import InviteBox from '#lib/components/InviteBox.svelte';
 	import Select from '#lib/components/Select.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as List from '#lib/components/ui/list/index.ts';
@@ -197,6 +199,53 @@
 				<p class="text-muted-foreground text-xs">
 					{i.t('settings.ebonFromHint', { email: data.email })}
 				</p>
+				<p class="text-muted-foreground mt-2 text-sm">{i.t('settings.redirectHint')}</p>
+				{#if data.mailAddresses.length}
+					<List.Root>
+						{#each data.mailAddresses as a (a.address)}
+							<List.Item>
+								<span class="min-w-0 flex-1 truncate text-sm">{a.address}</span>
+								<Badge variant={a.confirmed ? 'secondary' : 'outline'}
+									>{a.confirmed
+										? i.t('settings.addressConfirmed')
+										: i.t('settings.addressPending')}</Badge
+								>
+								<form method="POST" action="?/removeAddress" use:enhance={withToast(i.t)}>
+									<input type="hidden" name="address" value={a.address} />
+									<Button
+										type="submit"
+										variant="ghost"
+										size="icon"
+										aria-label={i.t('settings.removeAddress')}
+										title={i.t('settings.removeAddress')}
+									>
+										<Icon name="trash" size={16} />
+									</Button>
+								</form>
+							</List.Item>
+						{/each}
+					</List.Root>
+				{/if}
+				{#if data.canAddAddress && data.mailAddresses.length < data.maxAddresses}
+					<form
+						method="POST"
+						action="?/addAddress"
+						use:enhance={withToast(i.t, {
+							success: (d) =>
+								i.t('settings.addressRequested', { address: String(d?.addressRequested) })
+						})}
+						class="flex gap-2"
+					>
+						<Input
+							type="email"
+							name="address"
+							required
+							autocomplete="email"
+							placeholder={i.t('settings.addressPlaceholder')}
+						/>
+						<Button type="submit" variant="outline">{i.t('settings.addAddress')}</Button>
+					</form>
+				{/if}
 			{:else}
 				<p class="text-muted-foreground text-sm">{i.t('settings.noInbox')}</p>
 			{/if}

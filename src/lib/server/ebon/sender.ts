@@ -45,3 +45,7 @@ export function envelopeAddresses(headerLines: readonly { key: string; line: str
 	}
 	return found;
 }
+
+/** REWE sends eBons from mailing.rewe.de; any rewe.de domain is REWE's own. */
+export const isReweDomain = (domain: string | null) =>
+	!!domain && (domain === 'rewe.de' || domain.endsWith('.rewe.de'));

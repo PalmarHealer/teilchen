@@ -18,6 +18,8 @@
 	import ArrowsSplit from '@tabler/icons-svelte/icons/arrows-split';
 	import Confetti from '@tabler/icons-svelte/icons/confetti';
 	import DoorExit from '@tabler/icons-svelte/icons/door-exit';
+	import Flag from '@tabler/icons-svelte/icons/flag';
+	import FlagFilled from '@tabler/icons-svelte/icons/flag-filled';
 	import FileTypePdf from '@tabler/icons-svelte/icons/file-type-pdf';
 	import HelpCircle from '@tabler/icons-svelte/icons/help-circle';
 	import Keyboard from '@tabler/icons-svelte/icons/keyboard';
@@ -89,7 +91,9 @@
 		alert: AlertTriangle,
 		android: BrandAndroid,
 		download: Download,
-		admin: ShieldCheck
+		admin: ShieldCheck,
+		flag: Flag,
+		flagFilled: FlagFilled
 	};
 	export type IconName = keyof typeof icons;
 </script>

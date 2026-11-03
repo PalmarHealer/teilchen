@@ -24,11 +24,11 @@ export const users = pgTable('users', {
 	email: text('email').notNull(),
 	name: text('name').notNull(),
 	avatarUrl: text('avatar_url'),
-	/** Personal part of the eBon forwarding address: teilchen+<token>@… */
 	/** In the identity provider's admin group (OIDC_ADMIN_GROUP), refreshed on every login */
 	isAdmin: boolean('is_admin').notNull().default(false),
 	/** Settings switch: show "find photo" on products that are already linked */
 	editLinks: boolean('edit_links').notNull().default(false),
+	/** Personal part of the eBon forwarding address: teilchen+<token>@… */
 	inboxToken: text('inbox_token')
 		.notNull()
 		.unique()
@@ -36,6 +36,35 @@ export const users = pgTable('users', {
 		.default(sql`substr(md5(gen_random_uuid()::text), 1, 20)`),
 	createdAt: createdAt()
 });
+
+/**
+ * Addresses a user's REWE eBons are sent to. A mail server that redirects (instead of forwarding)
+ * keeps the original To, and ours drops the +<token> from the delivery headers, so these are how
+ * such eBons find their user: only once confirmed via a link mailed to the address, and only for
+ * mails DMARC-verified as coming from REWE.
+ */
+export const mailAddresses = pgTable(
+	'mail_addresses',
+	{
+		/** Lowercase */
+		address: text('address').notNull(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		/** sha256 of the token in the confirmation link; null once confirmed */
+		tokenHash: text('token_hash').unique(),
+		confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+		createdAt: createdAt()
+	},
+	(t) => [
+		primaryKey({ columns: [t.address, t.userId] }),
+		// Anyone may ask to add an address, but only one person can confirm it
+		uniqueIndex('mail_addresses_confirmed')
+			.on(t.address)
+			.where(sql`${t.confirmedAt} is not null`),
+		index('mail_addresses_user').on(t.userId)
+	]
+);
 
 export const sessions = pgTable('sessions', {
 	/** sha256 of the cookie token */
@@ -191,6 +220,19 @@ export const productLinks = pgTable('product_links', {
 	linkedBy: uuid('linked_by').references(() => users.id, { onDelete: 'set null' }),
 	linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+/** "Wrong product": someone flagged a line's link for an admin to check. Cleared by relinking. */
+export const productReports = pgTable(
+	'product_reports',
+	{
+		name: text('name').notNull(),
+		userId: uuid('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: createdAt()
+	},
+	(t) => [primaryKey({ columns: [t.name, t.userId] })]
+);
 
 /** eBon line names the shop search found nothing for, so the worker doesn't ask again and again. */
 export const productMisses = pgTable('product_misses', {

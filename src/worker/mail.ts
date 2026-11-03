@@ -5,7 +5,8 @@ import { db, schema } from '#lib/server/db/index.ts';
 import { env, optionalEnv } from '#lib/server/db/env.ts';
 import { parseReceiptPdf } from '#lib/server/ebon/pdf.ts';
 import { looksLikeEbon } from '#lib/server/ebon/classify.ts';
-import { dmarcVerifiedDomain, envelopeAddresses } from '#lib/server/ebon/sender.ts';
+import { dmarcVerifiedDomain, envelopeAddresses, isReweDomain } from '#lib/server/ebon/sender.ts';
+import { userByConfirmedAddress } from '#lib/server/mail-addresses.ts';
 import { importEbon } from '#lib/server/receipts.ts';
 
 /** Mails that could not be processed; kept for inspection, then purged. */
@@ -154,9 +155,12 @@ function addresses(mail: ParsedMail): string[] {
 }
 
 /**
- * Matching: first via teilchen+<token>@…, otherwise via the sender address (= whoever forwarded
- * it). The sender counts only if our mail server verified it with DMARC, and only if exactly one
- * user has that address (emails come from the identity provider and need not be unique).
+ * Matching, in this order:
+ * 1. teilchen+<token>@… in To or the delivery headers
+ * 2. a confirmed address of the user in To/Cc, if our mail server verified the mail as REWE's with
+ *    DMARC: redirected eBons keep REWE's To, and the mail server drops the +<token> on delivery
+ * 3. the sender (= whoever forwarded it), if verified with DMARC and exactly one user has that
+ *    address (emails come from the identity provider and need not be unique)
  */
 async function findUser(mail: ParsedMail) {
 	for (const addr of addresses(mail)) {
@@ -165,10 +169,18 @@ async function findUser(mail: ParsedMail) {
 		const [u] = await db.select().from(schema.users).where(eq(schema.users.inboxToken, token));
 		if (u) return u;
 	}
-	const from = mail.from?.value[0]?.address?.toLowerCase();
 	const authservId = optionalEnv('MAIL_AUTHSERV_ID') ?? env('IMAP_HOST');
-	if (!from || from.split('@')[1] !== dmarcVerifiedDomain(mail.headerLines, authservId))
-		return null;
+	const verified = dmarcVerifiedDomain(mail.headerLines, authservId);
+	const from = mail.from?.value[0]?.address?.toLowerCase();
+	if (!from || from.split('@')[1] !== verified) return null;
+	if (isReweDomain(verified)) {
+		const to = [mail.to, mail.cc]
+			.flat()
+			.flatMap((a) => a?.value ?? [])
+			.map((v) => v.address?.toLowerCase() ?? '')
+			.filter(Boolean);
+		return userByConfirmedAddress(to);
+	}
 	const users = await db
 		.select()
 		.from(schema.users)

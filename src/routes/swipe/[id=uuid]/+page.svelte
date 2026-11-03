@@ -341,6 +341,27 @@
 							{/if}
 						</Button>
 					{/if}
+					{#if current.item.canReport}
+						<form
+							method="POST"
+							action="?/report"
+							class="absolute top-3 left-3"
+							use:enhance={withToast(i.t, { success: () => i.t('product.reported') })}
+						>
+							<input type="hidden" name="item" value={current.item.id} />
+							<Button
+								type="submit"
+								variant="ghost"
+								size="icon"
+								disabled={current.item.reported}
+								aria-label={current.item.reported ? i.t('product.reported') : i.t('product.report')}
+								title={current.item.reported ? i.t('product.reported') : i.t('product.report')}
+								onpointerdown={(e: PointerEvent) => e.stopPropagation()}
+							>
+								<Icon name={current.item.reported ? 'flagFilled' : 'flag'} size={18} />
+							</Button>
+						</form>
+					{/if}
 					{#if hint}
 						<span class="stamp {hint}"
 							>{hint === 'theirs'

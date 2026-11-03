@@ -145,7 +145,9 @@ export const en = {
 			'Used on every receipt with this line, also the old ones. Empty: the shop name again.',
 		nameSaved: 'Name saved',
 		link: 'Link product',
-		retryIn: 'The REWE search is pausing us, try again in {s} s'
+		retryIn: 'The REWE search is pausing us, try again in {s} s',
+		report: 'Wrong product? Report it',
+		reported: 'Reported, an admin will have a look'
 	},
 	admin: {
 		title: 'Admin',
@@ -173,6 +175,13 @@ export const en = {
 			'Receipt lines without a shop product, most bought first. The worker searches for new ones by itself.',
 		noUnlinked: 'Every receipt line is linked.',
 		times: '{n}× bought',
+		reports: 'Reported products',
+		reportsHint:
+			'Lines someone flagged as linked to the wrong product. Linking another product clears the reports; the tick dismisses them.',
+		noReports: 'Nothing reported.',
+		reportCount: ((p) => (p.n === 1 ? 'reported once' : `reported ${p.n}×`)) as Plural,
+		dismissReports: 'Product is right, dismiss reports',
+		reportsDismissed: 'Reports dismissed',
 		notFound: 'not in the shop',
 		pending: 'not searched yet'
 	},
@@ -289,6 +298,14 @@ export const en = {
 		validFor: 'Valid for 7 days.',
 		text: "Let's split costs on Teilchen"
 	},
+	mailAddress: {
+		title: 'Confirm address',
+		text: 'eBons sent to {address} will be imported into the account of {name}.',
+		confirm: 'Confirm',
+		mailSubject: 'Confirm your address for Teilchen',
+		mailText:
+			'Hello {name},\n\nyou want eBons sent to {address} to be imported into your Teilchen account. If this is your address, confirm it here (signed in as {name}):\n\n{url}\n\nThe link is valid for 7 days. If you did not ask for this, just ignore this mail.'
+	},
 	android: {
 		bannerTitle: 'Teilchen as an Android app',
 		bannerText: 'Starts right away, without browser or address bar.',
@@ -333,6 +350,14 @@ export const en = {
 			'Forward your REWE eBon emails to this address, ideally with an automatic forwarding rule for the sender:',
 		ebonFromHint: 'Forwards from {email} are recognised even without the + part.',
 		noInbox: 'No eBon inbox configured (INBOX_ADDRESS).',
+		redirectHint:
+			'Does your mail account redirect the eBons instead of forwarding them? Then the + part gets lost. Add the address REWE sends your eBons to; Teilchen mails it a link to confirm.',
+		addressPlaceholder: 'you@example.com',
+		addAddress: 'Add',
+		addressRequested: 'Confirmation link sent to {address}',
+		addressConfirmed: 'confirmed',
+		addressPending: 'waiting for confirmation',
+		removeAddress: 'Remove address',
 		uploadHeading: 'Upload eBon PDF',
 		importing: 'Importing eBons …',
 		choosePdf: 'Choose eBon PDFs',
@@ -382,6 +407,12 @@ export const en = {
 			'You already imported this receipt. It is listed under expenses; delete it there to upload it again.',
 		uploadTooLarge: 'Too many or too large files (at most 20 PDFs of 5 MB each)',
 		invalidDate: 'Invalid date',
+		invalidAddress: 'That is not an email address',
+		addressIsInbox: 'That is the Teilchen inbox itself, add the address REWE sends to',
+		addressTaken: 'Someone else already confirmed this address',
+		tooManyAddresses: 'At most 5 addresses',
+		mailUnavailable: 'The confirmation mail could not be sent, try again later',
+		addressLinkInvalid: 'Link invalid or expired, or meant for another account',
 		generic: 'Something went wrong'
 	}
 };

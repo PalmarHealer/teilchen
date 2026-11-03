@@ -48,8 +48,9 @@ pnpm worker     # eBon mail import, linking receipt lines to shop products
 2. Everyone gets their own address `teilchen+<token>@example.com` in the profile.
    - This needs a mail server that delivers plus addresses into the same mailbox.
 3. Without the plus part, the person is recognised by the sender of the forwarded mail, but only if the mail server confirmed that sender with DMARC (its topmost `Authentication-Results` header, see `MAIL_AUTHSERV_ID`) and only one account has that address. A forged `From` is ignored.
-4. Mails that are not REWE eBons (e.g. forwarded login codes) are deleted silently.
-5. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Broken mails move to the `Failed` folder right away; transient errors (DB, network) are retried on later polls for up to 3 days before the mail moves there too. `Failed` is purged after 14 days, so the inbox never fills up.
+4. Redirected mails (the mail account resends the original instead of forwarding it) keep REWE's `To`, and some mail servers (Stalwart) drop the plus part from the delivery headers. For these, people add the address REWE sends their eBons to in the settings. Teilchen mails a confirmation link to it (over SMTP with the IMAP login, see `SMTP_HOST`/`SMTP_PORT`), and once confirmed, an eBon DMARC-verified as REWE's with that address in `To`/`Cc` goes to that person.
+5. Mails that are not REWE eBons (e.g. forwarded login codes) are deleted silently.
+6. Processed mails are deleted from the inbox; the outcome is logged in `inbound_mails`. Broken mails move to the `Failed` folder right away; transient errors (DB, network) are retried on later polls for up to 3 days before the mail moves there too. `Failed` is purged after 14 days, so the inbox never fills up.
 
 ## Deployment
 

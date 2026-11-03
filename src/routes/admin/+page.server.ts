@@ -10,7 +10,7 @@ import {
 } from '#lib/server/product-images.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-const { productLinks, productMisses, receiptItems, inboundMails, users } = schema;
+const { productLinks, productMisses, productReports, receiptItems, inboundMails, users } = schema;
 
 const MAILS_SHOWN = 30;
 
@@ -21,7 +21,21 @@ function adminOnly(user: App.Locals['user']) {
 
 export const load: PageServerLoad = async ({ locals }) => {
 	adminOnly(locals.user);
-	const [products, unlinked, mails] = await Promise.all([
+	const [reports, products, unlinked, mails] = await Promise.all([
+		// Lines someone flagged as linked to the wrong product, most flagged first
+		db
+			.select({
+				name: productReports.name,
+				title: productLinks.title,
+				label: productLinks.label,
+				imageUrl: productLinks.imageUrl,
+				count: count(),
+				lastAt: max(productReports.createdAt)
+			})
+			.from(productReports)
+			.leftJoin(productLinks, eq(productLinks.name, productReports.name))
+			.groupBy(productReports.name, productLinks.name)
+			.orderBy(desc(count()), desc(max(productReports.createdAt))),
 		db
 			.select({
 				name: productLinks.name,
@@ -61,7 +75,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.orderBy(desc(inboundMails.receivedAt))
 			.limit(MAILS_SHOWN)
 	]);
-	return { products, unlinked, mails };
+	return { reports, products, unlinked, mails };
 };
 
 // `name` is the receipt line's name, the key of a product link
@@ -70,6 +84,7 @@ const LinkInput = z.object({
 	query: z.string().trim().min(1).max(300),
 	url: z.string().max(300)
 });
+const NameInput = z.object({ name: z.string().min(1).max(300) });
 const RenameInput = z.object({
 	name: z.string().min(1).max(300),
 	label: z.string().trim().max(120)
@@ -95,5 +110,13 @@ export const actions: Actions = {
 		const parsed = RenameInput.safeParse(Object.fromEntries(await request.formData()));
 		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
 		await renameProduct(parsed.data.name, parsed.data.label || null, user.id);
+	},
+
+	/** The product was right after all. (Relinking clears the reports by itself.) */
+	dismissReports: async ({ locals, request }) => {
+		adminOnly(locals.user);
+		const parsed = NameInput.safeParse(Object.fromEntries(await request.formData()));
+		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
+		await db.delete(productReports).where(eq(productReports.name, parsed.data.name));
 	}
 };

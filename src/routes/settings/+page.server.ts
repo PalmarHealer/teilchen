@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { and, eq, gt, isNull } from 'drizzle-orm';
+import { z } from 'zod';
 import { isLocale, LANG_COOKIE, type Locale } from '#lib/i18n/index.ts';
 import { randomToken, sha256 } from '#lib/server/crypto.ts';
 import { db, schema } from '#lib/server/db/index.ts';
@@ -12,6 +13,13 @@ import {
 	incomingContactRequests
 } from '#lib/server/domain.ts';
 import { importEbon } from '#lib/server/receipts.ts';
+import {
+	addressesOf,
+	MAX_ADDRESSES,
+	removeAddress,
+	requestAddress
+} from '#lib/server/mail-addresses.ts';
+import { canSendMail } from '#lib/server/smtp.ts';
 import { isUuid } from '#lib/uuid.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -24,6 +32,9 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		email: user.email,
 		inboxAddress: local && domain ? `${local}+${user.inboxToken}@${domain}` : null,
 		langPref: (isLocale(pref) ? pref : 'auto') as Locale | 'auto',
+		mailAddresses: await addressesOf(user.id),
+		maxAddresses: MAX_ADDRESSES,
+		canAddAddress: canSendMail(),
 		editLinks: user.editLinks,
 		isAdmin: user.isAdmin,
 		contacts: await contactsOf(user.id),
@@ -37,6 +48,8 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 
 const MAX_UPLOAD_FILES = 20;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+const Address = z.string().trim().toLowerCase().max(254).pipe(z.email());
 
 const ownContactInvites = (me: string) =>
 	and(eq(schema.invites.inviterId, me), isNull(schema.invites.groupId));
@@ -71,6 +84,28 @@ export const actions: Actions = {
 		} else {
 			cookies.delete(LANG_COOKIE, { path: '/' });
 		}
+	},
+
+	addAddress: async ({ locals, request, url }) => {
+		if (!canSendMail()) return fail(503, { message: 'errors.mailUnavailable' as const });
+		const parsed = Address.safeParse((await request.formData()).get('address'));
+		if (!parsed.success) return fail(400, { message: 'errors.invalidAddress' as const });
+		const problem = await requestAddress(
+			locals.user!,
+			parsed.data,
+			url.origin,
+			locals.locale
+		).catch((e: unknown) => {
+			console.error('[settings] confirmation mail failed', e);
+			return 'errors.mailUnavailable' as const;
+		});
+		if (problem) return fail(400, { message: problem });
+		return { addressRequested: parsed.data };
+	},
+
+	removeAddress: async ({ locals, request }) => {
+		const address = (await request.formData()).get('address');
+		if (typeof address === 'string') await removeAddress(locals.user!.id, address);
 	},
 
 	editLinks: async ({ locals, request }) => {

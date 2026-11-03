@@ -79,6 +79,9 @@ export async function linkProduct(
 			// The worker never overrides what someone picked in the meantime
 			setWhere: by.source === 'system' ? isNull(schema.productLinks.source) : undefined
 		});
+	// Picked by hand: whatever was reported as wrong about the old product is dealt with
+	if (by.source === 'user')
+		await db.delete(schema.productReports).where(eq(schema.productReports.name, name));
 }
 
 /** An admin's name for a line, and for every other line linked to the same product. */

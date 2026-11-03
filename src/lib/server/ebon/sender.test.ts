@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dmarcVerifiedDomain, envelopeAddresses } from './sender';
+import { dmarcVerifiedDomain, envelopeAddresses, isReweDomain } from './sender';
 
 const ar = (line: string) => ({ key: 'authentication-results', line });
 const OURS = `Authentication-Results: mail.nauren.de;
@@ -60,5 +60,15 @@ describe('envelopeAddresses', () => {
 	it('reads only the "for" clause of Received headers', () => {
 		const headers = [line('Received', 'from a.example (helo=x@b.example) by mail.nauren.de; Wed')];
 		expect(envelopeAddresses(headers)).toEqual([]);
+	});
+});
+
+describe('isReweDomain', () => {
+	it('accepts rewe.de and its subdomains only', () => {
+		expect(isReweDomain('mailing.rewe.de')).toBe(true);
+		expect(isReweDomain('rewe.de')).toBe(true);
+		expect(isReweDomain('notrewe.de')).toBe(false);
+		expect(isReweDomain('rewe.de.example.com')).toBe(false);
+		expect(isReweDomain(null)).toBe(false);
 	});
 });
