@@ -32,6 +32,7 @@
 	import PhotoSearch from '@tabler/icons-svelte/icons/photo-search';
 	import Plus from '@tabler/icons-svelte/icons/plus';
 	import Receipt from '@tabler/icons-svelte/icons/receipt';
+	import Recycle from '@tabler/icons-svelte/icons/recycle';
 	import Search from '@tabler/icons-svelte/icons/search';
 	import Settings from '@tabler/icons-svelte/icons/settings';
 	import ShieldCheck from '@tabler/icons-svelte/icons/shield-check';
@@ -86,6 +87,7 @@
 		search: Search,
 		settings: Settings,
 		sparkles: Sparkles,
+		recycle: Recycle,
 		trash: Trash,
 		split: ArrowsSplit,
 		alert: AlertTriangle,

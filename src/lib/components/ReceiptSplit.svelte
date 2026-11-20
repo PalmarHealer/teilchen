@@ -26,6 +26,8 @@
 			conflicts: number;
 			pending: number;
 			discountCents: number;
+			credits: { id: string; cents: number; owners: string[] }[];
+			depositCents: number;
 			people: { id: string; name: string }[];
 			lines: {
 				id: string;
@@ -178,6 +180,24 @@
 				</div>
 			{/if}
 		</li>
+	{/each}
+	{#if receipt.depositCents}
+		<List.Item class="text-sm">
+			<span class="text-muted-foreground"><Icon name="recycle" size={18} /></span>
+			<span class="flex-1">{i.t('swipe.pileDeposit')}</span>
+			<Amount cents={receipt.depositCents} class="font-medium" />
+		</List.Item>
+	{/if}
+	{#each receipt.credits as c (c.id)}
+		<List.Item class="text-positive text-sm">
+			<Icon name="sparkles" size={18} />
+			<span class="flex-1"
+				>{c.owners.includes(me)
+					? i.t('swipe.creditMine')
+					: i.t('swipe.creditOf', { name: names(c.owners) })}</span
+			>
+			<Amount cents={c.cents} class="font-medium" />
+		</List.Item>
 	{/each}
 	{#if receipt.discountCents}
 		<List.Item class="text-positive text-sm">

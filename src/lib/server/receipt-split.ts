@@ -27,7 +27,7 @@ export async function receiptSplit(receiptId: string, tx: Db = db) {
 		receipt,
 		everyone,
 		swiped,
-		...resolveReceipt(receipt.ownerId, everyone, lines, swiped)
+		...resolveReceipt(receipt.ownerId, everyone, lines, swiped, receipt.depositSplit)
 	};
 }
 

@@ -106,8 +106,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			people: split.everyone.map((id) => ({ id, name: people.get(id)?.name ?? '?' })),
 			pending: split.everyone.filter((id) => !split.swiped.has(id)).length,
 			discountCents: split.lines
-				.filter((l) => l.kind === 'discount')
+				.filter((l) => l.kind === 'discount' && !l.pieces[0]!.owners.length)
 				.reduce((a, l) => a + l.totalCents, 0),
+			// Someone's own credit, for them alone
+			credits: split.lines
+				.filter((l) => l.kind === 'discount' && l.pieces[0]!.owners.length)
+				.map((l) => ({ id: l.id, cents: l.totalCents, owners: l.pieces[0]!.owners })),
+			// Deposit split equally next to the products it came with
+			depositCents: split.lines.reduce((a, l) => a + l.evenCents, 0),
 			lines: split.lines
 				.filter((l) => l.kind === 'product')
 				.map((l) => ({
@@ -116,7 +122,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 					imageUrl: links.get(l.name)?.imageUrl ?? null,
 					quantity: l.quantity,
 					unit: l.unit,
-					cents: l.totalCents,
+					// A deposit split equally is listed on its own
+					cents: l.totalCents - l.evenCents,
 					manual: !!l.owners?.length,
 					conflict: l.pieces.some((p) => p.conflict),
 					pieces: l.pieces.map((p) => ({ cents: p.cents, owners: p.owners })),

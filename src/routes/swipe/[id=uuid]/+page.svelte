@@ -17,11 +17,14 @@
 	import { productIcon } from '#lib/product-icon.ts';
 	import { productThumb } from '#lib/product-image.ts';
 	import {
-		expandUnits,
+		depositParts,
+		isSwiped,
 		sharesFromItems,
+		swipedItems,
 		swipeTotals,
 		unitCount,
 		type Decision,
+		type DepositSplit,
 		type ItemDecision
 	} from '#lib/split.ts';
 
@@ -37,14 +40,34 @@
 	// Card keys in the order they were decided, or `split:<item id>` for a split
 	let history = $state<string[]>([]);
 
-	// Only products are swiped; discounts/coupons are spread over them when booking.
-	const products = $derived(data.items.filter((it) => it.kind === 'product'));
+	// Asked before swiping, and only by the payer: how the deposit is split, and which discounts
+	// are the payer's own credit (REWE credit is guessed to be).
+	// svelte-ignore state_referenced_locally
+	let depositSplit = $state<DepositSplit>(data.receipt.depositSplit);
+	// svelte-ignore state_referenced_locally
+	let credits = $state<Record<string, boolean>>(
+		Object.fromEntries(
+			data.items
+				.filter((it) => it.kind === 'discount')
+				.map((it) => [it.id, /guthaben/i.test(it.name)])
+		)
+	);
+	const hasDeposit = $derived(data.items.some((it) => it.kind === 'product' && it.depositCents));
+	const discounts = $derived(data.items.filter((it) => it.kind === 'discount'));
+	const asksSetup = $derived(!data.fixedTarget && (hasDeposit || discounts.length > 0));
+	let setupDone = $state(false);
+	const lineName = (it: { name: string; title: string | null }) =>
+		it.title ?? (depositSplit === 'even' ? it.name.replace(/\s*\(inkl\. Pfand\)$/, '') : it.name);
+
+	// Only products are swiped; discounts/coupons are spread over them when booking, and so is a
+	// deposit split equally.
+	const products = $derived(data.items.filter((it) => isSwiped(it, depositSplit)));
 	const cards = $derived(
 		products.flatMap((it) => {
 			const n = unitCount(it.quantity, it.unit);
-			if (!split[it.id])
-				return [{ key: it.id, item: it, piece: 0, of: 1, cents: it.totalCents, n }];
-			return splitEqually(it.totalCents, n).map((cents, piece) => ({
+			const total = depositParts(it, depositSplit).swiped;
+			if (!split[it.id]) return [{ key: it.id, item: it, piece: 0, of: 1, cents: total, n }];
+			return splitEqually(total, n).map((cents, piece) => ({
 				key: `${it.id}#${piece}`,
 				item: it,
 				piece,
@@ -86,14 +109,16 @@
 		};
 	});
 
+	const payerId = $derived(data.fixedTarget ? data.receipt.ownerId : me);
 	const splitItems = $derived(
-		expandUnits(
+		swipedItems(
 			data.items.map((it) => ({
-				totalCents: it.totalCents,
-				kind: it.kind,
-				discountable: it.discountable,
-				decision: it.kind === 'product' ? booked[it.id]! : null
-			}))
+				...it,
+				// Discounts: the payer's own credit, as chosen now (or when it was booked)
+				owners: data.fixedTarget ? it.owners : credits[it.id] ? [me] : []
+			})),
+			booked,
+			depositSplit
 		)
 	);
 	const totals = $derived(swipeTotals(splitItems));
@@ -211,7 +236,7 @@
 			? i.t('swipe.piece', { n: card.piece + 1, of: card.of })
 			: fmtQty(card.item.quantity, card.item.unit)}
 	</span>
-	<h2 class="text-2xl font-semibold break-words">{card.item.title ?? card.item.name}</h2>
+	<h2 class="text-2xl font-semibold break-words">{lineName(card.item)}</h2>
 	{#if card.item.title && card.item.title !== card.item.name}
 		<span class="text-muted-foreground -mt-2 font-mono text-xs">{card.item.name}</span>
 	{/if}
@@ -283,6 +308,69 @@
 			<Button type="submit" variant="outline" class="w-full">{i.t('swipe.notSharing')}</Button>
 		</form>
 	</div>
+{:else if asksSetup && !setupDone}
+	{@const option =
+		'has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:ring-ring/40 flex cursor-pointer flex-col gap-0.5 rounded-xl border px-4 py-3 transition-colors has-focus-visible:ring-[3px]'}
+	<div class="flex flex-col gap-4">
+		<p class="text-muted-foreground text-sm">
+			{data.receipt.market ?? 'REWE'} · <Amount cents={data.receipt.totalCents} /> · {i.t(
+				'swipe.with'
+			)}
+			<strong class="text-foreground font-medium">{targetInfo?.label}</strong>
+			<Button variant="link" class="h-auto p-0" onclick={() => (target = null)}
+				>{i.t('swipe.change')}</Button
+			>
+		</p>
+		{#if hasDeposit}
+			<SectionTitle>{i.t('swipe.depositQuestion')}</SectionTitle>
+			<div class="-mt-2 flex flex-col gap-2" role="radiogroup">
+				<label class={option}>
+					<input type="radio" class="sr-only" bind:group={depositSplit} value="item" />
+					<span class="text-sm font-medium">{i.t('swipe.depositItem')}</span>
+					<span class="text-muted-foreground text-xs">{i.t('swipe.depositItemHint')}</span>
+				</label>
+				<label class={option}>
+					<input type="radio" class="sr-only" bind:group={depositSplit} value="even" />
+					<span class="text-sm font-medium">{i.t('swipe.depositEven')}</span>
+					<span class="text-muted-foreground text-xs">{i.t('swipe.depositEvenHint')}</span>
+				</label>
+			</div>
+		{/if}
+		{#if discounts.length}
+			<SectionTitle>{i.t('swipe.discountsQuestion')}</SectionTitle>
+			<p class="text-muted-foreground -mt-2 px-1 text-xs">{i.t('swipe.discountsHint')}</p>
+			<List.Root>
+				{#each discounts as d (d.id)}
+					<li data-slot="list-item" class="flex flex-col gap-2 px-4 py-3">
+						<span class="flex items-center gap-3">
+							<span class="text-positive"><Icon name="sparkles" size={18} /></span>
+							<span class="min-w-0 flex-1 truncate text-sm font-medium">{d.title ?? d.name}</span>
+							<Amount cents={d.totalCents} class="text-positive text-sm font-medium" />
+						</span>
+						<span class="flex gap-2" role="radiogroup" aria-label={d.title ?? d.name}>
+							{#each [false, true] as mine (mine)}
+								<label
+									class="has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:ring-ring/40 flex flex-1 cursor-pointer items-center justify-center rounded-full border px-3 py-1.5 text-sm transition-colors has-focus-visible:ring-[3px]"
+								>
+									<input
+										type="radio"
+										class="sr-only"
+										name="credit-{d.id}"
+										checked={credits[d.id] === mine}
+										onchange={() => (credits[d.id] = mine)}
+									/>
+									{mine ? i.t('swipe.myCredit') : i.t('swipe.forEveryone')}
+								</label>
+							{/each}
+						</span>
+					</li>
+				{/each}
+			</List.Root>
+		{/if}
+		<Button size="lg" onclick={() => (setupDone = true)}
+			>{i.t('swipe.start')} <Icon name="arrowRight" size={18} /></Button
+		>
+	</div>
 {:else if current}
 	{@const done = cards.length - queue.length}
 	<div class="swiping">
@@ -298,6 +386,11 @@
 			{#if !data.fixedTarget}
 				<Button variant="link" class="h-auto p-0" onclick={() => (target = null)}
 					>{i.t('swipe.change')}</Button
+				>
+			{/if}
+			{#if asksSetup}
+				· <Button variant="link" class="h-auto p-0" onclick={() => (setupDone = false)}
+					>{i.t('swipe.setup')}</Button
 				>
 			{/if}
 		</p>
@@ -316,7 +409,7 @@
 					class:dragging
 					role="button"
 					tabindex="0"
-					aria-label={i.t('swipe.cardLabel', { name: current.item.title ?? current.item.name })}
+					aria-label={i.t('swipe.cardLabel', { name: lineName(current.item) })}
 					style:transform="translate({dx}px, {dy}px) rotate({dx / 18}deg)"
 					onpointerdown={down}
 					onpointermove={move}
@@ -454,6 +547,24 @@
 					<Amount cents={totals.discount} class="font-medium" />
 				</List.Item>
 			{/if}
+			{#if totals.credit}
+				<List.Item class="text-positive text-sm">
+					<Icon name="sparkles" size={18} />
+					<span class="flex-1"
+						>{payerId === me
+							? i.t('swipe.creditMine')
+							: i.t('swipe.creditOf', { name: data.payerName ?? '' })}</span
+					>
+					<Amount cents={totals.credit} class="font-medium" />
+				</List.Item>
+			{/if}
+			{#if totals.deposit}
+				<List.Item class="text-sm">
+					<span class="text-muted-foreground"><Icon name="recycle" size={18} /></span>
+					<span class="flex-1">{i.t('swipe.pileDeposit')}</span>
+					<Amount cents={totals.deposit} class="font-medium" />
+				</List.Item>
+			{/if}
 		</List.Root>
 		<SectionTitle>{i.t('swipe.perPerson')}</SectionTitle>
 		<List.Root>
@@ -470,6 +581,10 @@
 		<form method="POST" action="?/book" use:enhance={withToast(i.t)}>
 			<input type="hidden" name="target" value={target} />
 			<input type="hidden" name="decisions" value={JSON.stringify(booked)} />
+			<input type="hidden" name="depositSplit" value={depositSplit} />
+			{#each discounts.filter((d) => credits[d.id]) as d (d.id)}
+				<input type="hidden" name="credit" value={d.id} />
+			{/each}
 			<Button type="submit" size="lg" class="w-full"
 				><Icon name="check" size={18} /> {i.t('swipe.book')}</Button
 			>

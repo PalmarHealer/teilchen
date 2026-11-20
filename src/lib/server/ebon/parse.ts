@@ -9,6 +9,8 @@ export interface ReceiptItem {
 	kind: 'product' | 'discount';
 	/** False for lines marked "*" on the receipt (deposit etc.): no discount applies to them. */
 	discountable: boolean;
+	/** Deposit (Pfand) contained in totalCents: all of it for a deposit line or a bottle return */
+	depositCents: Cents;
 }
 
 export interface ParsedReceipt {
@@ -44,7 +46,7 @@ const ITEM = /^(.+?)\s+(-?\d+,\d\d)\s+[ABC](\s*\*)?$/;
 const QTY = /^(\d+(?:,\d+)?)\s*(Stk|kg)\s*x\s*-?\d+,\d\d/;
 const TOTAL = /^SUMME\s+EUR\s+(-?\d+,\d\d)/;
 const DATE = /(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})(?::\d{2})?\s+Bon-Nr\.?:?\s*(\d+)/;
-const PFAND = /^(PFAND|EINWEG|MEHRWEG)/i;
+const PFAND = /^(PFAND|EINWEG|MEHRWEG|LEERG)/i;
 
 /** A store eBon: one line per receipt line, items between "EUR" and "SUMME EUR". */
 export function parseEbonText(text: string): ParsedReceipt | null {
@@ -69,6 +71,7 @@ export function parseEbonText(text: string): ParsedReceipt | null {
 		// A deposit (Pfand) belongs to the drink above it – nobody should have to swipe it separately.
 		if (PFAND.test(name) && cents > 0 && prev?.kind === 'product' && prev.totalCents > 0) {
 			prev.totalCents += cents;
+			prev.depositCents += cents;
 			if (!prev.name.endsWith('(inkl. Pfand)')) prev.name += ' (inkl. Pfand)';
 			continue;
 		}
@@ -78,7 +81,8 @@ export function parseEbonText(text: string): ParsedReceipt | null {
 			unit: null,
 			totalCents: cents,
 			kind: cents < 0 && DISCOUNT.test(name) ? 'discount' : 'product',
-			discountable: !m[3]
+			discountable: !m[3],
+			depositCents: PFAND.test(name) ? cents : 0
 		});
 	}
 
@@ -124,7 +128,8 @@ export function parseInvoiceText(text: string): ParsedReceipt | null {
 			unit: weight !== null ? 'kg' : 'Stk',
 			totalCents: cents,
 			kind: cents < 0 && DISCOUNT.test(name) ? 'discount' : 'product',
-			discountable: !marked
+			discountable: !marked,
+			depositCents: PFAND.test(name) ? cents : 0
 		});
 	}
 

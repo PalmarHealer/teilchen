@@ -35,6 +35,8 @@ describe('parseEbonText', () => {
 		]);
 		expect(bon.items[0]).toMatchObject({ quantity: 2, unit: 'Stk' });
 		expect(bon.items[1]).toMatchObject({ quantity: 1.05, unit: 'kg' });
+		// The deposit stays known, to be split equally if wanted
+		expect(bon.items.map((i) => i.depositCents)).toEqual([0, 0, 25, -30]);
 		expect(bon.mismatch).toBe(false);
 	});
 

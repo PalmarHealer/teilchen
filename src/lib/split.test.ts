@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
 	expandUnits,
+	isSwiped,
 	resolveReceipt,
 	resolveSwipes,
 	sharesFromItems,
+	swipedItems,
 	swipeTotals,
 	unitCount,
 	type Decision,
@@ -81,7 +83,7 @@ describe('swipeTotals', () => {
 				product(401, 'theirs'),
 				discount(-50)
 			])
-		).toEqual({ mine: 199, theirs: 401, shared: 300, discount: -50 });
+		).toEqual({ mine: 199, theirs: 401, shared: 300, deposit: 0, discount: -50, credit: 0 });
 	});
 });
 
@@ -227,5 +229,65 @@ describe('resolveReceipt', () => {
 		);
 		expect(r.conflicts).toBe(0);
 		expect(Object.fromEntries(r.shares)).toEqual({ me: 0, ben: 300 });
+	});
+});
+
+describe('deposit and credits', () => {
+	const line = (id: string, totalCents: number, more: object = {}) => ({
+		id,
+		totalCents,
+		kind: 'product' as const,
+		discountable: true,
+		quantity: 1,
+		unit: null,
+		owners: null,
+		...more
+	});
+	const swipes = (d: Record<string, Decision>) => new Map([['me', d]]);
+
+	it('keeps the deposit with its product by default', () => {
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben', 'cleo'],
+			[line('water', 84, { depositCents: 25 })],
+			swipes({ water: 'theirs' })
+		);
+		expect(Object.fromEntries(r.shares)).toEqual({ me: 0, ben: 42, cleo: 42 });
+	});
+
+	it('splits the deposit equally, and bottle returns too, without swiping them', () => {
+		const lines = [
+			line('water', 84, { depositCents: 30 }), // 54 water + 30 deposit
+			line('return', -60, { depositCents: -60, discountable: false })
+		];
+		const r = resolveReceipt('me', ['me', 'ben', 'cleo'], lines, swipes({ water: 'mine' }), 'even');
+		expect(Object.fromEntries(r.shares)).toEqual({ me: 44, ben: -10, cleo: -10 });
+		expect(isSwiped(lines[1]!, 'even')).toBe(false);
+		expect(isSwiped(lines[1]!, 'item')).toBe(true);
+
+		// The swipe page computes the same from one person's swipe
+		const items = swipedItems(lines, { water: 'mine' }, 'even');
+		expect(Object.fromEntries(sharesFromItems('me', ['me', 'ben', 'cleo'], items))).toEqual({
+			me: 44,
+			ben: -10,
+			cleo: -10
+		});
+		expect(swipeTotals(items)).toMatchObject({ mine: 54, deposit: -30 });
+	});
+
+	it("credits the payer's own REWE credit to the payer alone, even below zero", () => {
+		// 30 € for everyone, a 3 € coupon for everyone, 20 € of my own credit
+		const r = resolveReceipt(
+			'me',
+			['me', 'ben', 'cleo'],
+			[
+				line('food', 3000),
+				{ ...line('coupon', -300), kind: 'discount' as const },
+				{ ...line('credit', -2000), kind: 'discount' as const, owners: ['me'] }
+			],
+			swipes({ food: 'shared' })
+		);
+		expect(Object.fromEntries(r.shares)).toEqual({ me: -1100, ben: 900, cleo: 900 });
+		expect([...r.shares.values()].reduce((a, b) => a + b)).toBe(700);
 	});
 });

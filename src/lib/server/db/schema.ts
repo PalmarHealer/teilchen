@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { ItemDecision } from '../../split.ts';
+import type { DepositSplit, ItemDecision } from '../../split.ts';
 import {
 	boolean,
 	index,
@@ -169,6 +169,8 @@ export const receipts = pgTable(
 			.array()
 			.notNull()
 			.default(sql`'{}'::uuid[]`),
+		/** How the deposit is split, chosen by the payer when booking (see #lib/split) */
+		depositSplit: text('deposit_split').$type<DepositSplit>().notNull().default('item'),
 		raw: jsonb('raw'),
 		createdAt: createdAt()
 	},
@@ -195,9 +197,14 @@ export const receiptItems = pgTable(
 			.default('product'),
 		/** False for lines marked "*" on the receipt: discounts don't apply to them */
 		discountable: boolean('discountable').notNull().default(true),
+		/** Deposit (Pfand) contained in total_cents: all of it for a deposit line or a bottle return */
+		depositCents: integer('deposit_cents').notNull().default(0),
 		/** Old receipts only; swipes now live in receipt_swipes */
 		decision: itemDecision('decision'),
-		/** Who gets this line, set by hand after swiping; null = follow the swipes */
+		/**
+		 * Products: who gets this line, set by hand after swiping; null = follow the swipes.
+		 * Discounts: who it is credited to (the payer's own REWE credit); null = everyone.
+		 */
 		owners: uuid('owners').array()
 	},
 	(t) => [index('receipt_items_receipt').on(t.receiptId)]

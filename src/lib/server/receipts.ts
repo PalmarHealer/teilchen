@@ -32,7 +32,8 @@ export async function importEbon(
 					unit: it.unit,
 					totalCents: it.totalCents,
 					kind: it.kind,
-					discountable: it.discountable
+					discountable: it.discountable,
+					depositCents: it.depositCents
 				}))
 			);
 		}

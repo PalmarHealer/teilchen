@@ -87,7 +87,8 @@ export const en = {
 		helpPieces:
 			'Lines with several pieces can be swiped piece by piece, e.g. share one roll and keep the other.',
 		helpKeys: 'On a computer, the arrow keys (left, up, right) and Backspace work too.',
-		helpDiscount: 'Discounts and coupons are spread proportionally at the end.',
+		helpDiscount:
+			'Discounts and coupons are spread proportionally at the end; your own REWE credit counts for you alone.',
 		helpClose: 'Got it',
 		title: 'Swipe receipts',
 		items: ((p) => (p.n === 1 ? '1 item' : `${p.n} items`)) as Plural,
@@ -129,7 +130,23 @@ export const en = {
 		swipeTooHint: "Swipe what of it was yours. It's booked already, you only correct it.",
 		paidBy: 'paid by {name}',
 		book: 'Book',
-		undoLast: 'Undo last'
+		undoLast: 'Undo last',
+		setup: 'Deposit & coupons',
+		depositQuestion: 'How is the deposit split?',
+		depositItem: 'With the product',
+		depositItemHint: 'Whoever gets the bottle pays its deposit.',
+		depositEven: 'Equally between everyone',
+		depositEvenHint:
+			'Deposit and returned bottles are split equally, no matter whose bottle it was.',
+		discountsQuestion: 'Who are the discounts for?',
+		discountsHint:
+			'A coupon for everyone is spread proportionally. Your own REWE credit counts for you alone, even if it is more than your part.',
+		forEveryone: 'For everyone',
+		myCredit: 'My credit',
+		start: "Let's swipe",
+		pileDeposit: 'Deposit, split equally',
+		creditMine: 'Your credit, for you alone',
+		creditOf: 'Credit of {name}, for {name} alone'
 	},
 	product: {
 		findPhoto: 'Find photo',

@@ -3,6 +3,30 @@ import { allocate, splitEqually, type Cents } from './money';
 /** mine = only me ("das hab ich"); theirs = the others ("das du"); shared = everyone ("das wir"). */
 export type Decision = 'mine' | 'shared' | 'theirs';
 
+/**
+ * How a receipt's deposit (Pfand) is split, chosen once per receipt: with the product it was paid
+ * for ('item'), or equally between everyone ('even') – then bottle returns are split equally too,
+ * and nobody has to work out whose bottle it was.
+ */
+export type DepositSplit = 'item' | 'even';
+
+type Line = { totalCents: Cents; depositCents?: Cents; kind: 'product' | 'discount' };
+
+/**
+ * The part of a line that is swiped, and the deposit in it that is split equally instead.
+ * `depositCents` is the deposit contained in the line's total (all of it for a pure deposit line).
+ */
+export function depositParts(line: Line, mode: DepositSplit): { swiped: Cents; even: Cents } {
+	const deposit = line.depositCents ?? 0;
+	if (mode !== 'even' || line.kind !== 'product' || !deposit)
+		return { swiped: line.totalCents, even: 0 };
+	return { swiped: line.totalCents - deposit, even: deposit };
+}
+
+/** Whether a line is swiped at all: products, except pure deposit lines that are split equally. */
+export const isSwiped = (line: Line, mode: DepositSplit) =>
+	line.kind === 'product' && depositParts(line, mode).swiped !== 0;
+
 export interface SplitItem {
 	totalCents: Cents;
 	kind: 'product' | 'discount';
@@ -10,6 +34,10 @@ export interface SplitItem {
 	discountable: boolean;
 	/** Products only; discounts are never swiped */
 	decision: Decision | null;
+	/** Discounts only: who it is credited to (e.g. the payer's own REWE credit); none = everyone */
+	owners?: string[];
+	/** A deposit split equally between everyone (see DepositSplit) */
+	deposit?: boolean;
 }
 
 /** Who gets a product under `voter`'s decision. Without anyone else, "theirs" stays with `voter`. */
@@ -30,8 +58,9 @@ export interface OwnedItem {
 
 /**
  * Owned items → share per person. Products are split equally between their owners (or go to
- * `fallback` without any); discounts and redeemed coupons are spread over the people in proportion
- * to what they got of the discountable products.
+ * `fallback` without any). Discounts with owners (someone's own credit) go to them alone, so their
+ * share can turn negative; the other discounts and redeemed coupons are spread over the people in
+ * proportion to what they got of the discountable products.
  */
 export function sharesFromOwners(
 	everyone: string[],
@@ -55,7 +84,20 @@ export function sharesFromOwners(
 		});
 	}
 
-	const discount = items.filter((i) => i.kind === 'discount').reduce((a, i) => a + i.totalCents, 0);
+	for (const it of items) {
+		if (it.kind !== 'discount' || !it.owners.length) continue;
+		allocate(
+			it.totalCents,
+			it.owners.map(() => 1)
+		).forEach((c, i) => {
+			const p = it.owners[i]!;
+			shares.set(p, (shares.get(p) ?? 0) + c);
+		});
+	}
+
+	const discount = items
+		.filter((i) => i.kind === 'discount' && !i.owners.length)
+		.reduce((a, i) => a + i.totalCents, 0);
 	if (discount !== 0) {
 		const all = [...shares.keys()];
 		// Fall back to all positive shares, then to `fallback`, if nothing discountable was bought.
@@ -82,7 +124,10 @@ export function sharesFromItems(
 		me,
 		items.map((it) => ({
 			...it,
-			owners: it.kind === 'product' ? ownersOf(me, it.decision ?? 'theirs', everyone) : []
+			owners:
+				it.kind === 'product'
+					? ownersOf(me, it.decision ?? 'theirs', everyone)
+					: (it.owners ?? []).filter((p) => everyone.includes(p))
 		}))
 	);
 }
@@ -162,31 +207,53 @@ export interface ReceiptLine {
 	discountable: boolean;
 	quantity: string | number;
 	unit: string | null;
-	/** Set by hand after swiping; overrides all swipes */
+	/** Deposit contained in totalCents */
+	depositCents?: Cents;
+	/** Products: set by hand after swiping, overrides all swipes. Discounts: who it's credited to. */
 	owners: string[] | null;
 }
 
 /**
  * A receipt swiped by several people: per line its pieces with owners and conflicts, and the
  * resulting shares. `swipes` holds each person's decisions by line id. A line one person swiped
- * piece by piece is resolved piece by piece for everyone.
+ * piece by piece is resolved piece by piece for everyone. With the deposit split equally, a line's
+ * `evenCents` goes to everyone in equal parts, next to its pieces.
  */
 export function resolveReceipt<L extends ReceiptLine>(
 	payer: string,
 	everyone: string[],
 	lines: L[],
-	swipes: Map<string, Record<string, ItemDecision>>
+	swipes: Map<string, Record<string, ItemDecision>>,
+	depositSplit: DepositSplit = 'item'
 ) {
 	const resolved = lines.map((line) => {
+		const manual = line.owners?.filter((p) => everyone.includes(p));
 		if (line.kind !== 'product')
-			return { ...line, pieces: [{ cents: line.totalCents, owners: [], conflict: false }] };
+			return {
+				...line,
+				evenCents: 0,
+				pieces: [{ cents: line.totalCents, owners: manual ?? [], conflict: false }]
+			};
+		// A pure deposit line (or a bottle return) isn't swiped: everyone gets an equal part.
+		if (!isSwiped(line, depositSplit))
+			return {
+				...line,
+				evenCents: 0,
+				pieces: [
+					{ cents: line.totalCents, owners: manual?.length ? manual : everyone, conflict: false }
+				]
+			};
+		const { swiped, even } = depositParts(line, depositSplit);
 		const own = [...swipes].filter(([, d]) => d[line.id]);
 		const n = unitCount(line.quantity, line.unit);
 		const split = own.some(([, d]) => Array.isArray(d[line.id]) && d[line.id]!.length === n);
-		const cents = split ? splitEqually(line.totalCents, n) : [line.totalCents];
-		const manual = line.owners?.filter((p) => everyone.includes(p));
+		const cents = split ? splitEqually(swiped, n) : [swiped];
 		if (manual?.length)
-			return { ...line, pieces: cents.map((c) => ({ cents: c, owners: manual, conflict: false })) };
+			return {
+				...line,
+				evenCents: even,
+				pieces: cents.map((c) => ({ cents: c, owners: manual, conflict: false }))
+			};
 		const perVoter = new Map(
 			own.map(([voter, d]) => {
 				const x = d[line.id]!;
@@ -196,20 +263,32 @@ export function resolveReceipt<L extends ReceiptLine>(
 		const votes = matchPieces(payer, everyone, cents.length, perVoter);
 		return {
 			...line,
+			evenCents: even,
 			pieces: cents.map((c, u) => ({ cents: c, ...resolveSwipes(payer, everyone, votes[u]!) }))
 		};
 	});
 	const shares = sharesFromOwners(
 		everyone,
 		payer,
-		resolved.flatMap((l) =>
-			l.pieces.map((p) => ({
+		resolved.flatMap((l) => [
+			...l.pieces.map((p) => ({
 				totalCents: p.cents,
 				kind: l.kind,
 				discountable: l.discountable,
 				owners: p.owners
-			}))
-		)
+			})),
+			// No discount applies to a deposit
+			...(l.evenCents
+				? [
+						{
+							totalCents: l.evenCents,
+							kind: 'product' as const,
+							discountable: false,
+							owners: everyone
+						}
+					]
+				: [])
+		])
 	);
 	return {
 		lines: resolved,
@@ -242,14 +321,69 @@ export function expandUnits(
 	);
 }
 
-/** The three piles of a swiped receipt, plus the discount spread over them. */
+/**
+ * The three piles of a swiped receipt, the deposit split equally, the discount spread over the
+ * piles and the credit that goes to someone alone.
+ */
 export function swipeTotals(items: SplitItem[]) {
 	const sum = (pred: (i: SplitItem) => boolean) =>
 		items.filter(pred).reduce((a, i) => a + i.totalCents, 0);
+	const pile = (d: Decision) => (i: SplitItem) =>
+		i.kind === 'product' && !i.deposit && i.decision === d;
 	return {
-		mine: sum((i) => i.kind === 'product' && i.decision === 'mine'),
-		theirs: sum((i) => i.kind === 'product' && i.decision === 'theirs'),
-		shared: sum((i) => i.kind === 'product' && i.decision === 'shared'),
-		discount: sum((i) => i.kind === 'discount')
+		mine: sum(pile('mine')),
+		theirs: sum(pile('theirs')),
+		shared: sum(pile('shared')),
+		deposit: sum((i) => i.kind === 'product' && !!i.deposit),
+		discount: sum((i) => i.kind === 'discount' && !i.owners?.length),
+		credit: sum((i) => i.kind === 'discount' && !!i.owners?.length)
 	};
+}
+
+/**
+ * A receipt's lines with one person's swipe → SplitItems: lines swiped piece by piece become one
+ * item per piece, and a deposit split equally becomes an item of its own that everyone shares.
+ */
+export function swipedItems(
+	lines: (Line & {
+		id: string;
+		discountable: boolean;
+		/** Discounts only: who it is credited to */
+		owners?: string[] | null;
+	})[],
+	decisions: Record<string, ItemDecision | null>,
+	depositSplit: DepositSplit
+): SplitItem[] {
+	return lines.flatMap((l): SplitItem[] => {
+		if (l.kind === 'discount')
+			return [
+				{
+					totalCents: l.totalCents,
+					kind: 'discount',
+					discountable: l.discountable,
+					decision: null,
+					owners: l.owners ?? []
+				}
+			];
+		const deposit = (totalCents: Cents): SplitItem => ({
+			totalCents,
+			kind: 'product',
+			discountable: false,
+			decision: 'shared',
+			deposit: true
+		});
+		if (!isSwiped(l, depositSplit)) return [deposit(l.totalCents)];
+		const { swiped, even } = depositParts(l, depositSplit);
+		return [
+			...expandUnits([
+				{
+					totalCents: swiped,
+					kind: 'product',
+					discountable: l.discountable,
+					decision: decisions[l.id] ?? null
+				}
+			]),
+			...(even ? [deposit(even)] : [])
+		];
+	});
 }

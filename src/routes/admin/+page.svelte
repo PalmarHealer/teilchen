@@ -41,6 +41,10 @@
 	// Photos that didn't load: the icon instead
 	let broken = $state<Record<string, true>>({});
 
+	// Long lists start folded; filtering opens the product lists
+	let unfolded = $state({ mails: false, products: false, unlinked: false });
+	const isOpen = (s: keyof typeof unfolded) => unfolded[s] || (s !== 'mails' && !!filter.trim());
+
 	const statusKey = (s: string) =>
 		(['imported', 'no_ebon', 'unknown_user', 'ignored'].includes(s)
 			? `admin.mailStatus.${s}`
@@ -55,10 +59,27 @@
 
 <Header title={i.t('admin.title')} />
 
+{#snippet fold(section: keyof typeof unfolded, title: string)}
+	<h2 class="mt-3">
+		<button
+			class="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex items-center gap-1.5 rounded-md px-1 text-left text-sm font-medium transition-colors outline-none focus-visible:ring-[3px]"
+			aria-expanded={isOpen(section)}
+			onclick={() => (unfolded[section] = !isOpen(section))}
+		>
+			<span class={['transition-transform', isOpen(section) && 'rotate-90']}
+				><Icon name="chevronRight" size={16} /></span
+			>
+			{title}
+		</button>
+	</h2>
+{/snippet}
+
 <div class="flex flex-col gap-4">
-	<SectionTitle>{i.t('admin.mails')}</SectionTitle>
+	{@render fold('mails', `${i.t('admin.mails')} (${data.mails.length})`)}
 	<p class="text-muted-foreground -mt-2 px-1 text-xs">{i.t('admin.mailsHint')}</p>
-	{#if data.mails.length}
+	{#if !isOpen('mails')}
+		<!-- folded -->
+	{:else if data.mails.length}
 		<List.Root>
 			{#each data.mails as m (m.messageId)}
 				{@const key = statusKey(m.status)}
@@ -145,9 +166,11 @@
 
 	<Input type="search" bind:value={filter} placeholder={i.t('admin.filter')} />
 
-	<SectionTitle>{i.t('admin.products')} ({data.products.length})</SectionTitle>
+	{@render fold('products', `${i.t('admin.products')} (${data.products.length})`)}
 	<p class="text-muted-foreground -mt-2 px-1 text-xs">{i.t('admin.productsHint')}</p>
-	{#if products.length}
+	{#if !isOpen('products')}
+		<!-- folded -->
+	{:else if products.length}
 		<ul class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
 			{#each products as p (p.name)}
 				<li>
@@ -184,9 +207,11 @@
 		<p class="text-muted-foreground px-1 text-sm">{i.t('admin.noProducts')}</p>
 	{/if}
 
-	<SectionTitle>{i.t('admin.unlinked')} ({data.unlinked.length})</SectionTitle>
+	{@render fold('unlinked', `${i.t('admin.unlinked')} (${data.unlinked.length})`)}
 	<p class="text-muted-foreground -mt-2 px-1 text-xs">{i.t('admin.unlinkedHint')}</p>
-	{#if unlinked.length}
+	{#if !isOpen('unlinked')}
+		<!-- folded -->
+	{:else if unlinked.length}
 		<List.Root>
 			{#each unlinked as p (p.name)}
 				<li data-slot="list-item">

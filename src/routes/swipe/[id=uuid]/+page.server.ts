@@ -1,8 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { formatDate, translate, type Locale } from '#lib/i18n/index.ts';
-import { unitCount } from '#lib/split.ts';
+import { isSwiped, unitCount, type DepositSplit } from '#lib/split.ts';
 import { db, schema } from '#lib/server/db/index.ts';
 import { canLink } from '#lib/product-image.ts';
 import {
@@ -64,7 +64,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			unit: schema.receiptItems.unit,
 			totalCents: schema.receiptItems.totalCents,
 			kind: schema.receiptItems.kind,
-			discountable: schema.receiptItems.discountable
+			discountable: schema.receiptItems.discountable,
+			depositCents: schema.receiptItems.depositCents,
+			owners: schema.receiptItems.owners
 		})
 		.from(schema.receiptItems)
 		.leftJoin(schema.productLinks, eq(schema.productLinks.name, schema.receiptItems.name))
@@ -82,7 +84,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			id: receipt.id,
 			market: receipt.market,
 			purchasedAt: receipt.purchasedAt,
-			totalCents: receipt.totalCents
+			totalCents: receipt.totalCents,
+			ownerId: receipt.ownerId,
+			depositSplit: receipt.depositSplit
 		},
 		items: items.map(({ linkSource, ...it }) => ({
 			...it,
@@ -121,8 +125,23 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const groups = await Promise.all(
 		(await groupsOf(me)).map(async (g) => ({ ...g, memberIds: await groupMemberIds(g.id) }))
 	);
+	// The deposit is split the way I split it last time
+	const [last] = await db
+		.select({ depositSplit: schema.receipts.depositSplit })
+		.from(schema.receipts)
+		.innerJoin(schema.receiptItems, eq(schema.receiptItems.receiptId, schema.receipts.id))
+		.where(
+			and(
+				eq(schema.receipts.ownerId, me),
+				isNotNull(schema.receipts.expenseId),
+				sql`${schema.receiptItems.depositCents} <> 0`
+			)
+		)
+		.orderBy(desc(schema.receipts.purchasedAt))
+		.limit(1);
 	return {
 		...base,
+		receipt: { ...base.receipt, depositSplit: last?.depositSplit ?? ('item' as DepositSplit) },
 		payerName: null,
 		fixedTarget: null,
 		contacts: await contactsOf(me),
@@ -141,7 +160,10 @@ const Decision = z.enum(['mine', 'shared', 'theirs']);
 const BookInput = z.object({
 	target: z.string().regex(new RegExp(`^(user|group):${UUID_SOURCE}$`)),
 	// One decision per line, or one per piece for lines swiped piece by piece
-	decisions: z.record(z.string().uuid(), z.union([Decision, z.array(Decision)]))
+	decisions: z.record(z.string().uuid(), z.union([Decision, z.array(Decision)])),
+	depositSplit: z.enum(['item', 'even']),
+	// Discount lines that are the payer's own credit, not for everyone
+	credits: z.array(z.string().uuid())
 });
 
 const RenameInput = z.object({
@@ -166,24 +188,33 @@ export const actions: Actions = {
 		} catch {
 			return fail(400, { message: 'errors.invalidInput' as const });
 		}
-		const parsed = BookInput.safeParse({ target: form.get('target'), decisions: raw });
+		const parsed = BookInput.safeParse({
+			target: form.get('target'),
+			decisions: raw,
+			// Fixed by the payer when booking
+			depositSplit: payer ? form.get('depositSplit') : receipt.depositSplit,
+			credits: payer ? form.getAll('credit') : []
+		});
 		if (!parsed.success) return fail(400, { message: 'errors.invalidInput' as const });
-		const { target, decisions } = parsed.data;
+		const { target, decisions, depositSplit, credits } = parsed.data;
 
 		const items = await db
 			.select()
 			.from(schema.receiptItems)
 			.where(eq(schema.receiptItems.receiptId, receipt.id));
-		// Only products are swiped; discounts are spread over them when the shares are computed.
+		// Only products are swiped (not a deposit split equally); discounts are spread over them
+		// or credited to the payer when the shares are computed.
+		const toSwipe = items.filter((i) => isSwiped(i, depositSplit));
 		const swiped = (i: (typeof items)[number]) => {
 			const d = decisions[i.id];
 			return Array.isArray(d) ? d.length === unitCount(i.quantity, i.unit) && d.length > 1 : !!d;
 		};
-		if (items.some((i) => i.kind === 'product' && !swiped(i)))
+		if (toSwipe.some((i) => !swiped(i)))
 			return fail(400, { message: 'errors.notAllSwiped' as const });
-		const own = Object.fromEntries(
-			items.filter((i) => i.kind === 'product').map((i) => [i.id, decisions[i.id]!])
-		);
+		const own = Object.fromEntries(toSwipe.map((i) => [i.id, decisions[i.id]!]));
+		const discounts = items.filter((i) => i.kind === 'discount').map((i) => i.id);
+		if (credits.some((id) => !discounts.includes(id)))
+			return fail(400, { message: 'errors.invalidInput' as const });
 
 		if (!payer) {
 			await db.transaction(async (tx) => {
@@ -221,8 +252,13 @@ export const actions: Actions = {
 			);
 			await tx
 				.update(schema.receipts)
-				.set({ expenseId, participants })
+				.set({ expenseId, participants, depositSplit })
 				.where(eq(schema.receipts.id, receipt.id));
+			if (credits.length)
+				await tx
+					.update(schema.receiptItems)
+					.set({ owners: [me] })
+					.where(inArray(schema.receiptItems.id, credits));
 			await saveSwipe(tx, receipt.id, me, own);
 			await rebookReceipt(receipt.id, tx);
 		});

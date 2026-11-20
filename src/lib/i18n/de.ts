@@ -86,7 +86,8 @@ export const de: Dictionary = {
 		helpPieces:
 			'Bei mehreren Stück kannst du sie einzeln swipen, z. B. ein Brötchen teilen und eins behalten.',
 		helpKeys: 'Am Rechner gehen auch die Pfeiltasten (links, hoch, rechts) und die Rücktaste.',
-		helpDiscount: 'Rabatte und Gutscheine verteilt Teilchen am Ende anteilig.',
+		helpDiscount:
+			'Rabatte und Gutscheine verteilt Teilchen am Ende anteilig, dein eigenes REWE-Guthaben zählt nur für dich.',
 		helpClose: 'Verstanden',
 		title: 'Einkäufe swipen',
 		items: (p) => (p.n === 1 ? '1 Position' : `${p.n} Positionen`),
@@ -129,7 +130,23 @@ export const de: Dictionary = {
 		swipeTooHint: 'Swipe, was davon deins war. Gebucht ist schon, du korrigierst nur.',
 		paidBy: 'bezahlt von {name}',
 		book: 'Buchen',
-		undoLast: 'Letzte zurück'
+		undoLast: 'Letzte zurück',
+		setup: 'Pfand & Gutscheine',
+		depositQuestion: 'Wie wird der Pfand geteilt?',
+		depositItem: 'Mit dem Produkt',
+		depositItemHint: 'Wer die Flasche bekommt, zahlt auch ihren Pfand.',
+		depositEven: 'Gleichmäßig auf alle',
+		depositEvenHint:
+			'Pfand und zurückgegebenes Leergut werden gleich aufgeteilt, egal wessen Flasche es war.',
+		discountsQuestion: 'Für wen sind die Rabatte?',
+		discountsHint:
+			'Ein Gutschein für alle wird anteilig verteilt. Dein eigenes REWE-Guthaben zählt nur für dich, auch wenn es mehr ist als dein Anteil.',
+		forEveryone: 'Für alle',
+		myCredit: 'Mein Guthaben',
+		start: 'Los geht’s',
+		pileDeposit: 'Pfand, gleichmäßig geteilt',
+		creditMine: 'Dein Guthaben, nur dir angerechnet',
+		creditOf: 'Guthaben von {name}, nur {name} angerechnet'
 	},
 	product: {
 		findPhoto: 'Bild finden',
