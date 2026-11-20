@@ -38,6 +38,9 @@
 	</span>
 	{#if effect !== 0}
 		<Amount cents={effect} signed class="text-sm font-semibold" />
+	{:else if e.payerId === me || e.myShare !== 0}
+		<!-- In it, but it evens out (e.g. a purchase that was all mine) -->
+		<Amount cents={0} class="text-muted-foreground text-sm font-semibold" />
 	{:else}
 		<span class="text-muted-foreground text-xs">{i.t('common.notInvolved')}</span>
 	{/if}
